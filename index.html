@@ -3,39 +3,39 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-width=1.0">
-    <title>ระบบสต็อก & บันทึกการขาย (Full Edit)</title>
+    <title>ระบบสต็อก & บันทึกการขาย (Full Inventory Pro)</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
-        body { background-color: #f8f9fa; font-family: 'Sarabun', sans-serif; }
-        .app-container { max-width: 600px; margin: 0 auto; background: white; min-height: 100vh; box-shadow: 0 0 15px rgba(0,0,0,0.1); }
+        body { background-color: #f4f6f9; font-family: 'Sarabun', sans-serif; }
+        .app-container { max-width: 650px; margin: 0 auto; background: white; min-height: 100vh; box-shadow: 0 0 15px rgba(0,0,0,0.1); }
         .header { background: #0d6efd; color: white; padding: 15px; text-align: center; }
-        .nav-tabs { flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; white-space: nowrap; }
-        .nav-tabs .nav-link { color: #495057; border-radius: 0; padding: 10px 15px; }
+        .nav-tabs { flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; white-space: nowrap; background: #fff;}
+        .nav-tabs .nav-link { color: #495057; border-radius: 0; padding: 12px 15px; }
         .nav-tabs .nav-link.active { font-weight: bold; color: #0d6efd; border-bottom: 3px solid #0d6efd; background: transparent; border-top: none; border-left: none; border-right: none;}
         .content-area { padding: 20px; }
-        .barcode-input { font-size: 24px; text-align: center; letter-spacing: 2px; height: 60px; border: 2px solid #0d6efd; }
+        .barcode-input { font-size: 24px; text-align: center; letter-spacing: 2px; height: 60px; border: 2px solid #0d6efd; border-radius: 10px;}
         .barcode-input:focus { box-shadow: 0 0 10px rgba(13, 110, 253, 0.5); }
-        .stock-box { background-color: #e9ecef; border-radius: 10px; padding: 15px; margin-bottom: 15px; }
-        .product-row { border-bottom: 1px dashed #ccc; padding-bottom: 10px; margin-bottom: 10px; }
+        .stock-box { background-color: #ffffff; border-radius: 10px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);}
+        .product-row { border-bottom: 1px dashed #eee; padding-bottom: 10px; margin-bottom: 10px; }
         .product-row:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
-        .action-buttons button { margin-bottom: 4px; }
+        .low-stock { color: #dc3545 !important; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div class="app-container">
     <div class="header">
-        <h4 class="mb-0">📦 ระบบสต็อก & ขายสินค้า</h4>
+        <h4 class="mb-0">📦 ระบบจัดการสต็อก & งานขาย</h4>
     </div>
 
     <!-- เมนู Tabs -->
     <ul class="nav nav-tabs" id="myTab" role="tablist">
         <li class="nav-item" role="presentation">
-            <button class="nav-link active" id="scan-tab" data-bs-toggle="tab" data-bs-target="#scan" type="button" role="tab">📷 สแกนขาย</button>
+            <button class="nav-link active" id="scan-tab" data-bs-toggle="tab" data-bs-target="#scan" type="button" role="tab">📷 ขาย</button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link" id="products-tab" data-bs-toggle="tab" data-bs-target="#products" type="button" role="tab" onclick="renderProducts()">🛒 สินค้า</button>
+            <button class="nav-link" id="products-tab" data-bs-toggle="tab" data-bs-target="#products" type="button" role="tab" onclick="renderProducts()">🛒 สต็อกสินค้า</button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" id="customers-tab" data-bs-toggle="tab" data-bs-target="#customers" type="button" role="tab" onclick="renderCustomers()">👥 ลูกค้า</button>
@@ -49,39 +49,50 @@
         
         <!-- Tab 1: สแกนขาย -->
         <div class="tab-pane fade show active" id="scan" role="tabpanel">
-            <h6 class="text-muted fw-bold">สต็อกสินค้าคงเหลือ</h6>
+            <div class="d-flex justify-content-between align-items-end mb-2">
+                <h6 class="text-muted fw-bold mb-0">สถานะสต็อกปัจจุบัน</h6>
+            </div>
             <div id="displayMainStock" class="row g-2 mb-4"></div>
 
-            <div class="text-center mb-4">
-                <p class="text-muted">จิ้มที่ช่องด้านล่าง แล้วใช้เครื่องสแกนบาร์โค้ดได้เลย</p>
-                <input type="text" id="barcodeInput" class="form-control barcode-input" placeholder="สแกนบาร์โค้ดที่นี่..." autofocus autocomplete="off">
+            <div class="text-center mb-4 mt-4">
+                <p class="text-muted">สแกนรหัสลูกค้า หรือ พิมพ์แล้วกด Enter</p>
+                <input type="text" id="barcodeInput" class="form-control barcode-input" placeholder="สแกนรหัสลูกค้า..." autofocus autocomplete="off">
             </div>
         </div>
 
-        <!-- Tab 2: จัดการสินค้า -->
+        <!-- Tab 2: จัดการสินค้า (Inventory System) -->
         <div class="tab-pane fade" id="products" role="tabpanel">
-            <form id="addProductForm" class="mb-4 bg-light p-3 border rounded" onsubmit="addProduct(event)">
-                <h5>➕ เพิ่มสินค้าใหม่</h5>
-                <div class="row g-2">
-                    <div class="col-7">
-                        <input type="text" id="newProdName" class="form-control" placeholder="ชื่อสินค้า" required>
+            <form id="addProductForm" class="mb-4 bg-white p-3 border rounded shadow-sm" onsubmit="addProduct(event)">
+                <h6 class="text-primary fw-bold">➕ เพิ่มสินค้าเข้าระบบ</h6>
+                <div class="row g-2 mb-2">
+                    <div class="col-4">
+                        <input type="text" id="newProdCode" class="form-control form-control-sm" placeholder="รหัส (SKU)">
                     </div>
-                    <div class="col-5">
-                        <input type="number" id="newProdPrice" class="form-control" placeholder="ราคา/หน่วย" required>
+                    <div class="col-8">
+                        <input type="text" id="newProdName" class="form-control form-control-sm" placeholder="ชื่อสินค้า *" required>
                     </div>
                 </div>
-                <button type="submit" class="btn btn-primary w-100 mt-2">บันทึกสินค้า</button>
+                <div class="row g-2 mb-2">
+                    <div class="col-6">
+                        <input type="number" id="newProdPrice" class="form-control form-control-sm" placeholder="ราคาขาย/หน่วย *" required>
+                    </div>
+                    <div class="col-6">
+                        <input type="number" id="newProdMinStock" class="form-control form-control-sm" placeholder="เตือนเมื่อต่ำกว่า (ชิ้น)">
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary btn-sm w-100">บันทึกสินค้าใหม่</button>
             </form>
             
-            <h5>รายการสินค้าและสต็อก</h5>
-            <div class="table-responsive">
-                <table class="table table-bordered table-sm align-middle">
+            <h6 class="fw-bold">คลังสินค้า (Inventory)</h6>
+            <div class="table-responsive bg-white rounded shadow-sm">
+                <table class="table table-hover table-sm align-middle mb-0" style="font-size: 14px;">
                     <thead class="table-dark">
                         <tr>
+                            <th>รหัส</th>
                             <th>ชื่อสินค้า</th>
                             <th>ราคา</th>
-                            <th>คงเหลือ</th>
-                            <th style="min-width: 130px;">จัดการ</th>
+                            <th class="text-center">คงเหลือ</th>
+                            <th class="text-center">จัดการ</th>
                         </tr>
                     </thead>
                     <tbody id="productTableBody"></tbody>
@@ -91,27 +102,28 @@
 
         <!-- Tab 3: จัดการลูกค้า -->
         <div class="tab-pane fade" id="customers" role="tabpanel">
-            <form id="addCustomerForm" class="mb-4 bg-light p-3 border rounded" onsubmit="addCustomer(event)">
-                <h5>➕ เพิ่มลูกค้าใหม่</h5>
+            <!-- (ใช้โค้ดลูกค้าเดิม) -->
+            <form id="addCustomerForm" class="mb-4 bg-white p-3 border rounded shadow-sm" onsubmit="addCustomer(event)">
+                <h6 class="text-primary fw-bold">➕ เพิ่มลูกค้าใหม่</h6>
                 <div class="row g-2">
                     <div class="col-4">
-                        <input type="text" id="newBarcode" class="form-control" placeholder="รหัส" required>
+                        <input type="text" id="newBarcode" class="form-control form-control-sm" placeholder="รหัสลูกค้า" required>
                     </div>
                     <div class="col-8">
-                        <input type="text" id="newName" class="form-control" placeholder="ชื่อลูกค้า" required>
+                        <input type="text" id="newName" class="form-control form-control-sm" placeholder="ชื่อลูกค้า" required>
                     </div>
                 </div>
-                <button type="submit" class="btn btn-primary w-100 mt-2">บันทึกลูกค้า</button>
+                <button type="submit" class="btn btn-primary btn-sm w-100 mt-2">บันทึกลูกค้า</button>
             </form>
             
-            <h5>รายชื่อลูกค้าและยอดค้างชำระ</h5>
-            <div class="table-responsive">
-                <table class="table table-bordered table-sm">
+            <h6 class="fw-bold">บัญชีลูกค้าและยอดค้าง</h6>
+            <div class="table-responsive bg-white rounded shadow-sm">
+                <table class="table table-bordered table-sm mb-0">
                     <thead class="table-dark">
                         <tr>
-                            <th>บาร์โค้ด</th>
-                            <th>ชื่อ</th>
-                            <th class="text-end">ยอดค้าง (บาท)</th>
+                            <th>รหัส</th>
+                            <th>ชื่อลูกค้า</th>
+                            <th class="text-end">ค้างชำระ (฿)</th>
                         </tr>
                     </thead>
                     <tbody id="customerTableBody"></tbody>
@@ -122,7 +134,7 @@
         <!-- Tab 4: ประวัติการขาย -->
         <div class="tab-pane fade" id="history" role="tabpanel">
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <h5 class="mb-0">ประวัติการขายล่าสุด</h5>
+                <h6 class="mb-0 fw-bold">ประวัติการทำรายการ</h6>
                 <button class="btn btn-outline-danger btn-sm" onclick="clearHistory()">ล้างประวัติ</button>
             </div>
             <div id="historyContainer"></div>
@@ -130,40 +142,89 @@
     </div>
 </div>
 
-<!-- ================= Modal หน้าต่างบันทึกการขาย ================= -->
+<!-- ================= Modal บันทึกการขาย ================= -->
 <div class="modal fade" id="recordModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
   <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
     <div class="modal-content">
       <div class="modal-header bg-primary text-white">
-        <h5 class="modal-title">📝 ขายให้: <span id="modalCustomerName" class="fw-bold text-warning"></span></h5>
+        <h5 class="modal-title">🛒 ขายให้: <span id="modalCustomerName" class="fw-bold text-warning"></span></h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close" onclick="resetScanner()"></button>
       </div>
-      <div class="modal-body pb-0">
+      <div class="modal-body pb-0 bg-light">
         <input type="hidden" id="currentCustomerBarcode">
-        <div class="alert alert-danger p-2 d-flex justify-content-between align-items-center mb-3">
-            <strong>ยอดค้างชำระเดิม:</strong> 
-            <span class="fs-5 fw-bold"><span id="modalOldDebt">0</span> ฿</span>
+        
+        <div class="card border-danger mb-3">
+            <div class="card-body p-2 d-flex justify-content-between align-items-center bg-danger bg-opacity-10 text-danger">
+                <strong>ยอดหนี้ค้างเดิม:</strong> 
+                <span class="fs-5 fw-bold"><span id="modalOldDebt">0</span> ฿</span>
+            </div>
         </div>
-        <h6 class="text-primary fw-bold border-bottom pb-2">📦 เลือกสินค้าที่ซื้อ:</h6>
-        <div id="modalProductsList" class="mb-3"></div>
-        <div class="d-flex justify-content-between align-items-center mb-3 p-2 bg-light rounded">
-            <span class="fw-bold">ยอดรวมรอบนี้:</span>
+
+        <h6 class="text-primary fw-bold pb-1">📦 รายการสินค้า:</h6>
+        <div id="modalProductsList" class="mb-3 bg-white p-2 rounded border"></div>
+
+        <div class="d-flex justify-content-between align-items-center mb-3 p-2 bg-white rounded border border-primary">
+            <span class="fw-bold">ยอดซื้อรอบนี้:</span>
             <span class="fs-4 fw-bold text-primary"><span id="modalTodayTotal">0</span> ฿</span>
         </div>
+
         <div class="mb-3 p-3 bg-success bg-opacity-10 border border-success rounded">
-            <label class="form-label text-success fw-bold">ลูกค้าจ่ายเงินจริง (บาท)</label>
-            <input type="number" id="modalPaidAmount" class="form-control border-success form-control-lg" placeholder="กรอกเงินที่รับมา" oninput="calculateTotal()">
+            <label class="form-label text-success fw-bold">รับเงินสด (บาท)</label>
+            <input type="number" id="modalPaidAmount" class="form-control border-success form-control-lg" placeholder="กรอกจำนวนเงิน" oninput="calculateTotal()">
         </div>
       </div>
-      <div class="modal-footer bg-light d-flex justify-content-between">
+      <div class="modal-footer d-flex justify-content-between">
         <div>
-            <span class="text-muted" style="font-size:12px;">ยอดค้างยกไป:</span><br>
+            <span class="text-muted" style="font-size:12px;">หนี้สุทธิยกไป:</span><br>
             <span class="fs-5 fw-bold text-danger"><span id="modalNewDebt">0</span> ฿</span>
         </div>
         <div>
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" onclick="resetScanner()">ยกเลิก</button>
-            <button type="button" class="btn btn-success" onclick="saveTransaction()">💾 บันทึก</button>
+            <button type="button" class="btn btn-success px-4" onclick="saveTransaction()">💾 บันทึก</button>
         </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= Modal แก้ไขสินค้า (Inventory Manager) ================= -->
+<div class="modal fade" id="editProductModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-warning">
+        <h6 class="modal-title fw-bold">✏️ แก้ไขข้อมูลสินค้า</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="editProdId">
+        <div class="mb-2">
+            <label class="form-label small text-muted">รหัสสินค้า</label>
+            <input type="text" id="editProdCode" class="form-control">
+        </div>
+        <div class="mb-2">
+            <label class="form-label small text-muted">ชื่อสินค้า</label>
+            <input type="text" id="editProdName" class="form-control">
+        </div>
+        <div class="row mb-2">
+            <div class="col-6">
+                <label class="form-label small text-muted">ราคาขาย (฿)</label>
+                <input type="number" id="editProdPrice" class="form-control">
+            </div>
+            <div class="col-6">
+                <label class="form-label small text-muted">เตือนเมื่อต่ำกว่า</label>
+                <input type="number" id="editProdMinStock" class="form-control">
+            </div>
+        </div>
+        <div class="mb-2 p-3 bg-light border rounded">
+            <label class="form-label fw-bold text-primary">สต็อกคงเหลือปัจจุบัน</label>
+            <input type="number" id="editProdStock" class="form-control form-control-lg border-primary text-center">
+            <small class="text-muted d-block mt-1">*ปรับแก้ตัวเลขนี้เพื่อตั้งค่ายอดสต็อกใหม่ หรือใช้สำหรับรับของเข้า</small>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-danger me-auto" onclick="deleteProductFromModal()">🗑️ ลบสินค้านี้</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+        <button type="button" class="btn btn-success" onclick="saveProductEdit()">💾 บันทึกการแก้ไข</button>
       </div>
     </div>
   </div>
@@ -171,14 +232,24 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    let dbCustomers = JSON.parse(localStorage.getItem('myStock_customers')) || [
-        { barcode: "001", name: "บังเอ*", debt: 0 },
-        { barcode: "002", name: "ยายม้วน", debt: 150 }
-    ];
+    // --- 1. จัดการฐานข้อมูล (อัปเกรด Schema) ---
+    let dbCustomers = JSON.parse(localStorage.getItem('myStock_customers')) || [];
     let dbTransactions = JSON.parse(localStorage.getItem('myStock_transactions')) || [];
-    let dbProducts = JSON.parse(localStorage.getItem('myStock_products')) || [
-        { id: 1, name: "น้ำแข็ง (สอบ)", price: 50, stock: 100 }
-    ];
+    let rawProducts = JSON.parse(localStorage.getItem('myStock_products')) || [];
+
+    // Data Migration: ปรับข้อมูลเก่าให้รองรับฟิลด์ใหม่
+    let dbProducts = rawProducts.map(p => ({
+        id: p.id,
+        code: p.code || "-",
+        name: p.name,
+        price: p.price || 0,
+        stock: p.stock || 0,
+        minStock: p.minStock || 0
+    }));
+
+    if (dbCustomers.length === 0) {
+        dbCustomers = [{ barcode: "001", name: "ลูกค้าทั่วไป", debt: 0 }];
+    }
 
     function saveData() {
         localStorage.setItem('myStock_customers', JSON.stringify(dbCustomers));
@@ -187,20 +258,21 @@
     }
     saveData();
 
-    // --- อัปเดตสต็อกหน้าแรก ---
+    // --- 2. อัปเดตหน้าแสดงผลสต็อก (หน้าแรก) ---
     function updateStockDisplay() {
         let container = document.getElementById('displayMainStock');
         container.innerHTML = "";
         if (dbProducts.length === 0) {
-            container.innerHTML = "<p class='text-muted'>ยังไม่มีสินค้าในระบบ</p>";
+            container.innerHTML = "<p class='text-muted text-center'>ยังไม่มีสินค้าในระบบ กรุณาเพิ่มสินค้า</p>";
             return;
         }
         dbProducts.forEach(p => {
+            let isLow = p.stock <= p.minStock;
             container.innerHTML += `
                 <div class="col-6 col-md-4">
-                    <div class="stock-box text-center p-2 border-start border-success border-4">
-                        <div class="text-muted small">${p.name}</div>
-                        <div class="fs-4 fw-bold text-success">${p.stock}</div>
+                    <div class="stock-box text-center p-2 border-start ${isLow ? 'border-danger' : 'border-success'} border-4">
+                        <div class="text-muted small text-truncate" style="font-size:12px;">${p.code !== "-" ? p.code : ""} ${p.name}</div>
+                        <div class="fs-3 fw-bold ${isLow ? 'text-danger' : 'text-success'}">${p.stock}</div>
                     </div>
                 </div>
             `;
@@ -208,22 +280,20 @@
     }
     updateStockDisplay();
 
-    // --- แท็บสินค้า (แก้ไข/ลบ/เติมสต็อก) ---
+    // --- 3. ระบบจัดการสินค้า (Inventory CRUD) ---
     function renderProducts() {
         let tbody = document.getElementById('productTableBody');
         tbody.innerHTML = "";
         dbProducts.forEach(p => {
+            let isLow = p.stock <= p.minStock;
             tbody.innerHTML += `
                 <tr>
-                    <td>${p.name}</td>
+                    <td class="text-muted small">${p.code}</td>
+                    <td class="fw-bold">${p.name}</td>
                     <td>${p.price}</td>
-                    <td class="fw-bold text-success">${p.stock}</td>
-                    <td class="action-buttons">
-                        <button class="btn btn-sm btn-outline-success w-100" onclick="restockProduct(${p.id})">+ เติมสต็อก</button>
-                        <div class="d-flex gap-1">
-                            <button class="btn btn-sm btn-outline-warning w-50" onclick="editProduct(${p.id})">✏️ แก้ไข</button>
-                            <button class="btn btn-sm btn-outline-danger w-50" onclick="deleteProduct(${p.id})">🗑️ ลบ</button>
-                        </div>
+                    <td class="text-center fw-bold ${isLow ? 'text-danger' : 'text-success'}">${p.stock}</td>
+                    <td class="text-center">
+                        <button class="btn btn-sm btn-outline-primary" onclick="openEditModal(${p.id})">จัดการ</button>
                     </td>
                 </tr>
             `;
@@ -232,64 +302,64 @@
 
     function addProduct(e) {
         e.preventDefault();
+        let code = document.getElementById('newProdCode').value.trim() || "-";
         let name = document.getElementById('newProdName').value.trim();
         let price = parseFloat(document.getElementById('newProdPrice').value) || 0;
+        let minStock = parseInt(document.getElementById('newProdMinStock').value) || 0;
+        
         let newId = dbProducts.length > 0 ? Math.max(...dbProducts.map(p => p.id)) + 1 : 1;
-        dbProducts.push({ id: newId, name: name, price: price, stock: 0 });
+        dbProducts.push({ id: newId, code: code, name: name, price: price, stock: 0, minStock: minStock });
+        
         saveData();
         document.getElementById('addProductForm').reset();
         renderProducts();
         updateStockDisplay();
     }
 
-    function restockProduct(id) {
-        let p = dbProducts.find(x => x.id === id);
-        let amount = prompt(`เติมสต็อก: ${p.name}\nใส่จำนวนที่ต้องการเพิ่ม:`);
-        if (amount && !isNaN(parseFloat(amount))) {
-            p.stock += parseFloat(amount);
-            saveData();
-            renderProducts();
-            updateStockDisplay();
-        }
-    }
-
-    function editProduct(id) {
+    const editProductModal = new bootstrap.Modal(document.getElementById('editProductModal'));
+    
+    function openEditModal(id) {
         let p = dbProducts.find(x => x.id === id);
         if (!p) return;
-        
-        let newName = prompt(`แก้ไขชื่อสินค้า (เดิม: ${p.name}):`, p.name);
-        if (newName === null) return; 
-        
-        let newPrice = prompt(`แก้ไขราคาสินค้า (เดิม: ${p.price}):`, p.price);
-        if (newPrice === null) return;
-
-        newName = newName.trim();
-        newPrice = parseFloat(newPrice);
-
-        if (newName !== "" && !isNaN(newPrice)) {
-            p.name = newName;
-            p.price = newPrice;
-            saveData();
-            renderProducts();
-            updateStockDisplay();
-        } else {
-            alert("❌ ข้อมูลไม่ถูกต้อง!");
-        }
+        document.getElementById('editProdId').value = p.id;
+        document.getElementById('editProdCode').value = p.code === "-" ? "" : p.code;
+        document.getElementById('editProdName').value = p.name;
+        document.getElementById('editProdPrice').value = p.price;
+        document.getElementById('editProdMinStock').value = p.minStock;
+        document.getElementById('editProdStock').value = p.stock;
+        editProductModal.show();
     }
 
-    function deleteProduct(id) {
+    function saveProductEdit() {
+        let id = parseInt(document.getElementById('editProdId').value);
         let p = dbProducts.find(x => x.id === id);
-        if (!p) return;
+        if(!p) return;
 
-        if (confirm(`⚠️ คุณแน่ใจหรือไม่ว่าต้องการลบสินค้า "${p.name}"?\n(ประวัติการขายที่เคยบันทึกไว้จะไม่หายไป)`)) {
+        p.code = document.getElementById('editProdCode').value.trim() || "-";
+        p.name = document.getElementById('editProdName').value.trim();
+        p.price = parseFloat(document.getElementById('editProdPrice').value) || 0;
+        p.minStock = parseInt(document.getElementById('editProdMinStock').value) || 0;
+        p.stock = parseFloat(document.getElementById('editProdStock').value) || 0; // รับการแก้สต็อก
+
+        saveData();
+        renderProducts();
+        updateStockDisplay();
+        editProductModal.hide();
+    }
+
+    function deleteProductFromModal() {
+        let id = parseInt(document.getElementById('editProdId').value);
+        let p = dbProducts.find(x => x.id === id);
+        if (confirm(`⚠️ ยืนยันการลบสินค้า "${p.name}" ออกจากระบบ?`)) {
             dbProducts = dbProducts.filter(x => x.id !== id);
             saveData();
             renderProducts();
             updateStockDisplay();
+            editProductModal.hide();
         }
     }
 
-    // --- ระบบสแกนและคำนวณ ---
+    // --- 4. ระบบการขาย (สแกน & คำนวณ) ---
     const barcodeInput = document.getElementById('barcodeInput');
     const recordModal = new bootstrap.Modal(document.getElementById('recordModal'));
 
@@ -309,19 +379,23 @@
                 prodList.innerHTML = "";
                 
                 if (dbProducts.length === 0) {
-                    prodList.innerHTML = "<p class='text-danger'>*กรุณาเพิ่มสินค้าในระบบก่อนทำการขาย</p>";
+                    prodList.innerHTML = "<p class='text-danger m-0'>*ยังไม่มีสินค้าในระบบ</p>";
                 } else {
                     dbProducts.forEach(p => {
+                        let isLow = p.stock <= p.minStock;
                         prodList.innerHTML += `
-                            <div class="product-row row align-items-center">
-                                <div class="col-5 fw-bold text-secondary" style="font-size:14px;">${p.name}</div>
-                                <div class="col-3">
+                            <div class="product-row row align-items-center mb-2">
+                                <div class="col-5">
+                                    <div class="fw-bold text-dark" style="font-size:14px;">${p.name}</div>
+                                    <div style="font-size:11px;" class="${isLow ? 'text-danger fw-bold' : 'text-muted'}">เหลือ: ${p.stock}</div>
+                                </div>
+                                <div class="col-3 px-1">
                                     <input type="number" class="form-control form-control-sm prod-qty" data-id="${p.id}" placeholder="จำนวน" min="0" oninput="calculateTotal()">
                                 </div>
-                                <div class="col-4">
+                                <div class="col-4 px-1">
                                     <div class="input-group input-group-sm">
-                                        <span class="input-group-text">฿</span>
-                                        <input type="number" class="form-control prod-price" data-id="${p.id}" value="${p.price}" oninput="calculateTotal()">
+                                        <span class="input-group-text bg-light border-end-0 text-muted" style="padding: 0 4px;">฿</span>
+                                        <input type="number" class="form-control prod-price border-start-0 ps-0" data-id="${p.id}" value="${p.price}" oninput="calculateTotal()">
                                     </div>
                                 </div>
                             </div>
@@ -357,7 +431,6 @@
         document.getElementById('modalNewDebt').innerText = newDebt;
     }
 
-    // --- บันทึกการขาย ---
     function saveTransaction() {
         let barcode = document.getElementById('currentCustomerBarcode').value;
         let customer = dbCustomers.find(c => c.barcode === barcode);
@@ -376,7 +449,7 @@
             if (q > 0) {
                 let prod = dbProducts.find(x => x.id === id);
                 if (prod.stock < q) {
-                    if(!confirm(`⚠️ ${prod.name} มีสต็อกแค่ ${prod.stock} แต่วันนี้ขาย ${q}\nต้องการบันทึกต่อหรือไม่?`)) return;
+                    if(!confirm(`⚠️ สินค้า "${prod.name}" มีสต็อกแค่ ${prod.stock} แต่วันนี้ขาย ${q}\nต้องการบันทึกให้สต็อกติดลบหรือไม่?`)) return;
                 }
                 prod.stock -= q;
                 todayTotal += (q * p);
@@ -389,7 +462,7 @@
         let newDebt = parseFloat(document.getElementById('modalNewDebt').innerText) || 0;
 
         if (totalSoldQty === 0 && paid === 0) {
-            alert("กรุณากรอกจำนวนสินค้าอย่างน้อย 1 รายการ หรือยอดชำระเงิน");
+            alert("กรุณากรอกจำนวนสินค้าหรือยอดเงิน");
             return;
         }
 
@@ -400,7 +473,7 @@
         dbTransactions.unshift({
             time: timeString,
             name: customer.name,
-            details: itemsSold.join(', ') || "ชำระหนี้อย่างเดียว",
+            details: itemsSold.join(', ') || "ชำระหนี้",
             total: todayTotal,
             paid: paid
         });
@@ -416,7 +489,7 @@
         barcodeInput.focus();
     }
 
-    // --- แท็บลูกค้าและประวัติ ---
+    // --- 5. จัดการลูกค้า & ประวัติ ---
     function addCustomer(e) {
         e.preventDefault();
         let barcode = document.getElementById('newBarcode').value.trim();
@@ -440,7 +513,7 @@
         let container = document.getElementById('historyContainer');
         container.innerHTML = "";
         if (dbTransactions.length === 0) {
-            container.innerHTML = `<p class="text-center text-muted">ยังไม่มีประวัติ</p>`;
+            container.innerHTML = `<p class="text-center text-muted">ยังไม่มีประวัติทำรายการ</p>`;
             return;
         }
         dbTransactions.forEach(t => {
@@ -452,9 +525,9 @@
                             <span class="fw-bold text-dark">${t.name}</span>
                         </div>
                         <div class="mt-1 text-primary fw-bold">${t.details}</div>
-                        <div class="d-flex justify-content-between mt-1">
-                            <span>ยอดซื้อ: ${t.total} ฿</span>
-                            <span class="text-success fw-bold">จ่าย: ${t.paid} ฿</span>
+                        <div class="d-flex justify-content-between mt-1 pt-1 border-top">
+                            <span>ยอด: ${t.total} ฿</span>
+                            <span class="text-success fw-bold">รับเงิน: ${t.paid} ฿</span>
                         </div>
                     </div>
                 </div>
@@ -463,7 +536,7 @@
     }
 
     function clearHistory() {
-        if(confirm("ล้างประวัติการขายทั้งหมด? (ยอดค้างลูกค้าและสต็อกจะไม่หาย)")) {
+        if(confirm("ล้างประวัติการขายทั้งหมด? (ยอดค้างและสต็อกจะไม่หาย)")) {
             dbTransactions = [];
             saveData();
             renderHistory();
