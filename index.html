@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบร้านค้า (เวอร์ชันใช้งานง่าย)</title>
+    <title>ระบบร้านค้า (ตัดสต็อกรายวัน)</title>
     
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -59,7 +59,6 @@
             box-shadow: 0 0 0 4px rgba(13,110,253,0.2); 
         }
 
-        /* กล่องสแกนเด่นๆ */
         .scan-input { background-color: #e6f2ff; border-color: #0d6efd; font-weight: bold; }
         .money-input { background-color: #e8f5e9; border-color: #198754; font-size: 24px !important; font-weight: bold; color: #198754; }
         
@@ -121,7 +120,6 @@
                             <div class="row g-3">
                                 <div class="col-md-5">
                                     <label class="form-label text-primary">📷 เอาปืนยิงบาร์โค้ดลูกค้า</label>
-                                    <!-- ใส่ oninput เพื่อแปลงภาษาไทยเป็นอังกฤษอัตโนมัติ -->
                                     <input type="text" id="scanCustomerBarcode" class="form-control scan-input" placeholder="ยิงรหัสตรงนี้..." onkeydown="handleCustomerScan(event)" oninput="this.value = convertThaiToEng(this.value)" autofocus autocomplete="off">
                                 </div>
                                 <div class="col-md-7">
@@ -142,7 +140,6 @@
                             <div class="row g-3">
                                 <div class="col-md-5">
                                     <label class="form-label text-success">📦 เอาปืนยิงบาร์โค้ดสินค้า</label>
-                                    <!-- ใส่ oninput เพื่อแปลงภาษาไทยเป็นอังกฤษอัตโนมัติ -->
                                     <input type="text" id="scanProductBarcode" class="form-control scan-input" placeholder="ยิงสินค้าตรงนี้..." onkeydown="handleProductScan(event)" oninput="this.value = convertThaiToEng(this.value)" autocomplete="off">
                                 </div>
                                 <div class="col-md-7">
@@ -304,7 +301,7 @@
             </div>
         </div>
 
-        <!-- ================= แท็บ: คลังสินค้า ================= -->
+        <!-- ================= แท็บ: คลังสินค้า (เพิ่มตั้งค่าสินค้ารายวัน) ================= -->
         <div class="tab-pane fade" id="inventory" role="tabpanel">
             <div class="card mb-4 shadow-sm border-0">
                 <div class="card-header bg-primary text-white py-3">
@@ -325,23 +322,36 @@
                                 <label class="form-label">ชื่อสินค้า</label>
                                 <input type="text" id="newProdName" class="form-control" placeholder="เช่น น้ำปลา" required>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-3">
                                 <label class="form-label">ราคาขาย (บาท)</label>
                                 <input type="number" id="newProdPrice" class="form-control text-end fs-4 text-primary fw-bold" placeholder="0" required min="0">
                             </div>
-                            <div class="col-md-4">
-                                <label class="form-label">จำนวนสินค้าในร้าน (สต็อก)</label>
+                            <div class="col-md-3">
+                                <label class="form-label">จำนวนสต็อก (ชิ้น)</label>
                                 <input type="number" id="newProdStock" class="form-control text-end fs-4 text-success fw-bold" placeholder="0" required min="0">
                             </div>
-                            <div class="col-md-4 d-flex align-items-end">
-                                <button type="submit" class="btn btn-primary btn-lg w-100">💾 บันทึกสินค้า</button>
+                            <div class="col-md-6 d-flex flex-column justify-content-end">
+                                <!-- ตัวเลือกล้างสต็อกรายวัน -->
+                                <div class="form-check bg-danger bg-opacity-10 p-3 rounded border border-danger mb-3">
+                                    <input class="form-check-input ms-1 me-2" type="checkbox" id="newProdIsDaily" style="transform: scale(1.5);">
+                                    <label class="form-check-label fs-5 text-danger fw-bold ms-2" for="newProdIsDaily">
+                                        📅 สินค้ารายวัน (ตัดสต็อกเหลือ 0 อัตโนมัติเมื่อขึ้นวันใหม่)
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-12">
+                                <button type="submit" class="btn btn-primary btn-lg w-100 fs-4 fw-bold py-3 shadow-sm">💾 บันทึกสินค้าลงคลัง</button>
                             </div>
                         </div>
                     </form>
                 </div>
             </div>
             
-            <h4 class="fw-bold mb-3 mt-5">📦 รายการสินค้าที่มีทั้งหมดในร้าน</h4>
+            <div class="d-flex justify-content-between align-items-end mb-3 mt-5">
+                <h4 class="fw-bold mb-0">📦 รายการสินค้าที่มีทั้งหมดในร้าน</h4>
+                <button class="btn btn-outline-danger fw-bold" onclick="manualClearDailyStock()">🧹 ล้างสต็อก 'สินค้ารายวัน' ทันที (ปิดกะ)</button>
+            </div>
+            
             <div class="table-responsive border rounded bg-white shadow-sm border-0">
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-dark"><tr><th>บาร์โค้ด</th><th>หมวดหมู่</th><th>ชื่อสินค้า</th><th class="text-center">ราคา (฿)</th><th class="text-center">เหลือในร้าน</th><th class="text-center">จัดการ</th></tr></thead>
@@ -373,12 +383,11 @@
                 <h4 class="fw-bold mb-0">👥 รายชื่อลูกค้าทั้งหมด</h4>
             </div>
 
-            <!-- กล่องค้นหาลูกค้าแบบเรียลไทม์ -->
             <div class="row mb-3">
                 <div class="col-md-6">
                     <div class="input-group input-group-lg shadow-sm border rounded">
                         <span class="input-group-text bg-white text-primary border-0 fs-4">🔍</span>
-                        <input type="text" id="searchCustomerTable" class="form-control border-0" placeholder="ยิงบาร์โค้ด หรือ พิมพ์หาชื่อลูกค้าตรงนี้..." oninput="renderCustomerTable()">
+                        <input type="text" id="searchCustomerTable" class="form-control border-0" placeholder="ยิงบาร์โค้ด หรือ พิมพ์หาชื่อลูกค้าตรงนี้..." oninput="renderCustomerTable()" onkeydown="if(event.key==='Enter') { this.value = convertThaiToEng(this.value); renderCustomerTable(); }">
                     </div>
                 </div>
             </div>
@@ -418,6 +427,10 @@
           <div class="row mb-3">
               <div class="col-6"><label class="form-label text-primary">ราคาขาย (฿)</label><input type="number" id="editProdPrice" class="form-control text-end fw-bold" min="0"></div>
               <div class="col-6"><label class="form-label text-success">สต็อกคงเหลือ</label><input type="number" id="editProdStock" class="form-control text-end fw-bold" min="0"></div>
+          </div>
+          <div class="form-check bg-danger bg-opacity-10 p-2 rounded border border-danger mb-3 mt-3">
+              <input class="form-check-input ms-1 me-2" type="checkbox" id="editProdIsDaily" style="transform: scale(1.3);">
+              <label class="form-check-label fs-6 text-danger fw-bold ms-2" for="editProdIsDaily">ตั้งเป็น "สินค้ารายวัน" (ตัดสต็อกเป็น 0 อัตโนมัติเมื่อขึ้นวันใหม่)</label>
           </div>
         </div>
         <div class="modal-footer p-3"><button type="button" class="btn btn-secondary btn-lg" data-bs-dismiss="modal">❌ ยกเลิก</button><button type="button" class="btn btn-success btn-lg px-4" onclick="updateProduct()">💾 บันทึก</button></div>
@@ -465,24 +478,6 @@
     </div>
 </div>
 
-<!-- Modal ดูประวัติ -->
-<div class="modal fade" id="customerHistoryModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
-    <div class="modal-content border-0 shadow">
-      <div class="modal-header bg-info text-dark"><h5 class="modal-title fw-bold">📄 ประวัติ: <span id="modalHistoryCusName"></span></h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
-      <div class="modal-body p-0">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0" style="font-size: 14px;">
-                <thead class="table-light"><tr><th class="ps-3">วัน-เวลา</th><th>รายการสินค้า</th><th class="text-end">ยอดรวม (฿)</th><th class="text-end text-success">จ่ายแล้ว (฿)</th><th class="text-end text-danger pe-3">หนี้บิลนี้ (฿)</th></tr></thead>
-                <tbody id="modalCustomerHistoryBody"></tbody>
-            </table>
-        </div>
-      </div>
-      <div class="modal-footer bg-light d-flex justify-content-between"><h5 class="mb-0 fw-bold">ยอดสุทธิรวม:</h5><h4 class="mb-0 fw-bold text-dark" id="modalTotalBalance">0 ฿</h4></div>
-    </div>
-  </div>
-</div>
-
 <!-- jQuery และปลั๊กอิน -->
 <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -516,11 +511,16 @@
     let customers = JSON.parse(localStorage.getItem('myApp_customers')) || [];
     let cart = [];
 
-    inventory = inventory.map(p => { if(!p.barcode) p.barcode = p.id.toString(); return p; });
+    // อัปเดตข้อมูลโครงสร้างเก่าให้รองรับระบบใหม่
+    inventory = inventory.map(p => { 
+        if(!p.barcode) p.barcode = p.id.toString(); 
+        if(p.isDaily === undefined) p.isDaily = false;
+        return p; 
+    });
     customers = customers.map(c => ({ barcode: c.barcode, name: c.name, phone: c.phone || "-", address: c.address || "-" }));
 
     if (inventory.length === 0) {
-        inventory = [{ id: 1, barcode: "1111", category: "น้ำแข็ง", name: "น้ำแข็งหลอด (สอบ)", price: 50, stock: 100 }];
+        inventory = [{ id: 1, barcode: "1111", category: "น้ำแข็ง", name: "น้ำแข็งหลอด (สอบ)", price: 50, stock: 100, isDaily: true }];
         localStorage.setItem('myApp_inventory', JSON.stringify(inventory));
     }
     if (customers.length === 0) {
@@ -529,6 +529,43 @@
             { barcode: "002", name: "ยายม้วน", phone: "081-111-2222", address: "หมู่ 1" }
         ];
         localStorage.setItem('myApp_customers', JSON.stringify(customers));
+    }
+
+    // ================= ระบบตรวจสอบข้ามวันเพื่อล้างสต็อกรายวันอัตโนมัติ =================
+    function checkDailyStockReset() {
+        let lastDate = localStorage.getItem('myApp_lastDate');
+        let today = new Date().toLocaleDateString('th-TH');
+        
+        if (lastDate && lastDate !== today) {
+            let hasDaily = false;
+            inventory = inventory.map(p => {
+                if (p.isDaily && p.stock > 0) {
+                    p.stock = 0;
+                    hasDaily = true;
+                }
+                return p;
+            });
+            if (hasDaily) {
+                localStorage.setItem('myApp_inventory', JSON.stringify(inventory));
+                setTimeout(() => {
+                    alert("🌅 เริ่มวันใหม่แล้ว: ระบบได้ล้างสต็อก 'สินค้ารายวัน' เป็น 0 ให้เรียบร้อยครับ!");
+                }, 500);
+            }
+        }
+        localStorage.setItem('myApp_lastDate', today);
+    }
+
+    function manualClearDailyStock() {
+        if(confirm("คุณต้องการล้างสต็อก 'สินค้ารายวัน' ให้เหลือ 0 ทั้งหมด ใช่หรือไม่?\n(กดเมื่อปิดยอดของวันเท่านั้น)")) {
+            inventory = inventory.map(p => {
+                if (p.isDaily) p.stock = 0;
+                return p;
+            });
+            localStorage.setItem('myApp_inventory', JSON.stringify(inventory));
+            renderInventory();
+            updateDropdownHtml();
+            alert("🧹 ล้างสต็อกสินค้ารายวันเรียบร้อยแล้ว!");
+        }
     }
 
     function getCustomerBalance(barcode) {
@@ -556,7 +593,8 @@
         let prodOptions = '<option value="">-- พิมพ์ชื่อสินค้า --</option>';
         let sortedInventory = [...inventory].sort((a, b) => a.category.localeCompare(b.category));
         sortedInventory.forEach(p => {
-            prodOptions += `<option value="${p.id}" data-barcode="${p.barcode}">[${p.barcode}] ${p.name} (ราคา ${p.price}฿)</option>`;
+            let dailyText = p.isDaily ? " (รายวัน)" : "";
+            prodOptions += `<option value="${p.id}" data-barcode="${p.barcode}">[${p.barcode}] ${p.name} ${dailyText} (ราคา ${p.price}฿)</option>`;
         });
         prodSelect.html(prodOptions);
 
@@ -597,7 +635,7 @@
     function handleCustomerScan(e) {
         if (e.key === 'Enter') {
             e.preventDefault();
-            let barcode = e.target.value.trim();
+            let barcode = convertThaiToEng(e.target.value.trim()); // แปลงกรณีลืมเปลี่ยนภาษาแล้วกดยืนยันเลย
             let select = document.getElementById('saleCustomer');
             let found = false;
             for (let i = 0; i < select.options.length; i++) {
@@ -630,7 +668,7 @@
     function handleProductScan(e) {
         if (e.key === 'Enter') {
             e.preventDefault();
-            let barcode = e.target.value.trim();
+            let barcode = convertThaiToEng(e.target.value.trim());
             let product = inventory.find(p => p.barcode === barcode);
             if (product) {
                 addToCart(product.id);
@@ -894,7 +932,7 @@
     function handleViewCustomerScan(e) {
         if (e.key === 'Enter') {
             e.preventDefault();
-            let barcode = e.target.value.trim();
+            let barcode = convertThaiToEng(e.target.value.trim());
             let select = document.getElementById('viewCustomerSelect');
             let found = false;
             for (let i = 0; i < select.options.length; i++) {
@@ -972,11 +1010,12 @@
         let sortedInventory = [...inventory].sort((a, b) => a.category.localeCompare(b.category));
         sortedInventory.forEach(p => {
             let stockColor = p.stock <= 5 ? "text-danger fw-bold" : "text-success fw-bold";
+            let dailyBadge = p.isDaily ? `<span class="badge bg-danger ms-1 fs-6">⏰ รายวัน</span>` : "";
             tbody.innerHTML += `
             <tr>
                 <td><span class="text-primary fw-bold">${p.barcode}</span></td>
                 <td><span class="badge bg-secondary fs-6">${p.category}</span></td>
-                <td class="fw-bold fs-5">${p.name}</td>
+                <td class="fw-bold fs-5">${p.name} ${dailyBadge}</td>
                 <td class="text-center fw-bold fs-5">${p.price}</td>
                 <td class="text-center fs-5 ${stockColor}">${p.stock}</td>
                 <td class="text-center">
@@ -997,7 +1036,8 @@
             category: document.getElementById('newCategory').value.trim(),
             name: document.getElementById('newProdName').value.trim(),
             price: parseFloat(document.getElementById('newProdPrice').value) || 0,
-            stock: parseFloat(document.getElementById('newProdStock').value) || 0
+            stock: parseFloat(document.getElementById('newProdStock').value) || 0,
+            isDaily: document.getElementById('newProdIsDaily').checked
         };
         inventory.push(newProduct);
         localStorage.setItem('myApp_inventory', JSON.stringify(inventory));
@@ -1017,6 +1057,7 @@
         document.getElementById('editProdName').value = p.name;
         document.getElementById('editProdPrice').value = p.price;
         document.getElementById('editProdStock').value = p.stock;
+        document.getElementById('editProdIsDaily').checked = p.isDaily || false;
         editModal.show();
     }
 
@@ -1029,6 +1070,8 @@
             p.name = document.getElementById('editProdName').value.trim();
             p.price = parseFloat(document.getElementById('editProdPrice').value) || 0;
             p.stock = parseFloat(document.getElementById('editProdStock').value) || 0;
+            p.isDaily = document.getElementById('editProdIsDaily').checked;
+            
             localStorage.setItem('myApp_inventory', JSON.stringify(inventory));
             renderInventory();
             updateDropdownHtml();
@@ -1045,7 +1088,7 @@
         }
     }
 
-    // ================= โซนจัดการลูกค้า (เพิ่มแถบค้นหาอัจฉริยะ) =================
+    // ================= โซนจัดการลูกค้า =================
     function renderCustomerTable() {
         let searchInput = document.getElementById('searchCustomerTable');
         let searchTerm = searchInput ? searchInput.value.trim().toLowerCase() : '';
@@ -1142,8 +1185,9 @@
         }
     }
 
-    // ================= การผูก Event ของระบบพิมพ์ค้นหา =================
+    // เริ่มทำงานเมื่อเปิดหน้าเว็บ
     $(document).ready(function() {
+        checkDailyStockReset(); // เช็กเพื่อเคลียร์สต็อกข้ามวัน
         $('#saleCustomer').on('change', function() { syncCustomerFromSelect(); });
         $('#productSelect').on('change', function() { addSelectedProductToCart(); });
         $('#viewCustomerSelect').on('change', function() { syncViewBarcode(); renderSpecificCustomerView(); });
