@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบร้านค้า (สรุปยอดขายแยกหนี้และเงินเกิน)</title>
+    <title>ระบบร้านค้า (เวอร์ชันปริ้นสรุปยอดได้)</title>
     
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -81,17 +81,39 @@
         .pos-screen { background-color: #1e293b; color: white; border-radius: 15px; padding: 25px; border: 4px solid #334155;}
         .huge-total { font-size: 4rem; line-height: 1; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); }
         .summary-box { background-color: rgba(255,255,255,0.1); border-radius: 10px; padding: 15px; margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.2); }
+
+        /* ================= CSS สำหรับการปริ้นกระดาษ ================= */
+        @media print {
+            body { background-color: white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .app-container { box-shadow: none !important; margin: 0 !important; max-width: 100% !important; padding: 0 !important; }
+            .d-print-none { display: none !important; } /* ซ่อนส่วนที่ไม่ต้องการปริ้น */
+            
+            /* ปรับตารางให้อ่านง่ายบนกระดาษขาวดำ */
+            .table-responsive { max-height: none !important; overflow: visible !important; border: none !important; }
+            .table { border-collapse: collapse !important; width: 100% !important; border: 1px solid #000 !important; }
+            .table th, .table td { border: 1px solid #000 !important; padding: 8px !important; color: #000 !important; font-size: 16px !important; }
+            .table th { background-color: #f2f2f2 !important; }
+            
+            /* ปรับกล่องสรุปยอดให้มีขอบดำ */
+            .card { border: 2px solid #000 !important; box-shadow: none !important; break-inside: avoid; }
+            .bg-light, .bg-white { background-color: white !important; }
+            .text-danger, .text-success, .text-primary, .text-info { color: #000 !important; } /* เปลี่ยนสีเป็นดำเพื่อความคมชัดเวลากระดาษขาวดำ */
+            
+            /* ซ่อนป้าย Badge สวยงาม ให้กลายเป็นข้อความธรรมดา */
+            .badge { border: 1px solid #ccc !important; color: #000 !important; background: transparent !important; padding: 2px 5px !important; }
+        }
     </style>
 </head>
 <body>
 
 <div class="app-container">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="text-primary fw-bold mb-0">🏬 โปรแกรมร้านค้า (ฉบับใช้งานง่าย + แยกกะ)</h2>
+    <div class="d-flex justify-content-between align-items-center mb-4 d-print-none">
+        <h2 class="text-primary fw-bold mb-0">🏬 โปรแกรมร้านค้า (ฉบับใช้งานง่าย)</h2>
         <span class="badge bg-success fs-5 px-3 py-2 rounded-pill">พร้อมใช้งาน</span>
     </div>
 
-    <ul class="nav nav-tabs mb-4" id="myTab" role="tablist">
+    <!-- เมนู Tabs ซ่อนตอนปริ้น -->
+    <ul class="nav nav-tabs mb-4 d-print-none" id="myTab" role="tablist">
         <li class="nav-item" role="presentation">
             <button class="nav-link active" id="sales-tab" data-bs-toggle="tab" data-bs-target="#sales" type="button" role="tab" onclick="initPOS()">🛒 คิดเงิน</button>
         </li>
@@ -113,7 +135,7 @@
         <!-- ================= แท็บ 1: หน้าคิดเงิน (POS) ================= -->
         <div class="tab-pane fade show active" id="sales" role="tabpanel">
             
-            <div class="bg-white p-4 rounded shadow-sm border border-3 border-primary mb-4 text-center">
+            <div class="bg-white p-4 rounded shadow-sm border border-3 border-primary mb-4 text-center d-print-none">
                 <label class="fs-3 fw-bold text-primary me-4">⏰ เลือกรอบการขายปัจจุบัน:</label>
                 <div class="form-check form-check-inline me-5">
                     <input class="form-check-input" type="radio" name="shiftSelect" id="shiftMorning" value="รอบเช้า" checked style="transform: scale(2.5); margin-top: 15px; cursor:pointer;">
@@ -125,7 +147,7 @@
                 </div>
             </div>
 
-            <div class="row g-4">
+            <div class="row g-4 d-print-none">
                 <div class="col-lg-7">
                     <div class="card mb-4 shadow-sm">
                         <div class="card-header bg-primary text-white py-3"><h5 class="mb-0 fw-bold">1. เลือกลูกค้า</h5></div>
@@ -227,11 +249,10 @@
                 </div>
             </div>
 
-            <!-- ประวัติการขาย -->
-            <div class="d-flex justify-content-between align-items-center mt-5 mb-3">
+            <div class="d-flex justify-content-between align-items-center mt-5 mb-3 d-print-none">
                 <h4 class="fw-bold mb-0">🕒 บิลรายการล่าสุดที่เพิ่งทำ</h4>
             </div>
-            <div class="table-responsive bg-white shadow-sm border-0">
+            <div class="table-responsive bg-white shadow-sm border-0 d-print-none">
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-dark">
                         <tr>
@@ -252,7 +273,16 @@
 
         <!-- ================= แท็บ 2: สรุปยอดขาย (แยกเงินที่เกินมา) ================= -->
         <div class="tab-pane fade" id="summary" role="tabpanel">
-            <div class="card mb-4 shadow-sm border-0 bg-white">
+            
+            <!-- หัวข้อที่จะแสดงเฉพาะตอนปริ้น -->
+            <div class="d-none d-print-block text-center mb-4">
+                <h1 class="fw-bold">รายงานสรุปยอดขายประจำวัน</h1>
+                <h4 id="printHeaderDate" class="text-muted"></h4>
+                <h4 id="printHeaderShift" class="text-muted"></h4>
+                <hr>
+            </div>
+
+            <div class="card mb-4 shadow-sm border-0 bg-white d-print-none">
                 <div class="card-body p-4">
                     <div class="row align-items-center g-4">
                         <div class="col-md-auto"><h4 class="fw-bold text-primary mb-0">📅 เลือกวันที่:</h4></div>
@@ -271,34 +301,39 @@
                 </div>
             </div>
 
-            <div class="card shadow-sm border-2 border-primary mb-5">
-                <div class="card-header bg-primary text-white py-3 text-center">
+            <!-- ปุ่มปริ้นเอกสาร -->
+            <div class="text-end mb-4 d-print-none">
+                <button class="btn btn-success btn-huge shadow px-5" onclick="window.print()">🖨️ ปริ้นเอกสารสรุปยอดรอบนี้</button>
+            </div>
+
+            <div class="card shadow-sm border-2 border-dark mb-5">
+                <div class="card-header bg-dark text-white py-3 text-center d-print-none">
                     <h3 class="fw-bold mb-0" id="summaryTitleText">📊 สรุปยอดขาย</h3>
                 </div>
                 <div class="card-body p-4 bg-light">
-                    <!-- กล่องสรุป 4 กล่อง (เพิ่มช่องเงินเกิน) -->
+                    <!-- กล่องสรุป 4 กล่อง -->
                     <div class="row g-3 text-center">
-                        <div class="col-md-3">
-                            <div class="bg-white p-3 rounded border h-100 shadow-sm">
-                                <span class="fs-5 text-muted d-block mb-2">ยอดขายรวมสุทธิ</span>
-                                <span class="fw-bold text-dark" style="font-size: 2.5rem;" id="sumTotal">0</span> <span class="fs-5 text-muted">฿</span>
+                        <div class="col-6 col-md-3">
+                            <div class="bg-white p-3 rounded border border-dark h-100 shadow-sm">
+                                <span class="fs-5 fw-bold d-block mb-2">ยอดขายรวมสุทธิ</span>
+                                <span class="fw-bold" style="font-size: 2.5rem;" id="sumTotal">0</span> <span class="fs-5">฿</span>
                             </div>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-6 col-md-3">
                             <div class="bg-white p-3 rounded border border-success h-100 shadow-sm">
-                                <span class="fs-5 text-success fw-bold d-block mb-2">รับเงินสดเข้าเก๊ะจริง</span>
+                                <span class="fs-5 fw-bold text-success d-block mb-2">รับเงินสดเข้าเก๊ะจริง</span>
                                 <span class="fw-bold text-success" style="font-size: 2.5rem;" id="sumPaid">0</span> <span class="fs-5 text-success">฿</span>
                             </div>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-6 col-md-3">
                             <div class="bg-white p-3 rounded border border-danger h-100 shadow-sm">
-                                <span class="fs-5 text-danger fw-bold d-block mb-2">ลูกค้าค้างหนี้เพิ่ม</span>
+                                <span class="fs-5 fw-bold text-danger d-block mb-2">ลูกค้าค้างหนี้เพิ่มรอบนี้</span>
                                 <span class="fw-bold text-danger" style="font-size: 2.5rem;" id="sumDebt">0</span> <span class="fs-5 text-danger">฿</span>
                             </div>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-6 col-md-3">
                             <div class="bg-white p-3 rounded border border-primary h-100 shadow-sm">
-                                <span class="fs-5 text-primary fw-bold d-block mb-2">เงินที่เกินมา (ลูกค้าจ่ายเกิน)</span>
+                                <span class="fs-5 fw-bold text-primary d-block mb-2">เงินเกิน/ฝากไว้เพิ่มรอบนี้</span>
                                 <span class="fw-bold text-primary" style="font-size: 2.5rem;" id="sumOverpaid">0</span> <span class="fs-5 text-primary">฿</span>
                             </div>
                         </div>
@@ -306,27 +341,45 @@
                 </div>
             </div>
             
-            <h4 class="fw-bold mb-3" id="summaryTableTitle">🧾 รายละเอียดบิลในรอบ (รวมยอดลูกค้า 1 คน / 1 บรรทัด)</h4>
+            <h4 class="fw-bold mb-3" id="summaryTableTitle">🧾 รายละเอียดรายการที่ลูกค้าซื้อในรอบนี้</h4>
             <div class="table-responsive border rounded bg-white shadow-sm border-0">
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-dark">
                         <tr>
-                            <th class="text-center" style="width: 120px;">กะทำงาน</th>
+                            <th class="text-center" style="width: 100px;">กะทำงาน</th>
                             <th>ชื่อลูกค้า</th>
-                            <th>รายการสินค้าที่ซื้อทั้งหมด</th>
-                            <th class="text-end">ยอดรวม</th>
-                            <th class="text-end text-success">จ่ายเงินแล้ว</th>
-                            <th class="text-end text-danger">หนี้ค้าง(ล่าสุด)</th>
-                            <th class="text-end text-primary">เงินที่เกินมา(ล่าสุด)</th>
+                            <th>รายการสินค้าที่ซื้อ</th>
+                            <th class="text-end">ยอดขาย(฿)</th>
+                            <th class="text-end">จ่ายเงินมา(฿)</th>
+                            <th class="text-end">ติดหนี้(฿)</th>
+                            <th class="text-end">เงินเกิน(฿)</th>
                         </tr>
                     </thead>
                     <tbody id="summaryTableBody"></tbody>
                 </table>
             </div>
+            
+            <!-- ลายเซ็นต์คนปริ้น (แสดงเฉพาะตอนปริ้น) -->
+            <div class="d-none d-print-block mt-5 pt-5">
+                <div class="row text-center mt-5">
+                    <div class="col-6">
+                        <p>ผู้ทำรายการ</p>
+                        <br>
+                        <p>.......................................................</p>
+                        <p>(                                     )</p>
+                    </div>
+                    <div class="col-6">
+                        <p>ผู้ตรวจสอบ</p>
+                        <br>
+                        <p>.......................................................</p>
+                        <p>(                                     )</p>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- ================= แท็บ 3: ดูข้อมูลลูกค้า ================= -->
-        <div class="tab-pane fade" id="customerView" role="tabpanel">
+        <div class="tab-pane fade d-print-none" id="customerView" role="tabpanel">
             <div class="card mb-4 shadow-sm border-0 bg-white">
                 <div class="card-body p-4">
                     <h5 class="fw-bold text-primary border-bottom pb-3 mb-4">🔍 ค้นหาข้อมูลและประวัติของลูกค้า</h5>
@@ -387,7 +440,7 @@
         </div>
 
         <!-- ================= แท็บ 4: คลังสินค้า ================= -->
-        <div class="tab-pane fade" id="inventory" role="tabpanel">
+        <div class="tab-pane fade d-print-none" id="inventory" role="tabpanel">
             <div class="card mb-4 shadow-sm border-0">
                 <div class="card-header bg-primary text-white py-3">
                     <h5 class="mb-0 fw-bold">➕ เพิ่มสินค้าใหม่เข้าระบบ</h5>
@@ -445,7 +498,7 @@
         </div>
 
         <!-- ================= แท็บ 5: จัดการรายชื่อลูกค้า ================= -->
-        <div class="tab-pane fade" id="customers" role="tabpanel">
+        <div class="tab-pane fade d-print-none" id="customers" role="tabpanel">
             <div class="card mb-4 shadow-sm border-0">
                 <div class="card-header bg-primary text-white py-3">
                     <h5 class="mb-0 fw-bold">➕ เพิ่มรายชื่อลูกค้าใหม่</h5>
@@ -499,7 +552,7 @@
 <!-- ================= Modals ================= -->
 
 <!-- Modal แก้ไขสินค้า -->
-<div class="modal fade" id="editProductModal" tabindex="-1" aria-hidden="true">
+<div class="modal fade d-print-none" id="editProductModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content border-0 shadow">
         <div class="modal-header bg-warning"><h5 class="modal-title fw-bold text-dark">✏️ แก้ไขข้อมูลสินค้า</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
@@ -523,7 +576,7 @@
 </div>
 
 <!-- Modal แก้ไขลูกค้า -->
-<div class="modal fade" id="editCustomerModal" tabindex="-1" aria-hidden="true">
+<div class="modal fade d-print-none" id="editCustomerModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content border-0 shadow">
         <div class="modal-header bg-warning"><h5 class="modal-title fw-bold text-dark">✏️ แก้ไขข้อมูลลูกค้า</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
@@ -540,10 +593,10 @@
 </div>
 
 <!-- Modal แก้ไขบิล -->
-<div class="modal fade" id="editTransactionModal" tabindex="-1" aria-hidden="true">
+<div class="modal fade d-print-none" id="editTransactionModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content border-0 shadow">
-        <div class="modal-header bg-warning"><h5 class="modal-title fw-bold text-dark">✏️ แก้ไขข้อมูลบิลขาย (แก้หนี้)</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+        <div class="modal-header bg-warning"><h5 class="modal-title fw-bold text-dark">✏️ แก้ไขข้อมูลบิลขาย</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
         <div class="modal-body p-4">
           <input type="hidden" id="editTxId">
           <div class="mb-3"><label class="form-label">ลูกค้า</label><input type="text" id="editTxCustomer" class="form-control bg-light" readonly></div>
@@ -688,7 +741,7 @@
         $('#saleCustomer, #productSelect, #viewCustomerSelect').select2({ theme: 'bootstrap-5', width: '100%' });
     }
 
-    // ================= ระบบสรุปยอดขาย (แยกหนี้ กับ เงินเกินให้ชัดเจน) =================
+    // ================= ระบบสรุปยอดขาย =================
     function initSummary() {
         document.getElementById('summaryDate').value = new Date().toLocaleDateString('en-CA');
         renderSummary();
@@ -699,6 +752,12 @@
         let filterShift = document.getElementById('summaryShiftFilter').value;
         if(!filterDate) return;
 
+        // อัปเดตหัวข้อเตรียมปริ้น
+        let dateObj = new Date(filterDate);
+        let thaiDate = dateObj.toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
+        document.getElementById('printHeaderDate').innerText = `ประจำวันที่: ${thaiDate}`;
+        document.getElementById('printHeaderShift').innerText = `รอบกะ: ${filterShift === 'all' ? 'รวมทั้งวัน' : filterShift}`;
+
         let sumTotal = 0, sumPaid = 0, sumDebt = 0, sumOverpaid = 0;
 
         let filteredTx = transactions.filter(t => {
@@ -708,7 +767,6 @@
         filteredTx.forEach(t => {
             sumTotal += t.total;
             sumPaid += t.paid;
-            // แยกหาว่ายอดไหนลูกค้าติดหนี้เพิ่ม หรือยอดไหนลูกค้าจ่ายเกินมา
             let diff = t.total - t.paid;
             if (diff > 0) {
                 sumDebt += diff;
@@ -717,7 +775,7 @@
             }
         });
 
-        // จัดกลุ่มลูกค้า 1 คน ต่อ 1 บรรทัด
+        // จัดกลุ่มลูกค้า
         let groupedByCustomer = {};
         filteredTx.forEach(t => {
             if(!groupedByCustomer[t.barcode]) {
@@ -752,7 +810,6 @@
             tbody.innerHTML = "<tr><td colspan='7' class='text-center text-muted py-5 fs-5'>ไม่มีรายการขายในรอบ/วันที่เลือก</td></tr>";
         } else {
             Object.values(groupedByCustomer).forEach(g => {
-                // ดึงยอดหนี้สุทธิล่าสุดจริงๆ ของลูกค้านั้นมาโชว์ (ดึงจากประวัติทั้งหมด)
                 let bal = getCustomerBalance(g.barcode);
                 let currentDebt = bal.net;
                 
@@ -760,27 +817,26 @@
                 let showCredit = currentDebt < 0 ? Math.abs(currentDebt).toLocaleString() : "-";
                 
                 let shiftBadge = "";
-                if (g.shift === "รอบเช้า") shiftBadge = `<span class="badge bg-warning text-dark">☀️ รอบเช้า</span>`;
-                else if (g.shift === "รอบเย็น") shiftBadge = `<span class="badge bg-info text-dark">🌙 รอบเย็น</span>`;
-                else shiftBadge = `<span class="badge bg-secondary">เช้าและเย็น</span>`;
+                if (g.shift === "รอบเช้า") shiftBadge = `<span class="badge bg-warning text-dark">☀️ เช้า</span>`;
+                else if (g.shift === "รอบเย็น") shiftBadge = `<span class="badge bg-info text-dark">🌙 เย็น</span>`;
+                else shiftBadge = `<span class="badge bg-secondary">เช้า+เย็น</span>`;
                 
                 let itemsText = g.items.length > 0 ? g.items.reverse().join(' , ') : "-";
 
                 tbody.innerHTML += `
                     <tr>
                         <td class="text-center">${shiftBadge}</td>
-                        <td class="fw-bold text-primary fs-5">${g.customer}</td>
+                        <td class="fw-bold text-primary">${g.customer}</td>
                         <td><span class="badge bg-light text-dark border fs-6 text-wrap text-start" style="max-width: 350px; line-height:1.5;">${itemsText}</span></td>
-                        <td class="text-end fw-bold fs-5">${g.total.toLocaleString()}</td>
-                        <td class="text-end fw-bold text-success fs-5">${g.paid.toLocaleString()}</td>
-                        <td class="text-end fw-bold text-danger fs-5">${showDebt}</td>
-                        <td class="text-end fw-bold text-primary fs-5">${showCredit}</td>
+                        <td class="text-end fw-bold">${g.total.toLocaleString()}</td>
+                        <td class="text-end fw-bold text-success">${g.paid.toLocaleString()}</td>
+                        <td class="text-end fw-bold text-danger">${showDebt}</td>
+                        <td class="text-end fw-bold text-primary">${showCredit}</td>
                     </tr>
                 `;
             });
         }
 
-        // อัปเดตยอดรวมในกล่องด้านบน
         document.getElementById('sumTotal').innerText = sumTotal.toLocaleString();
         document.getElementById('sumPaid').innerText = sumPaid.toLocaleString();
         document.getElementById('sumDebt').innerText = sumDebt.toLocaleString();
@@ -1013,8 +1069,7 @@
         let dateOnly = now.toLocaleDateString('en-CA');
 
         let itemDesc = itemDescArr.length > 0 ? itemDescArr.join(', ') : "💰 นำเงินมาเคลียร์หนี้เก่า";
-        
-        let txDebt = cartTotal - paid; // ยอดส่วนต่างเฉพาะบิลนี้
+        let txDebt = cartTotal - paid;
 
         let newRecord = {
             id: Date.now(),
@@ -1052,8 +1107,7 @@
             return;
         }
         transactions.forEach(t => {
-            let billDebt = t.total - t.paid;
-            let debtClass = billDebt > 0 ? "text-danger fw-bold" : (billDebt < 0 ? "text-success fw-bold" : "text-muted");
+            let debtClass = t.debt > 0 ? "text-danger fw-bold" : (t.debt < 0 ? "text-success fw-bold" : "text-muted");
             let shiftBadge = t.shift === "รอบเช้า" ? `<span class="badge bg-warning text-dark">☀️ ${t.shift}</span>` : `<span class="badge bg-info text-dark">🌙 ${t.shift}</span>`;
             tbody.innerHTML += `
                 <tr>
@@ -1063,7 +1117,7 @@
                     <td><span class="badge bg-light text-dark border fs-6 text-wrap text-start" style="max-width: 250px; line-height:1.5;">${t.item}</span></td>
                     <td class="text-end fw-bold">${t.total}</td>
                     <td class="text-end fw-bold text-success">${t.paid}</td>
-                    <td class="text-end ${debtClass}">${billDebt}</td>
+                    <td class="text-end ${debtClass}">${t.debt}</td>
                     <td class="text-center">
                         <button class="btn btn-sm btn-outline-warning fw-bold mb-1 w-100" onclick="openEditTxModal(${t.id})">✏️ แก้ไข</button>
                         <button class="btn btn-sm btn-outline-danger fw-bold w-100" onclick="secureDeleteTransaction(${t.id})">🗑️ ลบ</button>
@@ -1201,8 +1255,7 @@
             tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-5 fs-5">ลูกค้ารายนี้ยังไม่เคยซื้อของ</td></tr>';
         } else {
             custTrans.forEach(t => {
-                let billDebt = t.total - t.paid;
-                let debtClass = billDebt > 0 ? "text-danger fw-bold" : (billDebt < 0 ? "text-success fw-bold" : "text-muted");
+                let debtClass = t.debt > 0 ? "text-danger fw-bold" : (t.debt < 0 ? "text-success fw-bold" : "text-muted");
                 let shiftBadge = t.shift === "รอบเช้า" ? `<span class="badge bg-warning text-dark">☀️</span>` : `<span class="badge bg-info text-dark">🌙</span>`;
                 tbody.innerHTML += `
                     <tr>
@@ -1211,7 +1264,7 @@
                         <td><span class="badge bg-light text-dark border fs-6">${t.item}</span></td>
                         <td class="text-end fw-bold">${t.total}</td>
                         <td class="text-end fw-bold text-success">${t.paid}</td>
-                        <td class="text-end pe-3 ${debtClass}">${billDebt}</td>
+                        <td class="text-end pe-3 ${debtClass}">${t.debt}</td>
                         <td class="text-center">
                             <button class="btn btn-sm btn-outline-warning fw-bold mb-1 w-100" onclick="openEditTxModal(${t.id})">✏️ แก้ไข</button>
                             <button class="btn btn-sm btn-outline-danger fw-bold w-100" onclick="secureDeleteTransaction(${t.id})">🗑️ ลบ</button>
