@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบร้านค้า (สรุปยอดรายวัน/รายเดือน)</title>
+    <title>ระบบร้านค้า (สรุปยอดรายวัน/รายเดือน + แสดงวันที่)</title>
     
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -351,7 +351,7 @@
                 </div>
             </div>
             
-            <h4 class="fw-bold mb-3" id="summaryTableTitle">🧾 รายละเอียดรายการที่ลูกค้าซื้อในรอบนี้</h4>
+            <h4 class="fw-bold mb-3" id="summaryTableTitle">🧾 รายละเอียดรายการที่ลูกค้าซื้อ</h4>
             <div class="table-responsive border rounded bg-white shadow-sm border-0">
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-dark">
@@ -360,7 +360,7 @@
                             <th>ชื่อลูกค้า</th>
                             <th>รายการสินค้าที่ซื้อ</th>
                             <th class="text-end">ยอดขาย(฿)</th>
-                            <th class="text-end">จ่ายเงินมา(฿)</th>
+                            <th class="text-end">จ่ายมา(฿)</th>
                             <th class="text-end">ติดหนี้(฿)</th>
                             <th class="text-end">เงินเกิน(฿)</th>
                         </tr>
@@ -829,11 +829,16 @@
                 };
             }
             
-            if (t.item && t.item !== "💰 นำเงินมาเคลียร์หนี้เก่า") {
-                groupedByCustomer[t.barcode].items.push(t.item);
-            } else if (t.item === "💰 นำเงินมาเคลียร์หนี้เก่า") {
-                groupedByCustomer[t.barcode].items.push("จ่ายเคลียร์หนี้");
+            let datePrefix = "";
+            if (viewType === 'monthly') {
+                let shortDate = t.time.split(' ')[0].substring(0, 5); // เอาแค่ DD/MM
+                datePrefix = `<strong class="text-primary">[${shortDate}]</strong> `;
             }
+
+            let itemLabel = t.item;
+            if (itemLabel === "💰 นำเงินมาเคลียร์หนี้เก่า") itemLabel = "💰 จ่ายเคลียร์หนี้";
+            
+            groupedByCustomer[t.barcode].items.push(datePrefix + itemLabel);
             
             groupedByCustomer[t.barcode].total += t.total;
             groupedByCustomer[t.barcode].paid += t.paid;
@@ -861,17 +866,18 @@
                 else if (g.shift === "รอบเย็น") shiftBadge = `<span class="badge bg-info text-dark">🌙 เย็น</span>`;
                 else shiftBadge = `<span class="badge bg-secondary">เช้า+เย็น</span>`;
                 
-                let itemsText = g.items.length > 0 ? g.items.reverse().join(' , ') : "-";
+                let joinChar = viewType === 'monthly' ? '<br>' : ' , ';
+                let itemsText = g.items.length > 0 ? g.items.reverse().join(joinChar) : "-";
 
                 tbody.innerHTML += `
                     <tr>
-                        <td class="text-center">${shiftBadge}</td>
-                        <td class="fw-bold text-primary">${g.customer}</td>
-                        <td><span class="badge bg-light text-dark border fs-6 text-wrap text-start" style="max-width: 350px; line-height:1.5;">${itemsText}</span></td>
-                        <td class="text-end fw-bold">${g.total.toLocaleString()}</td>
-                        <td class="text-end fw-bold text-success">${g.paid.toLocaleString()}</td>
-                        <td class="text-end fw-bold text-danger">${showDebt}</td>
-                        <td class="text-end fw-bold text-primary">${showCredit}</td>
+                        <td class="text-center align-top pt-3">${shiftBadge}</td>
+                        <td class="fw-bold text-primary fs-5 align-top pt-3">${g.customer}</td>
+                        <td><div class="bg-light text-dark border rounded p-2 fs-6 text-wrap text-start" style="min-width: 250px; line-height:1.5;">${itemsText}</div></td>
+                        <td class="text-end fw-bold fs-5 align-top pt-3">${g.total.toLocaleString()}</td>
+                        <td class="text-end fw-bold text-success fs-5 align-top pt-3">${g.paid.toLocaleString()}</td>
+                        <td class="text-end fw-bold text-danger fs-5 align-top pt-3">${showDebt}</td>
+                        <td class="text-end fw-bold text-primary fs-5 align-top pt-3">${showCredit}</td>
                     </tr>
                 `;
             });
@@ -1206,7 +1212,7 @@
         if(document.getElementById('customerView').classList.contains('active')) renderSpecificCustomerView();
         
         editTxModal.hide();
-        alert("✅ บันทึกการแก้ไขบิลเรียบร้อยแล้ว หหนี้ลูกค้าจะถูกคำนวณใหม่ทันที!");
+        alert("✅ บันทึกการแก้ไขบิลเรียบร้อยแล้ว หนี้ลูกค้าจะถูกคำนวณใหม่ทันที!");
     }
 
     function secureDeleteTransaction(id) {
