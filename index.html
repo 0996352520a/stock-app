@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบร้านค้า (เวอร์ชันใช้งานง่าย + ระบบป้องกันลบบิล)</title>
+    <title>ระบบร้านค้า (เวอร์ชันใช้งานง่าย + สรุปยอดรวมต่อคน)</title>
     
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -254,7 +254,7 @@
             </div>
         </div>
 
-        <!-- ================= แท็บ 2: สรุปยอดขาย (แยกกะ) ================= -->
+        <!-- ================= แท็บ 2: สรุปยอดขาย (จัดกลุ่มลูกค้า) ================= -->
         <div class="tab-pane fade" id="summary" role="tabpanel">
             <div class="card mb-4 shadow-sm border-0 bg-white">
                 <div class="card-body p-4">
@@ -295,7 +295,7 @@
                         </div>
                         <div class="col-md-4">
                             <div class="bg-white p-3 rounded border border-danger h-100 shadow-sm">
-                                <span class="fs-4 text-danger fw-bold d-block mb-2">ลูกค้าติดหนี้บิลนี้รวม</span>
+                                <span class="fs-4 text-danger fw-bold d-block mb-2">ยอดหนี้เพิ่ม/ลด ในรอบนี้</span>
                                 <span class="fw-bold text-danger" style="font-size: 3.5rem;" id="sumDebt">0</span> <span class="fs-4 text-danger">฿</span>
                             </div>
                         </div>
@@ -303,18 +303,17 @@
                 </div>
             </div>
             
-            <h4 class="fw-bold mb-3" id="summaryTableTitle">🧾 รายละเอียดบิลทั้งหมดในรอบที่เลือก</h4>
+            <h4 class="fw-bold mb-3" id="summaryTableTitle">🧾 รายละเอียดการซื้อ (รวมยอดลูกค้า 1 คน / 1 บรรทัด)</h4>
             <div class="table-responsive border rounded bg-white shadow-sm border-0">
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-dark">
                         <tr>
-                            <th>เวลา</th>
-                            <th>กะทำงาน</th>
+                            <th class="text-center" style="width: 120px;">กะทำงาน</th>
                             <th>ชื่อลูกค้า</th>
-                            <th>รายการสินค้าที่ซื้อ</th>
-                            <th class="text-end">ยอดรวมบิล</th>
-                            <th class="text-end text-success">จ่ายเงินมา</th>
-                            <th class="text-end text-danger">ติดหนี้บิลนี้</th>
+                            <th>รายการสินค้าที่ซื้อทั้งหมด</th>
+                            <th class="text-end">ยอดรวม</th>
+                            <th class="text-end text-success">จ่ายเงินแล้ว</th>
+                            <th class="text-end text-danger">หนี้ค้างรวม(ล่าสุด)</th>
                         </tr>
                     </thead>
                     <tbody id="summaryTableBody"></tbody>
@@ -322,7 +321,7 @@
             </div>
         </div>
 
-        <!-- ================= แท็บ 3: ดูข้อมูลลูกค้า (ที่มีตารางแก้ไข/ลบ) ================= -->
+        <!-- ================= แท็บ 3: ดูข้อมูลลูกค้า ================= -->
         <div class="tab-pane fade" id="customerView" role="tabpanel">
             <div class="card mb-4 shadow-sm border-0 bg-white">
                 <div class="card-body p-4">
@@ -493,7 +492,7 @@
     </div>
 </div>
 
-<!-- ================= Modals (หน้าต่างแจ้งเตือนและแก้ไข) ================= -->
+<!-- ================= Modals ================= -->
 
 <!-- Modal แก้ไขสินค้า -->
 <div class="modal fade" id="editProductModal" tabindex="-1" aria-hidden="true">
@@ -588,7 +587,6 @@
     let customers = JSON.parse(localStorage.getItem('myApp_customers')) || [];
     let cart = [];
 
-    // อัปเดตข้อมูลโครงสร้างเก่า
     inventory = inventory.map(p => { 
         if(!p.barcode) p.barcode = p.id.toString(); 
         if(p.isDaily === undefined) p.isDaily = false;
@@ -617,7 +615,6 @@
         localStorage.setItem('myApp_customers', JSON.stringify(customers));
     }
 
-    // ================= ล้างสต็อกรายวันอัตโนมัติ =================
     function checkDailyStockReset() {
         let lastDate = localStorage.getItem('myApp_lastDate');
         let today = new Date().toLocaleDateString('en-CA');
@@ -682,7 +679,7 @@
         $('#saleCustomer, #productSelect, #viewCustomerSelect').select2({ theme: 'bootstrap-5', width: '100%' });
     }
 
-    // ================= ระบบสรุปยอดขาย (Summary Tab) =================
+    // ================= ระบบสรุปยอดขาย (จัดกลุ่ม 1 ลูกค้า = 1 บรรทัด) =================
     function initSummary() {
         document.getElementById('summaryDate').value = new Date().toLocaleDateString('en-CA');
         renderSummary();
@@ -693,49 +690,86 @@
         let filterShift = document.getElementById('summaryShiftFilter').value;
         if(!filterDate) return;
 
-        let mTotal = 0, mPaid = 0, mDebt = 0;
-        let eTotal = 0, ePaid = 0, eDebt = 0;
+        let mTotal = 0, mPaid = 0;
+        let eTotal = 0, ePaid = 0;
 
-        let filteredTx = transactions.filter(t => {
-            let matchDate = (t.dateStr === filterDate);
-            let matchShift = (filterShift === 'all' || t.shift === filterShift);
-            return matchDate && matchShift;
-        });
-
+        // แยกยอดรวมรายกะ (เพื่อหาส่วนต่างสุทธิของระบบ)
         transactions.forEach(t => {
             if (t.dateStr === filterDate) {
                 if (t.shift === 'รอบเย็น') {
-                    eTotal += t.total; ePaid += t.paid; eDebt += t.debt;
+                    eTotal += t.total; ePaid += t.paid;
                 } else { 
-                    mTotal += t.total; mPaid += t.paid; mDebt += t.debt;
+                    mTotal += t.total; mPaid += t.paid;
                 }
+            }
+        });
+        let mDebt = mTotal - mPaid; 
+        let eDebt = eTotal - ePaid; 
+
+        // กรองเฉพาะบิลในวันที่และกะที่เลือก
+        let filteredTx = transactions.filter(t => {
+            return (t.dateStr === filterDate) && (filterShift === 'all' || t.shift === filterShift);
+        });
+
+        // ================= จัดกลุ่มลูกค้า 1 คน ต่อ 1 บรรทัด =================
+        let groupedByCustomer = {};
+        
+        filteredTx.forEach(t => {
+            if(!groupedByCustomer[t.barcode]) {
+                groupedByCustomer[t.barcode] = {
+                    customer: t.customer,
+                    shift: t.shift,
+                    items: [],
+                    total: 0,
+                    paid: 0,
+                    latestDebt: t.debt // เก็บยอดหนี้จากรายการล่าสุด (เพราะ array transactions เรียงล่าสุดขึ้นก่อน)
+                };
+            }
+            
+            if (t.item && t.item !== "💰 นำเงินมาเคลียร์หนี้เก่า") {
+                groupedByCustomer[t.barcode].items.push(t.item);
+            } else if (t.item === "💰 นำเงินมาเคลียร์หนี้เก่า") {
+                groupedByCustomer[t.barcode].items.push("จ่ายเคลียร์หนี้");
+            }
+            
+            groupedByCustomer[t.barcode].total += t.total;
+            groupedByCustomer[t.barcode].paid += t.paid;
+            
+            if (groupedByCustomer[t.barcode].shift !== t.shift && groupedByCustomer[t.barcode].shift !== "เช้าและเย็น") {
+                groupedByCustomer[t.barcode].shift = "เช้าและเย็น";
             }
         });
 
         let tbody = document.getElementById('summaryTableBody');
         tbody.innerHTML = "";
 
-        if (filteredTx.length === 0) {
-            tbody.innerHTML = "<tr><td colspan='7' class='text-center text-muted py-5 fs-5'>ไม่มีรายการขายในรอบ/วันที่เลือก</td></tr>";
+        if (Object.keys(groupedByCustomer).length === 0) {
+            tbody.innerHTML = "<tr><td colspan='6' class='text-center text-muted py-5 fs-5'>ไม่มีรายการขายในรอบ/วันที่เลือก</td></tr>";
         } else {
-            filteredTx.forEach(t => {
-                let debtClass = t.debt > 0 ? "text-danger fw-bold" : (t.debt < 0 ? "text-success fw-bold" : "text-muted");
-                let shiftBadge = t.shift === "รอบเช้า" ? `<span class="badge bg-warning text-dark">☀️ รอบเช้า</span>` : `<span class="badge bg-info text-dark">🌙 รอบเย็น</span>`;
+            Object.values(groupedByCustomer).forEach(g => {
+                let debtClass = g.latestDebt > 0 ? "text-danger fw-bold" : (g.latestDebt < 0 ? "text-success fw-bold" : "text-muted");
+                let shiftBadge = "";
+                if (g.shift === "รอบเช้า") shiftBadge = `<span class="badge bg-warning text-dark">☀️ รอบเช้า</span>`;
+                else if (g.shift === "รอบเย็น") shiftBadge = `<span class="badge bg-info text-dark">🌙 รอบเย็น</span>`;
+                else shiftBadge = `<span class="badge bg-secondary">เช้าและเย็น</span>`;
                 
+                // เอาลิสต์สินค้ามาต่อกัน (ย้อน array กลับเพื่อให้รายการเก่าขึ้นก่อน)
+                let itemsText = g.items.length > 0 ? g.items.reverse().join(' , ') : "-";
+
                 tbody.innerHTML += `
                     <tr>
-                        <td class="text-muted" style="font-size: 16px;">${t.time}</td>
-                        <td>${shiftBadge}</td>
-                        <td class="fw-bold text-primary fs-5">${t.customer}</td>
-                        <td><span class="badge bg-light text-dark border fs-6 text-wrap text-start" style="max-width: 250px; line-height:1.5;">${t.item}</span></td>
-                        <td class="text-end fw-bold fs-5">${t.total.toLocaleString()}</td>
-                        <td class="text-end fw-bold text-success fs-5">${t.paid.toLocaleString()}</td>
-                        <td class="text-end fs-5 ${debtClass}">${t.debt.toLocaleString()}</td>
+                        <td class="text-center">${shiftBadge}</td>
+                        <td class="fw-bold text-primary fs-5">${g.customer}</td>
+                        <td><span class="badge bg-light text-dark border fs-6 text-wrap text-start" style="max-width: 400px; line-height:1.5;">${itemsText}</span></td>
+                        <td class="text-end fw-bold fs-5">${g.total.toLocaleString()}</td>
+                        <td class="text-end fw-bold text-success fs-5">${g.paid.toLocaleString()}</td>
+                        <td class="text-end fs-5 ${debtClass}">${g.latestDebt.toLocaleString()}</td>
                     </tr>
                 `;
             });
         }
 
+        // อัปเดตยอดรวมในกล่องด้านบน
         document.getElementById('sumTotal').innerText = (filterShift==='รอบเย็น' ? eTotal : (filterShift==='รอบเช้า' ? mTotal : mTotal+eTotal)).toLocaleString();
         document.getElementById('sumPaid').innerText = (filterShift==='รอบเย็น' ? ePaid : (filterShift==='รอบเช้า' ? mPaid : mPaid+ePaid)).toLocaleString();
         document.getElementById('sumDebt').innerText = (filterShift==='รอบเย็น' ? eDebt : (filterShift==='รอบเช้า' ? mDebt : mDebt+eDebt)).toLocaleString();
@@ -996,7 +1030,7 @@
         renderCustomerTable();
     }
 
-    // ================= โซนประวัติการขาย & ระบบป้องกันการลบ =================
+    // ================= โซนประวัติการขาย & ลบด้วยรหัสผ่าน =================
     function renderTable() {
         let tbody = document.getElementById('historyTableBody');
         tbody.innerHTML = "";
@@ -1065,7 +1099,6 @@
         alert("✅ บันทึกการแก้ไขบิลเรียบร้อยแล้ว หนี้ลูกค้าจะถูกคำนวณใหม่ทันที!");
     }
 
-    // ฟังก์ชันลบบิลที่ติดรหัสผ่าน
     function secureDeleteTransaction(id) {
         let pwd = prompt("🔒 ยืนยันสิทธิ์: กรุณาใส่รหัสผ่านเพื่อลบบิลนี้");
         if (pwd === null) return; 
