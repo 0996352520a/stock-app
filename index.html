@@ -27,6 +27,9 @@
         <li class="nav-item" role="presentation">
             <button class="nav-link" id="inventory-tab" data-bs-toggle="tab" data-bs-target="#inventory" type="button" role="tab" onclick="renderInventory()">📦 คลังสินค้า</button>
         </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="customers-tab" data-bs-toggle="tab" data-bs-target="#customers" type="button" role="tab" onclick="renderCustomerList()">👥 บัญชีลูกค้า</button>
+        </li>
     </ul>
 
     <div class="tab-content">
@@ -66,7 +69,7 @@
                 </div>
             </div>
 
-            <h6 class="fw-bold mb-2">ประวัติการทำรายการล่าสุด</h6>
+            <h6 class="fw-bold mb-2">ประวัติการทำรายการล่าสุด (ทุกรายการ)</h6>
             <div class="table-responsive border rounded">
                 <table class="table table-hover align-middle mb-0" style="font-size: 14px;">
                     <thead class="table-dark">
@@ -93,17 +96,17 @@
                         <h6 class="text-primary fw-bold mb-3">➕ เพิ่มสินค้าใหม่</h6>
                         <div class="row g-2 mb-2">
                             <div class="col-md-3">
-                                <input type="text" id="newCategory" class="form-control form-control-sm" placeholder="หมวดหมู่ (เช่น เครื่องดื่ม)" required>
+                                <input type="text" id="newCategory" class="form-control form-control-sm" placeholder="หมวดหมู่" required>
                             </div>
                             <div class="col-md-4">
                                 <input type="text" id="newProdName" class="form-control form-control-sm" placeholder="ชื่อสินค้า" required>
                             </div>
                             <div class="col-md-2">
-                                <input type="number" id="newProdPrice" class="form-control form-control-sm" placeholder="ราคาขาย/ชิ้น" required min="0">
+                                <input type="number" id="newProdPrice" class="form-control form-control-sm" placeholder="ราคา/ชิ้น" required min="0">
                             </div>
                             <div class="col-md-3">
                                 <div class="input-group input-group-sm">
-                                    <input type="number" id="newProdStock" class="form-control" placeholder="จำนวนเริ่มต้น" required min="0">
+                                    <input type="number" id="newProdStock" class="form-control" placeholder="จำนวนเริ่ม" required min="0">
                                     <button type="submit" class="btn btn-primary">บันทึก</button>
                                 </div>
                             </div>
@@ -128,6 +131,44 @@
                 </table>
             </div>
         </div>
+
+        <!-- ================= แท็บ 3: บัญชีลูกค้า (ใหม่) ================= -->
+        <div class="tab-pane fade" id="customers" role="tabpanel">
+            <div class="row mb-4 align-items-end">
+                <div class="col-md-7">
+                    <label class="form-label fw-bold">🔍 เลือกลูกค้าเพื่อดูประวัติ</label>
+                    <select id="customerSelect" class="form-select form-select-lg" onchange="viewCustomerDetails()">
+                        <option value="">-- เลือกลูกค้า --</option>
+                    </select>
+                </div>
+                <div class="col-md-5 mt-3 mt-md-0">
+                    <div class="card bg-danger text-white shadow-sm border-0">
+                        <div class="card-body py-2 d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0 fw-bold">ยอดค้างชำระรวม:</h6>
+                            <h3 class="mb-0 fw-bold" id="customerTotalDebt">0 ฿</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <h6 class="fw-bold mb-2">ประวัติการซื้อของลูกค้า</h6>
+            <div class="table-responsive border rounded bg-white">
+                <table class="table table-hover align-middle mb-0" style="font-size: 14px;">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>วัน-เวลา</th>
+                            <th>รายการสินค้า</th>
+                            <th class="text-end">ยอดรวม (฿)</th>
+                            <th class="text-end">จ่ายแล้ว (฿)</th>
+                            <th class="text-end">ค้างชำระ (฿)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="customerHistoryBody">
+                        <tr><td colspan='5' class='text-center text-muted py-4'>กรุณาเลือกลูกค้าจากช่องด้านบน</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -141,23 +182,11 @@
       </div>
       <div class="modal-body">
         <input type="hidden" id="editProdId">
-        <div class="mb-2">
-            <label class="form-label small text-muted">หมวดหมู่</label>
-            <input type="text" id="editCategory" class="form-control">
-        </div>
-        <div class="mb-2">
-            <label class="form-label small text-muted">ชื่อสินค้า</label>
-            <input type="text" id="editProdName" class="form-control">
-        </div>
+        <div class="mb-2"><label class="form-label small text-muted">หมวดหมู่</label><input type="text" id="editCategory" class="form-control"></div>
+        <div class="mb-2"><label class="form-label small text-muted">ชื่อสินค้า</label><input type="text" id="editProdName" class="form-control"></div>
         <div class="row mb-2">
-            <div class="col-6">
-                <label class="form-label small text-muted">ราคาขาย (฿)</label>
-                <input type="number" id="editProdPrice" class="form-control" min="0">
-            </div>
-            <div class="col-6">
-                <label class="form-label small text-muted">สต็อกคงเหลือ</label>
-                <input type="number" id="editProdStock" class="form-control" min="0">
-            </div>
+            <div class="col-6"><label class="form-label small text-muted">ราคาขาย (฿)</label><input type="number" id="editProdPrice" class="form-control" min="0"></div>
+            <div class="col-6"><label class="form-label small text-muted">สต็อกคงเหลือ</label><input type="number" id="editProdStock" class="form-control" min="0"></div>
         </div>
       </div>
       <div class="modal-footer">
@@ -174,7 +203,6 @@
     let inventory = JSON.parse(localStorage.getItem('myApp_inventory')) || [];
     let transactions = JSON.parse(localStorage.getItem('myApp_transactions')) || [];
 
-    // หากเปิดครั้งแรกและคลังว่าง ให้ใส่ข้อมูลตัวอย่าง
     if (inventory.length === 0) {
         inventory = [
             { id: 1, category: "น้ำแข็ง", name: "น้ำแข็งหลอด (สอบ)", price: 50, stock: 100 },
@@ -193,9 +221,7 @@
             return;
         }
 
-        // จัดเรียงตามหมวดหมู่
         let sortedInventory = [...inventory].sort((a, b) => a.category.localeCompare(b.category));
-
         sortedInventory.forEach(p => {
             let stockColor = p.stock <= 5 ? "text-danger" : "text-success";
             tbody.innerHTML += `
@@ -303,8 +329,7 @@
             if(!confirm(`⚠️ สินค้ามีแค่ ${product.stock} ชิ้น ต้องการบันทึกให้สต็อกติดลบหรือไม่?`)) return;
         }
 
-        // ตัดสต็อก
-        product.stock -= qty;
+        product.stock -= qty; // ตัดสต็อก
         localStorage.setItem('myApp_inventory', JSON.stringify(inventory));
 
         let customer = document.getElementById('customerName').value.trim();
@@ -340,7 +365,7 @@
         tbody.innerHTML = "";
         
         if (transactions.length === 0) {
-            tbody.innerHTML = "<tr><td colspan='7' class='text-center text-muted'>ยังไม่มีประวัติการซื้อขาย</td></tr>";
+            tbody.innerHTML = "<tr><td colspan='7' class='text-center text-muted py-3'>ยังไม่มีประวัติการซื้อขาย</td></tr>";
             return;
         }
 
@@ -368,6 +393,56 @@
             localStorage.setItem('myApp_transactions', JSON.stringify(transactions));
             renderTable();
         }
+    }
+
+    // ================= โซนบัญชีลูกค้า (ใหม่) =================
+    function renderCustomerList() {
+        let select = document.getElementById('customerSelect');
+        select.innerHTML = '<option value="">-- เลือกลูกค้า --</option>';
+        
+        // ดึงชื่อลูกค้าที่ไม่ซ้ำกันออกมา
+        let uniqueCustomers = [...new Set(transactions.map(t => t.customer))];
+        
+        uniqueCustomers.sort().forEach(c => {
+            select.innerHTML += `<option value="${c}">${c}</option>`;
+        });
+        
+        document.getElementById('customerHistoryBody').innerHTML = "<tr><td colspan='5' class='text-center text-muted py-4'>กรุณาเลือกลูกค้าจากช่องด้านบน</td></tr>";
+        document.getElementById('customerTotalDebt').innerText = "0 ฿";
+    }
+
+    function viewCustomerDetails() {
+        let customer = document.getElementById('customerSelect').value;
+        let tbody = document.getElementById('customerHistoryBody');
+        
+        if (!customer) {
+            tbody.innerHTML = "<tr><td colspan='5' class='text-center text-muted py-4'>กรุณาเลือกลูกค้าจากช่องด้านบน</td></tr>";
+            document.getElementById('customerTotalDebt').innerText = "0 ฿";
+            return;
+        }
+
+        // กรองเอาเฉพาะข้อมูลของลูกค้าที่เลือก
+        let custTransactions = transactions.filter(t => t.customer === customer);
+        tbody.innerHTML = "";
+        
+        let totalDebt = 0;
+
+        custTransactions.forEach(t => {
+            totalDebt += t.debt;
+            let debtClass = t.debt > 0 ? "text-danger fw-bold" : "text-success";
+            tbody.innerHTML += `
+                <tr>
+                    <td class="text-muted" style="font-size: 12px;">${t.time}</td>
+                    <td><span class="badge bg-light text-dark border">${t.item}</span></td>
+                    <td class="text-end">${t.total}</td>
+                    <td class="text-end text-success">${t.paid}</td>
+                    <td class="text-end ${debtClass}">${t.debt}</td>
+                </tr>
+            `;
+        });
+
+        // อัปเดตยอดค้างรวมบนการ์ดสีแดง
+        document.getElementById('customerTotalDebt').innerText = totalDebt.toLocaleString() + " ฿";
     }
 
     // เริ่มต้นระบบ
