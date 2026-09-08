@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-width=1.0">
-    <title>ระบบคลังสินค้าและลูกค้า</title>
+    <title>ระบบคลังสินค้าและลูกค้า (Pro Barcode)</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
@@ -21,16 +21,19 @@
 <div class="app-container">
     <h4 class="text-primary mb-3 fw-bold">📦 ระบบร้านค้าและคลังสินค้า</h4>
 
-    <!-- เมนู Tabs -->
+    <!-- เมนู Tabs (เพิ่มหน้าข้อมูลลูกค้าแยก) -->
     <ul class="nav nav-tabs mb-4" id="myTab" role="tablist">
         <li class="nav-item" role="presentation">
             <button class="nav-link active" id="sales-tab" data-bs-toggle="tab" data-bs-target="#sales" type="button" role="tab" onclick="loadDropdowns()">🛒 บันทึกการขาย</button>
         </li>
         <li class="nav-item" role="presentation">
+            <button class="nav-link" id="customer-view-tab" data-bs-toggle="tab" data-bs-target="#customerView" type="button" role="tab" onclick="initCustomerViewDropdown()">👤 ข้อมูลลูกค้า</button>
+        </li>
+        <li class="nav-item" role="presentation">
             <button class="nav-link" id="inventory-tab" data-bs-toggle="tab" data-bs-target="#inventory" type="button" role="tab" onclick="renderInventory()">📦 คลังสินค้า</button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link" id="customers-tab" data-bs-toggle="tab" data-bs-target="#customers" type="button" role="tab" onclick="renderCustomerTable()">👥 บัญชีลูกค้า</button>
+            <button class="nav-link" id="customers-tab" data-bs-toggle="tab" data-bs-target="#customers" type="button" role="tab" onclick="renderCustomerTable()">👥 จัดการรายชื่อลูกค้า</button>
         </li>
     </ul>
 
@@ -103,6 +106,46 @@
             </div>
         </div>
 
+        <!-- ================= แท็บใหม่: หน้าข้อมูลลูกค้า (แยกรายคน) ================= -->
+        <div class="tab-pane fade" id="customerView" role="tabpanel">
+            <div class="card mb-4 shadow-sm border-0 bg-light">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <label class="form-label fw-bold text-primary">🔍 เลือกลูกค้าเพื่อดูข้อมูลการซื้อขาย</label>
+                            <select id="viewCustomerSelect" class="form-select form-select-lg border-primary" onchange="renderSpecificCustomerView()">
+                                <option value="">-- เลือกลูกค้า --</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                            <div class="p-3 bg-white rounded border shadow-sm">
+                                <span class="text-muted small d-block">ยอดค้างชำระรวมสุทธิ</span>
+                                <span class="fs-4 fw-bold text-danger" id="viewCustomerTotalDebt">0 ฿</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <h6 class="fw-bold mb-2">ประวัติการซื้อขายของลูกค้ารายนี้</h6>
+            <div class="table-responsive border rounded bg-white">
+                <table class="table table-hover align-middle mb-0" style="font-size: 14px;">
+                    <thead class="table-dark">
+                        <tr>
+                            <th class="ps-3">วัน-เวลา</th>
+                            <th>รายการสินค้า</th>
+                            <th class="text-end">ยอดรวม (฿)</th>
+                            <th class="text-end text-success">จ่ายแล้ว (฿)</th>
+                            <th class="text-end text-danger pe-3">หนี้ค้าง (฿)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="viewCustomerHistoryBody">
+                        <tr><td colspan="5" class="text-center text-muted py-4">กรุณาเลือกลูกค้าจากช่องด้านบน</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
         <!-- ================= แท็บ 2: คลังสินค้า ================= -->
         <div class="tab-pane fade" id="inventory" role="tabpanel">
             <div class="card mb-4 shadow-sm border-0 bg-light">
@@ -143,7 +186,7 @@
             </div>
         </div>
 
-        <!-- ================= แท็บ 3: บัญชีลูกค้า (แบบฟอร์ม + ตารางรายชื่อ) ================= -->
+        <!-- ================= แท็บ 3: บัญชีลูกค้า ================= -->
         <div class="tab-pane fade" id="customers" role="tabpanel">
             <div class="card mb-4 shadow-sm border-0 bg-light">
                 <div class="card-body">
@@ -185,7 +228,7 @@
     </div>
 </div>
 
-<!-- ================= Modal ดูประวัติลูกค้า ================= -->
+<!-- ================= Modal ดูประวัติลูกค้า (จากหน้าจัดการลูกค้า) ================= -->
 <div class="modal fade" id="customerHistoryModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
     <div class="modal-content">
@@ -263,7 +306,53 @@
         localStorage.setItem('myApp_customers', JSON.stringify(customers));
     }
 
-    // ================= โซนสแกนบาร์โค้ด & แสดงหนี้ =================
+    // ================= โซนหน้าข้อมูลลูกค้า (แยกรายคน) =================
+    function initCustomerViewDropdown() {
+        let viewSelect = document.getElementById('viewCustomerSelect');
+        viewSelect.innerHTML = '<option value="">-- เลือกลูกค้า --</option>';
+        customers.forEach(c => {
+            viewSelect.innerHTML += `<option value="${c.barcode}">[${c.barcode}] ${c.name}</option>`;
+        });
+        renderSpecificCustomerView(); // รีเซ็ตหน้าจอ
+    }
+
+    function renderSpecificCustomerView() {
+        let barcode = document.getElementById('viewCustomerSelect').value;
+        let tbody = document.getElementById('viewCustomerHistoryBody');
+        let totalDebtEl = document.getElementById('viewCustomerTotalDebt');
+
+        if (!barcode) {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">กรุณาเลือกลูกค้าจากช่องด้านบน</td></tr>';
+            totalDebtEl.innerText = "0 ฿";
+            return;
+        }
+
+        let custTrans = transactions.filter(t => t.barcode === barcode);
+        tbody.innerHTML = "";
+        let totalDebt = 0;
+
+        if (custTrans.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-3">ยังไม่มีประวัติการซื้อขายของลูกค้ารายนี้</td></tr>';
+        } else {
+            custTrans.forEach(t => {
+                totalDebt += t.debt;
+                let debtClass = t.debt > 0 ? "text-danger fw-bold" : (t.debt < 0 ? "text-success fw-bold" : "text-muted");
+                let badgeClass = t.item.includes("ชำระหนี้") ? "bg-success text-white" : "bg-light text-dark border";
+                tbody.innerHTML += `
+                    <tr>
+                        <td class="ps-3 text-muted" style="font-size: 12px;">${t.time}</td>
+                        <td><span class="badge ${badgeClass}">${t.item}</span></td>
+                        <td class="text-end">${t.total}</td>
+                        <td class="text-end text-success">${t.paid}</td>
+                        <td class="text-end pe-3 ${debtClass}">${t.debt}</td>
+                    </tr>
+                `;
+            });
+        }
+        totalDebtEl.innerText = totalDebt.toLocaleString() + " ฿";
+    }
+
+    // ================= โซนสแกนบาร์โค้ด & แสดงหนี้ (หน้าขาย) =================
     function showCustomerDebt() {
         let cusSelect = document.getElementById('saleCustomer');
         let infoDiv = document.getElementById('currentCustomerDebtInfo');
@@ -443,6 +532,7 @@
         
         loadDropdowns();
         renderTable();
+        renderCustomerTable();
     }
 
     function renderTable() {
@@ -477,6 +567,7 @@
             transactions = transactions.filter(t => t.id !== id);
             localStorage.setItem('myApp_transactions', JSON.stringify(transactions));
             renderTable();
+            renderCustomerTable();
         }
     }
 
@@ -556,7 +647,7 @@
         }
     }
 
-    // ================= โซนบัญชีลูกค้า (แบบฟอร์มเพิ่มทีละชื่อ + ตารางรายชื่อ) =================
+    // ================= โซนบัญชีลูกค้า (จัดการรายชื่อ) =================
     function renderCustomerTable() {
         let tbody = document.getElementById('customerTableBody');
         tbody.innerHTML = "";
