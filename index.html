@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบคลังสินค้าและลูกค้า (POS Smart Debt Offset)</title>
+    <title>ระบบคลังสินค้าและลูกค้า (POS Credit & Debt Split)</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
@@ -104,9 +104,13 @@
                                 <span>ราคาสินค้าบิลนี้:</span>
                                 <span id="posCartTotal">0.00 ฿</span>
                             </div>
-                            <div class="d-flex justify-content-between text-danger small mb-2 pb-2 border-bottom border-secondary">
+                            <div class="d-flex justify-content-between text-danger small mb-1" id="oldDebtRow">
                                 <span>+ หนี้ค้างเก่าสะสม:</span>
                                 <span id="posOldDebtTotal">0.00 ฿</span>
+                            </div>
+                            <div class="d-flex justify-content-between text-success small mb-2 pb-2 border-bottom border-secondary" id="creditRow" style="display:none;">
+                                <span>- เครดิตเงินฝาก:</span>
+                                <span id="posCreditTotal">0.00 ฿</span>
                             </div>
 
                             <div class="mb-2">
@@ -128,8 +132,8 @@
                                 </div>
                                 <div class="col-6">
                                     <div class="p-2 bg-dark rounded border border-secondary text-center">
-                                        <span class="small text-muted d-block" style="font-size: 11px;">หนี้ค้างรวมใหม่</span>
-                                        <span class="fw-bold text-danger" id="posDebtAmount">0.00</span>
+                                        <span class="small text-muted d-block" style="font-size: 11px;">สถานะเงินสด</span>
+                                        <span class="fw-bold text-info" id="posStatusLabel">ปกติ</span>
                                     </div>
                                 </div>
                             </div>
@@ -137,7 +141,7 @@
 
                         <div>
                             <button type="button" class="btn btn-success btn-lg w-100 fw-bold py-2 mb-2 shadow" onclick="checkoutOrder()">
-                                🖨️ ชำระเงิน & ตัดหนี้อัตโนมัติ
+                                🖨️ ชำระเงิน & บันทึกบิล
                             </button>
                             <button type="button" class="btn btn-outline-light btn-sm w-100" onclick="clearCart()">
                                 🗑️ ล้างตะกร้า
@@ -167,7 +171,7 @@
             </div>
         </div>
 
-        <!-- แท็บอื่นๆ (ข้อมูลลูกค้า, คลังสินค้า, จัดการรายชื่อ) -->
+        <!-- ================= แท็บ: ข้อมูลลูกค้า (แยกหนี้และเครดิต) ================= -->
         <div class="tab-pane fade" id="customerView" role="tabpanel">
             <div class="card mb-3 shadow-sm border-0 bg-light">
                 <div class="card-body">
@@ -185,6 +189,7 @@
                     </div>
                 </div>
             </div>
+
             <div id="customerDetailsBox" class="p-3 mb-3 bg-light border-start border-primary border-4 rounded" style="display: none;">
                 <div class="row">
                     <div class="col-md-4"><span class="text-muted small d-block">ชื่อ-นามสกุล / ชื่อร้าน</span><h5 class="fw-bold text-dark mb-0" id="infoCusName">-</h5></div>
@@ -192,15 +197,23 @@
                     <div class="col-md-5"><span class="text-muted small d-block">ที่อยู่</span><span class="fw-bold text-secondary" id="infoCusAddress">-</span></div>
                 </div>
                 <hr class="my-2">
-                <div class="d-flex justify-content-between align-items-center">
-                    <span class="fw-bold text-danger">ยอดค้างชำระรวมสุทธิ:</span>
-                    <h4 class="fw-bold text-danger mb-0" id="viewCustomerTotalDebt">0 ฿</h4>
+                <div class="row text-center">
+                    <div class="col-6 border-end">
+                        <span class="text-muted small d-block">ยอดหนี้ค้างชำระ</span>
+                        <h4 class="fw-bold text-danger mb-0" id="viewCustomerDebt">0 ฿</h4>
+                    </div>
+                    <div class="col-6">
+                        <span class="text-muted small d-block">เครดิตเงินฝาก (จ่ายเกิน)</span>
+                        <h4 class="fw-bold text-success mb-0" id="viewCustomerCredit">0 ฿</h4>
+                    </div>
                 </div>
             </div>
+
+            <h6 class="fw-bold mb-2">ประวัติการซื้อขายของลูกค้ารายนี้</h6>
             <div class="table-responsive border rounded bg-white">
                 <table class="table table-hover align-middle mb-0" style="font-size: 14px;">
                     <thead class="table-dark">
-                        <tr><th class="ps-3">วัน-เวลา</th><th>รายการสินค้า</th><th class="text-end">ยอดรวม (฿)</th><th class="text-end text-success">จ่ายแล้ว (฿)</th><th class="text-end text-danger pe-3">หนี้ค้าง (฿)</th></tr>
+                        <tr><th class="ps-3">วัน-เวลา</th><th>รายการสินค้า</th><th class="text-end">ยอดรวม (฿)</th><th class="text-end text-success">จ่ายแล้ว (฿)</th><th class="text-end text-danger pe-3">หนี้บิลนี้ (฿)</th></tr>
                     </thead>
                     <tbody id="viewCustomerHistoryBody"><tr><td colspan="5" class="text-center text-muted py-4">กรุณาสแกนบาร์โค้ดหรือเลือกลูกค้าจากด้านบน</td></tr></tbody>
                 </table>
@@ -252,7 +265,18 @@
             </div>
             <div class="table-responsive border rounded bg-white">
                 <table class="table table-hover align-middle mb-0" style="font-size: 14px;">
-                    <thead class="table-dark"><tr><th>บาร์โค้ด</th><th>ชื่อลูกค้า</th><th>เบอร์โทร</th><th>ที่อยู่</th><th class="text-end">ยอดค้าง (฿)</th><th class="text-center">ประวัติ</th><th class="text-center">จัดการ</th></tr></thead>
+                    <thead class="table-dark">
+                        <tr>
+                            <th>บาร์โค้ด</th>
+                            <th>ชื่อลูกค้า</th>
+                            <th>เบอร์โทร</th>
+                            <th>ที่อยู่</th>
+                            <th class="text-end">ยอดหนี้ค้าง</th>
+                            <th class="text-end">เครดิตเงินฝาก</th>
+                            <th class="text-center">ประวัติ</th>
+                            <th class="text-center">จัดการ</th>
+                        </tr>
+                    </thead>
                     <tbody id="customerTableBody"></tbody>
                 </table>
             </div>
@@ -310,7 +334,7 @@
             </table>
         </div>
       </div>
-      <div class="modal-footer bg-light d-flex justify-content-between"><h5 class="mb-0 fw-bold">ยอดค้างรวมทั้งหมด:</h5><h4 class="mb-0 fw-bold text-danger" id="modalTotalDebt">0 ฿</h4></div>
+      <div class="modal-footer bg-light d-flex justify-content-between"><h5 class="mb-0 fw-bold">ยอดสุทธิรวม:</h5><h4 class="mb-0 fw-bold" id="modalTotalBalance">0 ฿</h4></div>
     </div>
   </div>
 </div>
@@ -337,6 +361,16 @@
         localStorage.setItem('myApp_customers', JSON.stringify(customers));
     }
 
+    // คำนวณยอดสุทธิของลูกค้า (แยกหนี้ กับ เครดิตเงินฝาก)
+    function getCustomerBalance(barcode) {
+        let custTrans = transactions.filter(t => t.barcode === barcode);
+        let netSum = custTrans.reduce((sum, t) => sum + t.debt, 0);
+        
+        let debt = netSum > 0 ? netSum : 0;
+        let credit = netSum < 0 ? Math.abs(netSum) : 0;
+        return { debt, credit, net: netSum };
+    }
+
     // ================= POS =================
     function initPOS() {
         let cusSelect = document.getElementById('saleCustomer');
@@ -355,24 +389,27 @@
         document.getElementById('scanCustomerBarcode').focus();
     }
 
-    function getSelectedCustomerDebt() {
-        let cusSelect = document.getElementById('saleCustomer');
-        if (cusSelect.selectedIndex <= 0) return 0;
-        let barcode = cusSelect.value;
-        return transactions.filter(t => t.barcode === barcode).reduce((sum, t) => sum + t.debt, 0);
-    }
-
     function showCustomerDebt() {
+        let cusSelect = document.getElementById('saleCustomer');
         let infoDiv = document.getElementById('currentCustomerDebtInfo');
-        let totalDebt = getSelectedCustomerDebt();
-        if (totalDebt > 0) {
-            infoDiv.innerText = `⚠️ ยอดค้างสะสมเดิม: ${totalDebt.toLocaleString()} บาท`;
-            infoDiv.className = "small mt-1 text-danger fw-bold";
-            infoDiv.style.display = "block";
+        if (cusSelect.selectedIndex > 0) {
+            let barcode = cusSelect.value;
+            let bal = getCustomerBalance(barcode);
+            if (bal.debt > 0) {
+                infoDiv.innerText = `⚠️ หนี้ค้างเก่า: ${bal.debt.toLocaleString()} บาท`;
+                infoDiv.className = "small mt-1 text-danger fw-bold";
+                infoDiv.style.display = "block";
+            } else if (bal.credit > 0) {
+                infoDiv.innerText = `💚 มีเครดิตเงินฝาก: ${bal.credit.toLocaleString()} บาท`;
+                infoDiv.className = "small mt-1 text-success fw-bold";
+                infoDiv.style.display = "block";
+            } else {
+                infoDiv.style.display = "none";
+            }
         } else {
             infoDiv.style.display = "none";
         }
-        renderCart(); // คำนวณใหม่เมื่อเปลี่ยนลูกค้า
+        renderCart();
     }
 
     function handleCustomerScan(e) {
@@ -492,44 +529,60 @@
             });
         }
 
-        let oldDebt = getSelectedCustomerDebt();
-        let grandTotal = cartTotal + oldDebt;
+        let bal = getCustomerBalance(document.getElementById('saleCustomer').value);
+        let grandTotal = cartTotal + bal.debt - bal.credit;
+        if (grandTotal < 0) grandTotal = 0;
 
         document.getElementById('posCartTotal').innerText = cartTotal.toLocaleString() + " ฿";
-        document.getElementById('posOldDebtTotal').innerText = oldDebt.toLocaleString() + " ฿";
+        document.getElementById('posOldDebtTotal').innerText = bal.debt.toLocaleString() + " ฿";
+        
+        let creditRow = document.getElementById('creditRow');
+        if (bal.credit > 0) {
+            document.getElementById('posCreditTotal').innerText = bal.credit.toLocaleString() + " ฿";
+            creditRow.style.display = "flex";
+        } else {
+            creditRow.style.display = "none";
+        }
+
         document.getElementById('posGrandTotal').innerText = grandTotal.toLocaleString();
         calculateChange();
     }
 
     function calculateChange() {
         let cartTotal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
-        let oldDebt = getSelectedCustomerDebt();
-        let grandTotal = cartTotal + oldDebt;
+        let bal = getCustomerBalance(document.getElementById('saleCustomer').value);
+        let grandTotal = cartTotal + bal.debt - bal.credit;
+        if (grandTotal < 0) grandTotal = 0;
+
         let paid = parseFloat(document.getElementById('posPaidAmount').value) || 0;
-        
         let change = paid - grandTotal;
         let remainingDebt = grandTotal - paid;
 
+        let statusLabel = document.getElementById('posStatusLabel');
         if (change >= 0) {
-            document.getElementById('posChangeAmount').innerText = change.toLocaleString();
-            document.getElementById('posDebtAmount').innerText = "0.00";
+            statusLabel.innerText = "ทอน " + change.toLocaleString() + " ฿";
+            statusLabel.className = "fw-bold text-success";
         } else {
-            document.getElementById('posChangeAmount').innerText = "0.00";
-            document.getElementById('posDebtAmount').innerText = Math.abs(remainingDebt).toLocaleString();
+            statusLabel.innerText = "ค้างเพิ่ม " + Math.abs(remainingDebt).toLocaleString() + " ฿";
+            statusLabel.className = "fw-bold text-danger";
         }
     }
 
     function checkoutOrder() {
         let cusSelect = document.getElementById('saleCustomer');
         if (cusSelect.selectedIndex <= 0) { alert("❌ กรุณาเลือกลูกค้าก่อนชำระเงิน"); return; }
-        if (cart.length === 0 && getSelectedCustomerDebt() === 0) { alert("❌ ไม่มีสินค้าในตะกร้าและไม่มีหนี้ค้าง"); return; }
+        let cartTotal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+        let bal = getCustomerBalance(cusSelect.value);
+        let grandTotal = cartTotal + bal.debt - bal.credit;
+        if (grandTotal < 0) grandTotal = 0;
+
+        if (cart.length === 0 && bal.debt === 0) { alert("❌ ไม่มีสินค้าในตะกร้าและไม่มีหนี้ค้าง"); return; }
 
         let paid = parseFloat(document.getElementById('posPaidAmount').value);
         if (isNaN(paid)) { alert("❌ กรุณากรอกจำนวนเงินสดที่รับมา"); return; }
 
         let barcode = cusSelect.value;
         let customerName = cusSelect.options[cusSelect.selectedIndex].text.replace(/\[.*?\] /, '');
-        let cartTotal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
         
         // ตัดสต็อกสินค้าจริง
         let itemDescArr = [];
@@ -549,7 +602,7 @@
         let dateTime = now.toLocaleDateString('th-TH') + " " + now.toLocaleTimeString('th-TH', {hour: '2-digit', minute:'2-digit'});
 
         let itemDesc = itemDescArr.length > 0 ? itemDescArr.join(', ') : "💰 ชำระหนี้ค้างเก่า";
-        let finalDebt = cartTotal - paid; // หากจ่ายเกิน หนี้บิลนี้จะเป็นลบ ซึ่งจะไปหักลบหนี้เก่าในประวัติทับซ้อนกัน
+        let finalDebt = cartTotal + bal.debt - bal.credit - paid;
 
         let newRecord = {
             id: Date.now(),
@@ -565,7 +618,7 @@
         transactions.unshift(newRecord);
         localStorage.setItem('myApp_transactions', JSON.stringify(transactions));
 
-        alert("✅ บันทึกการชำระเงินและตัดหนี้สำเร็จ!");
+        alert("✅ บันทึกการชำระเงินและตัดยอดสำเร็จ!");
         cart = [];
         document.getElementById('posPaidAmount').value = "";
         initPOS();
@@ -641,13 +694,15 @@
     function renderSpecificCustomerView() {
         let barcode = document.getElementById('viewCustomerSelect').value;
         let tbody = document.getElementById('viewCustomerHistoryBody');
-        let totalDebtEl = document.getElementById('viewCustomerTotalDebt');
+        let debtEl = document.getElementById('viewCustomerDebt');
+        let creditEl = document.getElementById('viewCustomerCredit');
         let detailsBox = document.getElementById('customerDetailsBox');
 
         if (!barcode) {
             detailsBox.style.display = "none";
             tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">กรุณาสแกนบาร์โค้ดหรือเลือกลูกค้าจากด้านบน</td></tr>';
-            totalDebtEl.innerText = "0 ฿";
+            debtEl.innerText = "0 ฿";
+            creditEl.innerText = "0 ฿";
             return;
         }
 
@@ -659,16 +714,18 @@
             detailsBox.style.display = "block";
         }
 
+        let bal = getCustomerBalance(barcode);
+        debtEl.innerText = bal.debt.toLocaleString() + " ฿";
+        creditEl.innerText = bal.credit.toLocaleString() + " ฿";
+
         let custTrans = transactions.filter(t => t.barcode === barcode);
         tbody.innerHTML = "";
-        let totalDebt = 0;
 
         if (custTrans.length === 0) {
             tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-3">ยังไม่มีประวัติการซื้อขาย</td></tr>';
         } else {
             custTrans.forEach(t => {
-                totalDebt += t.debt;
-                let debtClass = t.debt > 0 ? "text-danger fw-bold" : "text-muted";
+                let debtClass = t.debt > 0 ? "text-danger fw-bold" : (t.debt < 0 ? "text-success fw-bold" : "text-muted");
                 tbody.innerHTML += `
                     <tr>
                         <td class="ps-3 text-muted" style="font-size: 12px;">${t.time}</td>
@@ -680,7 +737,6 @@
                 `;
             });
         }
-        totalDebtEl.innerText = totalDebt.toLocaleString() + " ฿";
     }
 
     // ================= โซนคลังสินค้า =================
@@ -756,17 +812,19 @@
     function renderCustomerTable() {
         let tbody = document.getElementById('customerTableBody');
         tbody.innerHTML = "";
-        if (customers.length === 0) { tbody.innerHTML = "<tr><td colspan='7' class='text-center text-muted'>ยังไม่มีข้อมูลลูกค้า</td></tr>"; return; }
+        if (customers.length === 0) { tbody.innerHTML = "<tr><td colspan='8' class='text-center text-muted'>ยังไม่มีข้อมูลลูกค้า</td></tr>"; return; }
         customers.forEach(c => {
-            let totalDebt = transactions.filter(t => t.barcode === c.barcode).reduce((sum, t) => sum + t.debt, 0);
-            let debtColor = totalDebt > 0 ? "text-danger fw-bold" : "text-success";
+            let bal = getCustomerBalance(c.barcode);
+            let debtColor = bal.debt > 0 ? "text-danger fw-bold" : "text-muted";
+            let creditColor = bal.credit > 0 ? "text-success fw-bold" : "text-muted";
             tbody.innerHTML += `
                 <tr>
                     <td><span class="badge bg-secondary">${c.barcode}</span></td>
                     <td class="fw-bold">${c.name}</td>
                     <td>${c.phone || "-"}</td>
                     <td class="small text-muted">${c.address || "-"}</td>
-                    <td class="text-end ${debtColor}">${totalDebt.toLocaleString()}</td>
+                    <td class="text-end ${debtColor}">${bal.debt > 0 ? bal.debt.toLocaleString() + ' ฿' : '-'}</td>
+                    <td class="text-end ${creditColor}">${bal.credit > 0 ? bal.credit.toLocaleString() + ' ฿' : '-'}</td>
                     <td class="text-center"><button class="btn btn-sm btn-info text-white py-0 px-2" onclick="openCustomerHistory('${c.barcode}', '${c.name}')">ดูประวัติ</button></td>
                     <td class="text-center">
                         <button class="btn btn-sm btn-outline-warning py-0 px-2 me-1" onclick="openEditCustomerModal('${c.barcode}')">แก้ไข</button>
@@ -834,16 +892,17 @@
         let tbody = document.getElementById('modalCustomerHistoryBody');
         tbody.innerHTML = "";
         let custTrans = transactions.filter(t => t.barcode === barcode);
-        let totalDebt = 0;
+        let netSum = 0;
         if(custTrans.length === 0) {
             tbody.innerHTML = "<tr><td colspan='5' class='text-center text-muted py-3'>ยังไม่มีประวัติการซื้อ</td></tr>";
         } else {
             custTrans.forEach(t => {
-                totalDebt += t.debt;
+                netSum += t.debt;
                 tbody.innerHTML += `<tr><td class="ps-3 text-muted" style="font-size: 12px;">${t.time}</td><td>${t.item}</td><td class="text-end">${t.total}</td><td class="text-end text-success">${t.paid}</td><td class="text-end pe-3 text-danger">${t.debt}</td></tr>`;
             });
         }
-        document.getElementById('modalTotalDebt').innerText = totalDebt.toLocaleString() + " ฿";
+        let balanceText = netSum > 0 ? `ค้างชำระ ${netSum.toLocaleString()} ฿` : (netSum < 0 ? `เครดิตเงินฝาก ${Math.abs(netSum).toLocaleString()} ฿` : `ยอดสุทธิ 0 ฿`);
+        document.getElementById('modalTotalBalance').innerText = balanceText;
         historyModal.show();
     }
 
