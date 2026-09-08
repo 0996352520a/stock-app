@@ -47,25 +47,26 @@
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label fw-bold small text-primary">หรือ ค้นหาชื่อลูกค้า</label>
-                                <select id="saleCustomer" class="form-select border-primary" onchange="syncBarcodeFromSelect('saleCustomer', 'scanCustomerBarcode')" required>
+                                <select id="saleCustomer" class="form-select border-primary" onchange="syncBarcodeFromSelect('saleCustomer', 'scanCustomerBarcode'); showCustomerDebt();" required>
                                     <!-- โหลดรายชื่อลูกค้า -->
                                 </select>
+                                <div id="currentCustomerDebtInfo" class="small mt-1" style="display:none;"></div>
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label fw-bold small text-success">📦 สแกนรหัสสินค้า</label>
                                 <input type="text" id="scanProductBarcode" class="form-control scan-input border-success" placeholder="สแกน..." onkeydown="handleProductScan(event)" autocomplete="off">
                             </div>
                             <div class="col-md-3">
-                                <label class="form-label fw-bold small text-success">หรือ ค้นหาชื่อสินค้า</label>
+                                <label class="form-label fw-bold small text-success">หรือ เลือกรายการ</label>
                                 <select id="productSelect" class="form-select border-success" onchange="syncBarcodeFromSelect('productSelect', 'scanProductBarcode'); calculateTotal();" required>
-                                    <!-- โหลดรายการสินค้า -->
+                                    <!-- โหลดรายการสินค้า และ ตัวเลือกชำระหนี้ -->
                                 </select>
                             </div>
                         </div>
                         <div class="row g-3">
                             <div class="col-md-4">
                                 <label class="form-label fw-bold small">จำนวนสินค้า (ชิ้น/สอบ)</label>
-                                <input type="number" id="saleQty" class="form-control" value="1" min="1" oninput="calculateTotal()" required>
+                                <input type="number" id="saleQty" class="form-control" value="1" min="0" oninput="calculateTotal()">
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label fw-bold small">ยอดรวม (บาท)</label>
@@ -93,7 +94,7 @@
                             <th>รายการสินค้า</th>
                             <th class="text-end">รวม(฿)</th>
                             <th class="text-end">จ่ายแล้ว(฿)</th>
-                            <th class="text-end">ค้างชำระ</th>
+                            <th class="text-end">หนี้จากบิลนี้</th>
                             <th class="text-center">ลบ</th>
                         </tr>
                     </thead>
@@ -201,7 +202,7 @@
                         <th>รายการสินค้า</th>
                         <th class="text-end">ยอดรวม (฿)</th>
                         <th class="text-end text-success">จ่ายแล้ว (฿)</th>
-                        <th class="text-end text-danger pe-3">ค้าง (฿)</th>
+                        <th class="text-end text-danger pe-3">หนี้บิลนี้ (฿)</th>
                     </tr>
                 </thead>
                 <tbody id="modalCustomerHistoryBody"></tbody>
@@ -248,11 +249,8 @@
     let transactions = JSON.parse(localStorage.getItem('myApp_transactions')) || [];
     let customers = JSON.parse(localStorage.getItem('myApp_customers')) || [];
 
-    // อัปเดตข้อมูลเก่าให้มีบาร์โค้ดสินค้าหากยังไม่มี
-    inventory = inventory.map(p => {
-        if(!p.barcode) p.barcode = p.id.toString(); 
-        return p;
-    });
+    // อัปเดตข้อมูลเก่า
+    inventory = inventory.map(p => { if(!p.barcode) p.barcode = p.id.toString(); return p; });
 
     if (inventory.length === 0) {
         inventory = [{ id: 1, barcode: "1111", category: "น้ำแข็ง", name: "น้ำแข็งหลอด (สอบ)", price: 50, stock: 100 }];
@@ -266,7 +264,27 @@
         localStorage.setItem('myApp_customers', JSON.stringify(customers));
     }
 
-    // ================= โซนสแกนบาร์โค้ด (หน้าขาย) =================
+    // ================= โซนสแกนบาร์โค้ด & แสดงหนี้ =================
+    function showCustomerDebt() {
+        let cusSelect = document.getElementById('saleCustomer');
+        let infoDiv = document.getElementById('currentCustomerDebtInfo');
+        
+        if (cusSelect.selectedIndex > 0) {
+            let barcode = cusSelect.value;
+            let totalDebt = transactions.filter(t => t.barcode === barcode).reduce((sum, t) => sum + t.debt, 0);
+            
+            if (totalDebt > 0) {
+                infoDiv.innerText = `⚠️ ยอดค้างสะสมเดิม: ${totalDebt.toLocaleString()} บาท`;
+                infoDiv.className = "small mt-1 text-danger fw-bold";
+                infoDiv.style.display = "block";
+            } else {
+                infoDiv.style.display = "none";
+            }
+        } else {
+            infoDiv.style.display = "none";
+        }
+    }
+
     function handleCustomerScan(e) {
         if (e.key === 'Enter') {
             e.preventDefault();
@@ -278,7 +296,8 @@
                 if (select.options[i].value === barcode) {
                     select.selectedIndex = i;
                     found = true;
-                    document.getElementById('scanProductBarcode').focus(); // เลื่อนไปช่องสแกนสินค้า
+                    showCustomerDebt();
+                    document.getElementById('scanProductBarcode').focus(); 
                     break;
                 }
             }
@@ -286,6 +305,7 @@
                 alert("❌ ไม่พบลูกค้ารหัสนี้");
                 e.target.value = '';
                 select.selectedIndex = 0;
+                showCustomerDebt();
             }
         }
     }
@@ -302,7 +322,7 @@
                     select.selectedIndex = i;
                     found = true;
                     calculateTotal();
-                    document.getElementById('saleQty').focus(); // เลื่อนไปช่องจำนวน
+                    document.getElementById('saleQty').focus();
                     break;
                 }
             }
@@ -318,8 +338,12 @@
         let select = document.getElementById(selectId);
         let input = document.getElementById(inputId);
         if (select.selectedIndex > 0) {
-            let barcode = selectId === 'saleCustomer' ? select.value : select.options[select.selectedIndex].getAttribute('data-barcode');
-            input.value = barcode;
+            if (select.value === "pay_debt") {
+                input.value = ""; 
+            } else {
+                let barcode = selectId === 'saleCustomer' ? select.value : select.options[select.selectedIndex].getAttribute('data-barcode');
+                input.value = barcode;
+            }
         } else {
             input.value = "";
         }
@@ -332,23 +356,31 @@
 
         let prodSelect = document.getElementById('productSelect');
         prodSelect.innerHTML = '<option value="">-- ค้นหาชื่อสินค้า --</option>';
+        // ตัวเลือกสำหรับชำระหนี้อย่างเดียว
+        prodSelect.innerHTML += '<option value="pay_debt" class="text-success fw-bold">💰 ชำระหนี้ค้างสะสม (ไม่รับสินค้า)</option>';
+        
         let sortedInventory = [...inventory].sort((a, b) => a.category.localeCompare(b.category));
         sortedInventory.forEach(p => {
             prodSelect.innerHTML += `<option value="${p.id}" data-barcode="${p.barcode}" data-price="${p.price}" data-stock="${p.stock}">[${p.barcode}] ${p.name} (เหลือ ${p.stock})</option>`;
         });
         
         calculateTotal();
+        showCustomerDebt();
         document.getElementById('scanCustomerBarcode').focus(); 
     }
 
     function calculateTotal() {
         let select = document.getElementById('productSelect');
         let qty = parseFloat(document.getElementById('saleQty').value) || 0;
-        if (select.selectedIndex > 0) {
+        
+        if (select.selectedIndex > 0 && select.value !== "pay_debt") {
             let price = parseFloat(select.options[select.selectedIndex].getAttribute('data-price')) || 0;
             document.getElementById('totalAmount').value = price * qty;
         } else {
             document.getElementById('totalAmount').value = 0;
+            if (select.value === "pay_debt") {
+                document.getElementById('saleQty').value = 0;
+            }
         }
     }
 
@@ -359,25 +391,42 @@
         if (cusSelect.selectedIndex <= 0) { alert("กรุณาเลือกลูกค้า"); return; }
         
         let prodSelect = document.getElementById('productSelect');
-        if (prodSelect.selectedIndex <= 0) { alert("กรุณาเลือกสินค้า"); return; }
+        if (prodSelect.selectedIndex <= 0) { alert("กรุณาเลือกรายการสินค้า หรือ เลือกชำระหนี้"); return; }
 
         let barcode = cusSelect.value;
-        let customerName = cusSelect.options[cusSelect.selectedIndex].text.replace(/\[.*?\] /, ''); // ตัดบาร์โค้ดออกจากชื่อ
+        let customerName = cusSelect.options[cusSelect.selectedIndex].text.replace(/\[.*?\] /, ''); 
         
-        let prodId = parseInt(prodSelect.value);
-        let product = inventory.find(x => x.id === prodId);
-        let qty = parseFloat(document.getElementById('saleQty').value) || 0;
+        let total = 0;
+        let paid = parseFloat(document.getElementById('paidAmount').value) || 0;
+        let itemDesc = "";
 
-        if (product.stock < qty) {
-            if(!confirm(`⚠️ สินค้าเหลือ ${product.stock} ชิ้น ต้องการบันทึกให้สต็อกติดลบหรือไม่?`)) return;
+        // กรณีชำระหนี้อย่างเดียว
+        if (prodSelect.value === "pay_debt") {
+            if (paid <= 0) {
+                alert("กรุณาใส่จำนวนเงินที่ลูกค้านำมาชำระ");
+                return;
+            }
+            itemDesc = "💰 ชำระหนี้ค้างสะสม";
+            total = 0; // ไม่มีบิลซื้อของ
+        } 
+        // กรณีซื้อของปกติ
+        else {
+            let prodId = parseInt(prodSelect.value);
+            let product = inventory.find(x => x.id === prodId);
+            let qty = parseFloat(document.getElementById('saleQty').value) || 0;
+
+            if (qty <= 0) { alert("กรุณาใส่จำนวนสินค้า"); return; }
+            if (product.stock < qty) {
+                if(!confirm(`⚠️ สินค้าเหลือ ${product.stock} ชิ้น ต้องการบันทึกให้สต็อกติดลบหรือไม่?`)) return;
+            }
+
+            product.stock -= qty; 
+            localStorage.setItem('myApp_inventory', JSON.stringify(inventory));
+            total = parseFloat(document.getElementById('totalAmount').value) || 0;
+            itemDesc = `${product.name} (x${qty})`;
         }
 
-        product.stock -= qty; 
-        localStorage.setItem('myApp_inventory', JSON.stringify(inventory));
-
-        let total = parseFloat(document.getElementById('totalAmount').value) || 0;
-        let paid = parseFloat(document.getElementById('paidAmount').value) || 0;
-        let debt = total - paid;
+        let debt = total - paid; 
         
         let now = new Date();
         let dateTime = now.toLocaleDateString('th-TH') + " " + now.toLocaleTimeString('th-TH', {hour: '2-digit', minute:'2-digit'});
@@ -387,7 +436,7 @@
             time: dateTime,
             barcode: barcode,
             customer: customerName,
-            item: `${product.name} (x${qty})`,
+            item: itemDesc,
             total: total,
             paid: paid,
             debt: debt
@@ -416,12 +465,14 @@
         }
 
         transactions.forEach(t => {
-            let debtClass = t.debt > 0 ? "text-danger fw-bold" : "text-success";
+            let debtClass = t.debt > 0 ? "text-danger fw-bold" : (t.debt < 0 ? "text-success fw-bold" : "text-muted");
+            let badgeClass = t.item.includes("ชำระหนี้") ? "bg-success text-white" : "bg-light text-dark border";
+            
             tbody.innerHTML += `
                 <tr>
                     <td class="text-muted" style="font-size: 12px;">${t.time}</td>
                     <td class="fw-bold">${t.customer}</td>
-                    <td><span class="badge bg-light text-dark border">${t.item}</span></td>
+                    <td><span class="badge ${badgeClass}">${t.item}</span></td>
                     <td class="text-end">${t.total}</td>
                     <td class="text-end text-success">${t.paid}</td>
                     <td class="text-end ${debtClass}">${t.debt}</td>
@@ -451,19 +502,7 @@
         let sortedInventory = [...inventory].sort((a, b) => a.category.localeCompare(b.category));
         sortedInventory.forEach(p => {
             let stockColor = p.stock <= 5 ? "text-danger" : "text-success";
-            tbody.innerHTML += `
-                <tr>
-                    <td><span class="text-primary small">${p.barcode}</span></td>
-                    <td><span class="badge bg-secondary opacity-75">${p.category}</span></td>
-                    <td class="fw-bold">${p.name}</td>
-                    <td class="text-center">${p.price}</td>
-                    <td class="text-center fw-bold ${stockColor}">${p.stock}</td>
-                    <td class="text-center">
-                        <button class="btn btn-sm btn-outline-warning py-0 px-2" onclick="openEditModal(${p.id})">แก้ไข</button>
-                        <button class="btn btn-sm btn-outline-danger py-0 px-2" onclick="deleteProduct(${p.id})">ลบ</button>
-                    </td>
-                </tr>
-            `;
+            tbody.innerHTML += `<tr><td><span class="text-primary small">${p.barcode}</span></td><td><span class="badge bg-secondary opacity-75">${p.category}</span></td><td class="fw-bold">${p.name}</td><td class="text-center">${p.price}</td><td class="text-center fw-bold ${stockColor}">${p.stock}</td><td class="text-center"><button class="btn btn-sm btn-outline-warning py-0 px-2" onclick="openEditModal(${p.id})">แก้ไข</button> <button class="btn btn-sm btn-outline-danger py-0 px-2" onclick="deleteProduct(${p.id})">ลบ</button></td></tr>`;
         });
     }
 
@@ -503,13 +542,10 @@
     function updateProduct() {
         let id = parseInt(document.getElementById('editProdId').value);
         let barcode = document.getElementById('editProdBarcode').value.trim();
-        
         let p = inventory.find(x => x.id === id);
         if(p) {
-            // เช็กบาร์โค้ดซ้ำกับตัวอื่น
             let duplicate = inventory.find(x => x.barcode === barcode && x.id !== id);
             if(duplicate) { alert("❌ บาร์โค้ดนี้ถูกใช้กับสินค้าอื่นแล้ว"); return; }
-
             p.barcode = barcode;
             p.category = document.getElementById('editCategory').value.trim();
             p.name = document.getElementById('editProdName').value.trim();
@@ -593,8 +629,9 @@
         } else {
             custTrans.forEach(t => {
                 totalDebt += t.debt;
-                let debtClass = t.debt > 0 ? "text-danger fw-bold" : "text-muted";
-                tbody.innerHTML += `<tr><td class="ps-3 text-muted" style="font-size: 12px;">${t.time}</td><td>${t.item}</td><td class="text-end">${t.total}</td><td class="text-end text-success">${t.paid}</td><td class="text-end pe-3 ${debtClass}">${t.debt}</td></tr>`;
+                let debtClass = t.debt > 0 ? "text-danger fw-bold" : (t.debt < 0 ? "text-success fw-bold" : "text-muted");
+                let badgeClass = t.item.includes("ชำระหนี้") ? "bg-success text-white" : "bg-light text-dark border";
+                tbody.innerHTML += `<tr><td class="ps-3 text-muted" style="font-size: 12px;">${t.time}</td><td><span class="badge ${badgeClass}">${t.item}</span></td><td class="text-end">${t.total}</td><td class="text-end text-success">${t.paid}</td><td class="text-end pe-3 ${debtClass}">${t.debt}</td></tr>`;
             });
         }
         document.getElementById('modalTotalDebt').innerText = totalDebt.toLocaleString() + " ฿";
