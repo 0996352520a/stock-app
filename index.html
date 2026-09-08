@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-width=1.0">
-    <title>ระบบคลังสินค้าและลูกค้า (Batch Customer Sheet)</title>
+    <title>ระบบคลังสินค้าและลูกค้า (Excel-like Sheet)</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
@@ -11,9 +11,12 @@
         .app-container { max-width: 950px; margin: 30px auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
         .nav-tabs .nav-link { color: #495057; border-radius: 0; padding: 12px 20px; font-size: 16px; }
         .nav-tabs .nav-link.active { font-weight: bold; color: #0d6efd; border-bottom: 3px solid #0d6efd; background: transparent; border-top: none; border-left: none; border-right: none;}
-        .table-responsive { max-height: 400px; overflow-y: auto; }
+        .table-responsive { max-height: 450px; overflow-y: auto; }
         .scan-input { background-color: #f8faff; border: 2px solid #0d6efd; }
         .scan-input:focus { background-color: #fff; box-shadow: 0 0 8px rgba(13,110,253,0.3); }
+        /* สไตล์ตารางให้เหมือน Excel */
+        .excel-table input { border: none; background: transparent; width: 100%; padding: 4px 8px; }
+        .excel-table input:focus { background: #fff; outline: 2px solid #0d6efd; border-radius: 4px; }
     </style>
 </head>
 <body>
@@ -30,7 +33,7 @@
             <button class="nav-link" id="inventory-tab" data-bs-toggle="tab" data-bs-target="#inventory" type="button" role="tab" onclick="renderInventory()">📦 คลังสินค้า</button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link" id="customers-tab" data-bs-toggle="tab" data-bs-target="#customers" type="button" role="tab" onclick="renderCustomerSheet()">👥 บัญชีลูกค้า (แบบชีต)</button>
+            <button class="nav-link" id="customers-tab" data-bs-toggle="tab" data-bs-target="#customers" type="button" role="tab" onclick="renderCustomerSheet()">👥 บัญชีลูกค้า (ตาราง Excel)</button>
         </li>
     </ul>
 
@@ -143,12 +146,12 @@
             </div>
         </div>
 
-        <!-- ================= แท็บ 3: บัญชีลูกค้า (แบบ Sheet กรอกทีเดียวหลายคน) ================= -->
+        <!-- ================= แท็บ 3: บัญชีลูกค้า (Excel-like Grid) ================= -->
         <div class="tab-pane fade" id="customers" role="tabpanel">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <div>
-                    <h5 class="fw-bold text-primary mb-0">📋 จัดการรายชื่อลูกค้าแบบตาราง (Sheet)</h5>
-                    <p class="text-muted small mb-0">คุณสามารถแก้ไขชื่อหรือเพิ่มแถวใหม่ แล้วกดปุ่ม "บันทึกข้อมูลทั้งหมด" ด้านล่างได้เลย</p>
+                    <h5 class="fw-bold text-primary mb-0">📋 ตารางรายชื่อลูกค้า (รองรับการ Copy & Paste)</h5>
+                    <p class="text-muted small mb-0">💡 คุณสามารถก๊อปปี้ข้อมูล 2 คอลัมน์ (รหัส, ชื่อ) จาก Excel มาคลิกวางที่ช่องด้านล่างได้ทันที</p>
                 </div>
                 <div>
                     <button type="button" class="btn btn-outline-success btn-sm" onclick="addCustomerRow()">+ เพิ่มแถว</button>
@@ -157,7 +160,7 @@
             </div>
 
             <div class="table-responsive border rounded bg-white shadow-sm mb-3">
-                <table class="table table-bordered table-hover align-middle mb-0" style="font-size: 14px;">
+                <table class="table table-bordered excel-table align-middle mb-0" style="font-size: 14px;">
                     <thead class="table-dark">
                         <tr>
                             <th style="width: 25%;">บาร์โค้ดลูกค้า</th>
@@ -167,7 +170,7 @@
                         </tr>
                     </thead>
                     <tbody id="customerSheetBody">
-                        <!-- แถวกรอกข้อมูลจะถูกสร้างที่นี่ -->
+                        <!-- แถวตาราง -->
                     </tbody>
                 </table>
             </div>
@@ -175,7 +178,7 @@
     </div>
 </div>
 
-<!-- ================= Modal ดูประวัติลูกค้า ================= -->
+<!-- Modal ดูประวัติลูกค้า -->
 <div class="modal fade" id="customerHistoryModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
     <div class="modal-content">
@@ -207,7 +210,7 @@
   </div>
 </div>
 
-<!-- ================= Modal แก้ไขสินค้า ================= -->
+<!-- Modal แก้ไขสินค้า -->
 <div class="modal fade" id="editProductModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-sm">
       <div class="modal-content">
@@ -546,29 +549,29 @@
         }
     }
 
-    // ================= โซนบัญชีลูกค้า (แบบ Sheet ตาราง) =================
+    // ================= โซนบัญชีลูกค้า (Excel Grid พร้อมรองรับ Paste) =================
     function renderCustomerSheet() {
         let tbody = document.getElementById('customerSheetBody');
         tbody.innerHTML = "";
 
         if (customers.length === 0) {
-            addCustomerRow(); // ถ้ายังไม่มี ให้สร้างแถวเปล่าไว้ 1 แถว
+            addCustomerRow();
             return;
         }
 
-        customers.forEach((c, index) => {
+        customers.forEach((c) => {
             let totalDebt = transactions.filter(t => t.barcode === c.barcode).reduce((sum, t) => sum + t.debt, 0);
             let debtColor = totalDebt > 0 ? "text-danger fw-bold" : "text-success";
 
             tbody.innerHTML += `
                 <tr>
                     <td>
-                        <input type="text" class="form-control form-control-sm cus-barcode" value="${c.barcode}" placeholder="รหัสบาร์โค้ด">
+                        <input type="text" class="cus-barcode" value="${c.barcode}" placeholder="รหัสบาร์โค้ด">
                     </td>
                     <td>
-                        <input type="text" class="form-control form-control-sm cus-name" value="${c.name}" placeholder="ชื่อลูกค้า/ร้านค้า">
+                        <input type="text" class="cus-name" value="${c.name}" placeholder="ชื่อลูกค้า/ร้านค้า" onpaste="handleExcelPaste(event, this)">
                     </td>
-                    <td class="text-end ${debtColor} align-middle">
+                    <td class="text-end ${debtColor} align-middle px-3">
                         ${totalDebt.toLocaleString()} ฿
                     </td>
                     <td class="text-center">
@@ -580,27 +583,62 @@
         });
     }
 
+    // ฟังก์ชันรองรับการ Copy แถวจาก Excel มา Paste ใส่ตารางเว็บ
+    function handleExcelPaste(e, inputElement) {
+        let clipboardData = e.clipboardData || window.clipboardData;
+        let pastedData = clipboardData.getData('Text');
+        
+        // ถ้ามีการวางข้อมูลหลายบรรทัดหรือมี Tab (แสดงว่าก๊อปมาจาก Excel หลายช่อง)
+        if (pastedData.includes('\t') || pastedData.includes('\n')) {
+            e.preventDefault();
+            let rows = pastedData.split(/\r\n|\n|\r/);
+            let currentRow = inputElement.closest('tr');
+            
+            rows.forEach((rowText) => {
+                if (!rowText.trim()) return;
+                let cols = rowText.split('\t');
+                let bCode = cols[0] ? cols[0].trim() : '';
+                let cName = cols[1] ? cols[1].trim() : cols[0].trim(); // ถ้ามีคอลัมน์เดียวให้ใส่เป็นชื่อ
+
+                if (currentRow) {
+                    let bInput = currentRow.querySelector('.cus-barcode');
+                    let nInput = currentRow.querySelector('.cus-name');
+                    if (bInput && nInput) {
+                        bInput.value = bCode;
+                        nInput.value = cName;
+                    }
+                    currentRow = currentRow.nextElementSibling;
+                } else {
+                    // ถ้าหมดแถวแล้ว ให้สร้างแถวใหม่เพิ่มอัตโนมัติ
+                    let tbody = document.getElementById('customerSheetBody');
+                    let newTr = document.createElement('tr');
+                    newTr.innerHTML = `
+                        <td><input type="text" class="cus-barcode" value="${bCode}" placeholder="รหัสบาร์โค้ด"></td>
+                        <td><input type="text" class="cus-name" value="${cName}" placeholder="ชื่อลูกค้า/ร้านค้า" onpaste="handleExcelPaste(event, this)"></td>
+                        <td class="text-end text-muted align-middle px-3">0 ฿</td>
+                        <td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger py-0 px-2" onclick="removeCustomerRow(this, '')">🗑️</button></td>
+                    `;
+                    tbody.appendChild(newTr);
+                    currentRow = newTr.nextElementSibling;
+                }
+            });
+        }
+    }
+
     function addCustomerRow() {
         let tbody = document.getElementById('customerSheetBody');
-        tbody.innerHTML += `
-            <tr>
-                <td>
-                    <input type="text" class="form-control form-control-sm cus-barcode" placeholder="รหัสบาร์โค้ดใหม่">
-                </td>
-                <td>
-                    <input type="text" class="form-control form-control-sm cus-name" placeholder="ชื่อลูกค้าใหม่">
-                </td>
-                <td class="text-end text-muted align-middle">0 ฿</td>
-                <td class="text-center">
-                    <button type="button" class="btn btn-sm btn-outline-danger py-0 px-2" onclick="removeCustomerRow(this, '')">🗑️</button>
-                </td>
-            </tr>
+        let newTr = document.createElement('tr');
+        newTr.innerHTML = `
+            <td><input type="text" class="cus-barcode" placeholder="รหัสบาร์โค้ดใหม่"></td>
+            <td><input type="text" class="cus-name" placeholder="ชื่อลูกค้าใหม่" onpaste="handleExcelPaste(event, this)"></td>
+            <td class="text-end text-muted align-middle px-3">0 ฿</td>
+            <td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger py-0 px-2" onclick="removeCustomerRow(this, '')">🗑️</button></td>
         `;
+        tbody.appendChild(newTr);
     }
 
     function removeCustomerRow(btn, barcode) {
         if (barcode) {
-            // ถ้ารหัสนี้มีอยู่ในระบบจริง ให้เช็กก่อนลบ
             customers = customers.filter(c => c.barcode !== barcode);
             localStorage.setItem('myApp_customers', JSON.stringify(customers));
         }
@@ -618,7 +656,7 @@
             let b = barcodes[i].value.trim();
             let n = names[i].value.trim();
 
-            if (b === "" && n === "") continue; // ข้ามแถวที่ว่างเปล่า
+            if (b === "" && n === "") continue; 
 
             if (b === "" || n === "") {
                 alert(`⚠️ กรุณากรอกทั้งบาร์โค้ดและชื่อให้ครบถ้วนในแถวที่ ${i + 1}`);
