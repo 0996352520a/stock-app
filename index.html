@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบร้านค้า (เวอร์ชันใช้งานง่าย + แยกกะ)</title>
+    <title>ระบบร้านค้า (เวอร์ชันใช้งานง่าย + สรุปยอดแยกกะละเอียด)</title>
     
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -97,7 +97,7 @@
             <button class="nav-link active" id="sales-tab" data-bs-toggle="tab" data-bs-target="#sales" type="button" role="tab" onclick="initPOS()">🛒 คิดเงิน</button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link" id="summary-tab" data-bs-toggle="tab" data-bs-target="#summary" type="button" role="tab" onclick="initSummary()">📊 สรุปยอดขาย (แยกกะ)</button>
+            <button class="nav-link" id="summary-tab" data-bs-toggle="tab" data-bs-target="#summary" type="button" role="tab" onclick="initSummary()">📊 สรุปยอดขาย</button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" id="customer-view-tab" data-bs-toggle="tab" data-bs-target="#customerView" type="button" role="tab" onclick="initCustomerView()">👤 ข้อมูลลูกค้า</button>
@@ -256,87 +256,76 @@
             </div>
         </div>
 
-        <!-- ================= แท็บใหม่: สรุปยอดขาย (แยกกะ) ================= -->
+        <!-- ================= แท็บใหม่: สรุปยอดขาย (แยกกะแบบละเอียด) ================= -->
         <div class="tab-pane fade" id="summary" role="tabpanel">
+            <!-- กล่องตัวกรอง (เลือกวัน และ เลือกรอบกะ) -->
             <div class="card mb-4 shadow-sm border-0 bg-white">
                 <div class="card-body p-4">
-                    <div class="row align-items-center">
-                        <div class="col-md-auto">
-                            <h3 class="fw-bold text-primary mb-0 me-3">📅 เลือกวันที่ดูยอด:</h3>
-                        </div>
-                        <div class="col-md-4">
+                    <div class="row align-items-center g-4">
+                        <div class="col-md-auto"><h4 class="fw-bold text-primary mb-0">📅 เลือกวันที่:</h4></div>
+                        <div class="col-md-3">
                             <input type="date" id="summaryDate" class="form-control form-control-lg fs-4 fw-bold text-primary border-primary" onchange="renderSummary()">
+                        </div>
+                        <div class="col-md-auto ms-md-4"><h4 class="fw-bold text-primary mb-0">⏰ เลือกรอบกะ:</h4></div>
+                        <div class="col-md-4">
+                            <select id="summaryShiftFilter" class="form-select form-select-lg fs-4 fw-bold text-primary border-primary" onchange="renderSummary()">
+                                <option value="all">ดูทุกกะ (สรุปทั้งวัน)</option>
+                                <option value="รอบเช้า">☀️ รอบเช้า (แสดงเฉพาะเช้า)</option>
+                                <option value="รอบเย็น">🌙 รอบเย็น (แสดงเฉพาะเย็น)</option>
+                            </select>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div class="row g-4">
-                <!-- การ์ดสรุปรอบเช้า -->
-                <div class="col-lg-6">
-                    <div class="card shadow border-2 border-warning h-100">
-                        <div class="card-header bg-warning text-dark py-3 text-center">
-                            <h3 class="fw-bold mb-0">☀️ สรุปยอดรอบเช้า</h3>
-                        </div>
-                        <div class="card-body p-4 bg-light">
-                            <div class="mb-4 bg-white p-3 rounded border text-center">
-                                <span class="fs-4 text-muted d-block">ยอดขายรวมสุทธิ</span>
-                                <span class="fw-bold text-dark" style="font-size: 3.5rem;" id="sumMorningTotal">0</span> <span class="fs-4">฿</span>
-                            </div>
-                            <div class="row">
-                                <div class="col-6">
-                                    <div class="bg-white p-3 rounded border border-success text-center h-100">
-                                        <span class="fs-5 text-success fw-bold d-block">รับเงินสดจริง</span>
-                                        <span class="fs-2 fw-bold text-success" id="sumMorningPaid">0</span>
-                                    </div>
-                                </div>
-                                <div class="col-6">
-                                    <div class="bg-white p-3 rounded border border-danger text-center h-100">
-                                        <span class="fs-5 text-danger fw-bold d-block">ลูกค้าติดหนี้บิลนี้</span>
-                                        <span class="fs-2 fw-bold text-danger" id="sumMorningDebt">0</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+            <!-- กล่องสรุปตัวเลข -->
+            <div class="card shadow-sm border-2 border-primary mb-5">
+                <div class="card-header bg-primary text-white py-3 text-center">
+                    <h3 class="fw-bold mb-0" id="summaryTitleText">📊 สรุปยอดขาย</h3>
                 </div>
-
-                <!-- การ์ดสรุปรอบเย็น -->
-                <div class="col-lg-6">
-                    <div class="card shadow border-2 border-info h-100">
-                        <div class="card-header bg-info text-white py-3 text-center">
-                            <h3 class="fw-bold mb-0 text-shadow">🌙 สรุปยอดรอบเย็น</h3>
-                        </div>
-                        <div class="card-body p-4 bg-light">
-                            <div class="mb-4 bg-white p-3 rounded border text-center">
-                                <span class="fs-4 text-muted d-block">ยอดขายรวมสุทธิ</span>
-                                <span class="fw-bold text-dark" style="font-size: 3.5rem;" id="sumEveningTotal">0</span> <span class="fs-4">฿</span>
+                <div class="card-body p-4 bg-light">
+                    <div class="row g-4 text-center">
+                        <div class="col-md-4">
+                            <div class="bg-white p-3 rounded border h-100 shadow-sm">
+                                <span class="fs-4 text-muted d-block mb-2">ยอดขายรวมสุทธิ</span>
+                                <span class="fw-bold text-dark" style="font-size: 3.5rem;" id="sumTotal">0</span> <span class="fs-4 text-muted">฿</span>
                             </div>
-                            <div class="row">
-                                <div class="col-6">
-                                    <div class="bg-white p-3 rounded border border-success text-center h-100">
-                                        <span class="fs-5 text-success fw-bold d-block">รับเงินสดจริง</span>
-                                        <span class="fs-2 fw-bold text-success" id="sumEveningPaid">0</span>
-                                    </div>
-                                </div>
-                                <div class="col-6">
-                                    <div class="bg-white p-3 rounded border border-danger text-center h-100">
-                                        <span class="fs-5 text-danger fw-bold d-block">ลูกค้าติดหนี้บิลนี้</span>
-                                        <span class="fs-2 fw-bold text-danger" id="sumEveningDebt">0</span>
-                                    </div>
-                                </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="bg-white p-3 rounded border border-success h-100 shadow-sm">
+                                <span class="fs-4 text-success fw-bold d-block mb-2">รับเงินสดจริงเข้าเก๊ะ</span>
+                                <span class="fw-bold text-success" style="font-size: 3.5rem;" id="sumPaid">0</span> <span class="fs-4 text-success">฿</span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="bg-white p-3 rounded border border-danger h-100 shadow-sm">
+                                <span class="fs-4 text-danger fw-bold d-block mb-2">ลูกค้าติดหนี้บิลนี้รวม</span>
+                                <span class="fw-bold text-danger" style="font-size: 3.5rem;" id="sumDebt">0</span> <span class="fs-4 text-danger">฿</span>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
             
-            <!-- สรุปรวมทั้งวัน -->
-            <div class="mt-4 card shadow-sm border-0 bg-dark text-white text-center p-4">
-                <span class="fs-3 text-warning">ยอดขายรวมทั้งวัน (เช้า + เย็น)</span>
-                <div>
-                    <span class="fw-bold text-warning" style="font-size: 4rem;" id="sumAllDayTotal">0</span> <span class="fs-2 text-warning">฿</span>
-                </div>
+            <!-- ตารางแสดงรายละเอียดลูกค้าที่ซื้อในกะที่เลือก -->
+            <h4 class="fw-bold mb-3" id="summaryTableTitle">🧾 รายละเอียดบิลทั้งหมดในรอบที่เลือก</h4>
+            <div class="table-responsive border rounded bg-white shadow-sm border-0">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>เวลา</th>
+                            <th>กะทำงาน</th>
+                            <th>ชื่อลูกค้า</th>
+                            <th>รายการสินค้าที่ซื้อ</th>
+                            <th class="text-end">ยอดรวมบิล</th>
+                            <th class="text-end text-success">จ่ายเงินมา</th>
+                            <th class="text-end text-danger">ติดหนี้บิลนี้</th>
+                        </tr>
+                    </thead>
+                    <tbody id="summaryTableBody">
+                        <!-- รายการจะถูกแทรกที่นี่ -->
+                    </tbody>
+                </table>
             </div>
         </div>
 
@@ -344,7 +333,7 @@
         <div class="tab-pane fade" id="customerView" role="tabpanel">
             <div class="card mb-4 shadow-sm border-0 bg-white">
                 <div class="card-body p-4">
-                    <h5 class="fw-bold text-primary border-bottom pb-3 mb-4">🔍 ค้นหาประวัติและยอดหนี้ของลูกค้า</h5>
+                    <h5 class="fw-bold text-primary border-bottom pb-3 mb-4">🔍 ค้นหาข้อมูลและประวัติของลูกค้า</h5>
                     <div class="row g-4 align-items-center">
                         <div class="col-md-5">
                             <label class="form-label text-primary">📷 สแกนบาร์โค้ดลูกค้า</label>
@@ -588,9 +577,7 @@
     function convertThaiToEng(text) {
         if(!text) return "";
         let result = '';
-        for (let i = 0; i < text.length; i++) {
-            result += thToEnMap[text[i]] || text[i];
-        }
+        for (let i = 0; i < text.length; i++) { result += thToEnMap[text[i]] || text[i]; }
         return result;
     }
 
@@ -614,7 +601,7 @@
             let parts = t.time.split(' ')[0].split('/');
             if(parts.length === 3) t.dateStr = `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`;
         }
-        if(!t.shift) t.shift = "รอบเช้า"; // ค่าเริ่มต้นสำหรับบิลเก่า
+        if(!t.shift) t.shift = "รอบเช้า"; 
         return t;
     });
 
@@ -633,7 +620,7 @@
     // ================= ล้างสต็อกรายวันอัตโนมัติ =================
     function checkDailyStockReset() {
         let lastDate = localStorage.getItem('myApp_lastDate');
-        let today = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
+        let today = new Date().toLocaleDateString('en-CA');
         
         if (lastDate && lastDate !== today) {
             let hasDaily = false;
@@ -697,37 +684,59 @@
 
     // ================= ระบบสรุปยอดขาย (Summary Tab) =================
     function initSummary() {
-        // กำหนดวันที่ค่าเริ่มต้นเป็นวันนี้ (YYYY-MM-DD)
         document.getElementById('summaryDate').value = new Date().toLocaleDateString('en-CA');
         renderSummary();
     }
 
     function renderSummary() {
         let filterDate = document.getElementById('summaryDate').value;
+        let filterShift = document.getElementById('summaryShiftFilter').value;
         if(!filterDate) return;
 
-        let mTotal = 0, mPaid = 0, mDebt = 0;
-        let eTotal = 0, ePaid = 0, eDebt = 0;
-
-        transactions.forEach(t => {
-            if (t.dateStr === filterDate) {
-                if (t.shift === 'รอบเย็น') {
-                    eTotal += t.total; ePaid += t.paid; eDebt += t.debt;
-                } else { // รอบเช้า หรือของเก่าที่ไม่ได้ระบุ
-                    mTotal += t.total; mPaid += t.paid; mDebt += t.debt;
-                }
-            }
+        let sumTotal = 0, sumPaid = 0, sumDebt = 0;
+        
+        // กรองเอาเฉพาะข้อมูลตามวันที่และกะที่เลือก
+        let filteredTx = transactions.filter(t => {
+            let matchDate = (t.dateStr === filterDate);
+            let matchShift = (filterShift === 'all' || t.shift === filterShift);
+            return matchDate && matchShift;
         });
 
-        document.getElementById('sumMorningTotal').innerText = mTotal.toLocaleString();
-        document.getElementById('sumMorningPaid').innerText = mPaid.toLocaleString();
-        document.getElementById('sumMorningDebt').innerText = mDebt.toLocaleString();
+        let tbody = document.getElementById('summaryTableBody');
+        tbody.innerHTML = "";
 
-        document.getElementById('sumEveningTotal').innerText = eTotal.toLocaleString();
-        document.getElementById('sumEveningPaid').innerText = ePaid.toLocaleString();
-        document.getElementById('sumEveningDebt').innerText = eDebt.toLocaleString();
+        if (filteredTx.length === 0) {
+            tbody.innerHTML = "<tr><td colspan='7' class='text-center text-muted py-5 fs-5'>ไม่มีรายการขายในรอบ/วันที่เลือก</td></tr>";
+        } else {
+            filteredTx.forEach(t => {
+                sumTotal += t.total;
+                sumPaid += t.paid;
+                sumDebt += t.debt;
 
-        document.getElementById('sumAllDayTotal').innerText = (mTotal + eTotal).toLocaleString();
+                let debtClass = t.debt > 0 ? "text-danger fw-bold" : (t.debt < 0 ? "text-success fw-bold" : "text-muted");
+                let shiftBadge = t.shift === "รอบเช้า" ? `<span class="badge bg-warning text-dark">☀️ รอบเช้า</span>` : `<span class="badge bg-info text-dark">🌙 รอบเย็น</span>`;
+                
+                tbody.innerHTML += `
+                    <tr>
+                        <td class="text-muted" style="font-size: 16px;">${t.time}</td>
+                        <td>${shiftBadge}</td>
+                        <td class="fw-bold text-primary fs-5">${t.customer}</td>
+                        <td><span class="badge bg-light text-dark border fs-6 text-wrap text-start" style="max-width: 250px; line-height:1.5;">${t.item}</span></td>
+                        <td class="text-end fw-bold fs-5">${t.total.toLocaleString()}</td>
+                        <td class="text-end fw-bold text-success fs-5">${t.paid.toLocaleString()}</td>
+                        <td class="text-end fs-5 ${debtClass}">${t.debt.toLocaleString()}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        // อัปเดตตัวเลขในกล่องสรุป
+        document.getElementById('sumTotal').innerText = sumTotal.toLocaleString();
+        document.getElementById('sumPaid').innerText = sumPaid.toLocaleString();
+        document.getElementById('sumDebt').innerText = sumDebt.toLocaleString();
+
+        let shiftNameText = filterShift === 'all' ? "ทั้งวัน (ทุกกะ)" : filterShift;
+        document.getElementById('summaryTitleText').innerText = `📊 สรุปยอดขาย ${shiftNameText}`;
     }
 
     // ================= ระบบหน้าคิดเงิน (POS) =================
@@ -950,7 +959,7 @@
 
         let now = new Date();
         let dateTime = now.toLocaleDateString('th-TH') + " " + now.toLocaleTimeString('th-TH', {hour: '2-digit', minute:'2-digit'});
-        let dateOnly = now.toLocaleDateString('en-CA'); // YYYY-MM-DD ไว้กรองข้อมูล
+        let dateOnly = now.toLocaleDateString('en-CA'); // ไว้สำหรับหน้าสรุปยอด (YYYY-MM-DD)
 
         let itemDesc = itemDescArr.length > 0 ? itemDescArr.join(', ') : "💰 นำเงินมาเคลียร์หนี้เก่า";
         let finalDebt = cartTotal + bal.debt - bal.credit - paid;
@@ -998,7 +1007,7 @@
                     <td class="text-muted">${t.time}</td>
                     <td>${shiftBadge}</td>
                     <td class="fw-bold text-primary">${t.customer}</td>
-                    <td><span class="badge bg-light text-dark border fs-6 text-wrap text-start" style="max-width: 250px; line-height:1.5;">${t.item}</span></td>
+                    <td><span class="badge bg-light text-dark border fs-6 text-wrap text-start" style="max-width: 300px; line-height:1.5;">${t.item}</span></td>
                     <td class="text-end fw-bold">${t.total}</td>
                     <td class="text-end fw-bold text-success">${t.paid}</td>
                     <td class="text-end ${debtClass}">${t.debt}</td>
@@ -1043,6 +1052,10 @@
         localStorage.setItem('myApp_transactions', JSON.stringify(transactions));
         renderTable();
         renderCustomerTable();
+        
+        // อัปเดตหน้า summary ถ้าเปิดอยู่
+        if(document.getElementById('summary').classList.contains('active')) renderSummary();
+        
         editTxModal.hide();
         alert("✅ บันทึกการแก้ไขบิลเรียบร้อยแล้ว หนี้ลูกค้าจะถูกคำนวณใหม่ทันที!");
     }
@@ -1053,6 +1066,7 @@
             localStorage.setItem('myApp_transactions', JSON.stringify(transactions));
             renderTable();
             renderCustomerTable();
+            if(document.getElementById('summary').classList.contains('active')) renderSummary();
         }
     }
 
