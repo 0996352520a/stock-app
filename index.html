@@ -21,13 +21,13 @@
 <div class="app-container">
     <h4 class="text-primary mb-3 fw-bold">📦 ระบบร้านค้าและคลังสินค้า</h4>
 
-    <!-- เมนู Tabs (เพิ่มหน้าข้อมูลลูกค้าแยก) -->
+    <!-- เมนู Tabs -->
     <ul class="nav nav-tabs mb-4" id="myTab" role="tablist">
         <li class="nav-item" role="presentation">
             <button class="nav-link active" id="sales-tab" data-bs-toggle="tab" data-bs-target="#sales" type="button" role="tab" onclick="loadDropdowns()">🛒 บันทึกการขาย</button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link" id="customer-view-tab" data-bs-toggle="tab" data-bs-target="#customerView" type="button" role="tab" onclick="initCustomerViewDropdown()">👤 ข้อมูลลูกค้า</button>
+            <button class="nav-link" id="customer-view-tab" data-bs-toggle="tab" data-bs-target="#customerView" type="button" role="tab" onclick="initCustomerView()">👤 ข้อมูลลูกค้า</button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" id="inventory-tab" data-bs-toggle="tab" data-bs-target="#inventory" type="button" role="tab" onclick="renderInventory()">📦 คลังสินค้า</button>
@@ -106,19 +106,23 @@
             </div>
         </div>
 
-        <!-- ================= แท็บใหม่: หน้าข้อมูลลูกค้า (แยกรายคน) ================= -->
+        <!-- ================= แท็บ: หน้าข้อมูลลูกค้า (เพิ่มช่องสแกนบาร์โค้ด) ================= -->
         <div class="tab-pane fade" id="customerView" role="tabpanel">
             <div class="card mb-4 shadow-sm border-0 bg-light">
                 <div class="card-body">
-                    <div class="row align-items-center">
-                        <div class="col-md-8">
-                            <label class="form-label fw-bold text-primary">🔍 เลือกลูกค้าเพื่อดูข้อมูลการซื้อขาย</label>
-                            <select id="viewCustomerSelect" class="form-select form-select-lg border-primary" onchange="renderSpecificCustomerView()">
+                    <div class="row g-3 align-items-center">
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold text-primary">📷 สแกนบาร์โค้ดลูกค้า</label>
+                            <input type="text" id="viewScanBarcode" class="form-control scan-input form-control-lg" placeholder="สแกนรหัส..." onkeydown="handleViewCustomerScan(event)" autocomplete="off">
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label fw-bold text-primary">🔍 หรือ ค้นหารายชื่อลูกค้า</label>
+                            <select id="viewCustomerSelect" class="form-select form-select-lg border-primary" onchange="syncViewBarcode(); renderSpecificCustomerView();">
                                 <option value="">-- เลือกลูกค้า --</option>
                             </select>
                         </div>
                         <div class="col-md-4 text-md-end mt-3 mt-md-0">
-                            <div class="p-3 bg-white rounded border shadow-sm">
+                            <div class="p-2 bg-white rounded border shadow-sm">
                                 <span class="text-muted small d-block">ยอดค้างชำระรวมสุทธิ</span>
                                 <span class="fs-4 fw-bold text-danger" id="viewCustomerTotalDebt">0 ฿</span>
                             </div>
@@ -140,7 +144,7 @@
                         </tr>
                     </thead>
                     <tbody id="viewCustomerHistoryBody">
-                        <tr><td colspan="5" class="text-center text-muted py-4">กรุณาเลือกลูกค้าจากช่องด้านบน</td></tr>
+                        <tr><td colspan="5" class="text-center text-muted py-4">กรุณาสแกนบาร์โค้ดหรือเลือกลูกค้าจากด้านบน</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -306,14 +310,50 @@
         localStorage.setItem('myApp_customers', JSON.stringify(customers));
     }
 
-    // ================= โซนหน้าข้อมูลลูกค้า (แยกรายคน) =================
-    function initCustomerViewDropdown() {
+    // ================= โซนหน้าข้อมูลลูกค้า (เพิ่มสแกนบาร์โค้ด) =================
+    function initCustomerView() {
         let viewSelect = document.getElementById('viewCustomerSelect');
         viewSelect.innerHTML = '<option value="">-- เลือกลูกค้า --</option>';
         customers.forEach(c => {
             viewSelect.innerHTML += `<option value="${c.barcode}">[${c.barcode}] ${c.name}</option>`;
         });
-        renderSpecificCustomerView(); // รีเซ็ตหน้าจอ
+        document.getElementById('viewScanBarcode').value = "";
+        renderSpecificCustomerView(); 
+        document.getElementById('viewScanBarcode').focus();
+    }
+
+    function handleViewCustomerScan(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            let barcode = e.target.value.trim();
+            let select = document.getElementById('viewCustomerSelect');
+            let found = false;
+
+            for (let i = 0; i < select.options.length; i++) {
+                if (select.options[i].value === barcode) {
+                    select.selectedIndex = i;
+                    found = true;
+                    renderSpecificCustomerView();
+                    break;
+                }
+            }
+            if (!found && barcode !== "") {
+                alert("❌ ไม่พบลูกค้ารหัสนี้ในระบบ");
+                e.target.value = '';
+                select.selectedIndex = 0;
+                renderSpecificCustomerView();
+            }
+        }
+    }
+
+    function syncViewBarcode() {
+        let select = document.getElementById('viewCustomerSelect');
+        let input = document.getElementById('viewScanBarcode');
+        if (select.selectedIndex > 0) {
+            input.value = select.value;
+        } else {
+            input.value = "";
+        }
     }
 
     function renderSpecificCustomerView() {
@@ -322,7 +362,7 @@
         let totalDebtEl = document.getElementById('viewCustomerTotalDebt');
 
         if (!barcode) {
-            tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">กรุณาเลือกลูกค้าจากช่องด้านบน</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">กรุณาสแกนบาร์โค้ดหรือเลือกลูกค้าจากด้านบน</td></tr>';
             totalDebtEl.innerText = "0 ฿";
             return;
         }
@@ -532,7 +572,6 @@
         
         loadDropdowns();
         renderTable();
-        renderCustomerTable();
     }
 
     function renderTable() {
@@ -567,7 +606,6 @@
             transactions = transactions.filter(t => t.id !== id);
             localStorage.setItem('myApp_transactions', JSON.stringify(transactions));
             renderTable();
-            renderCustomerTable();
         }
     }
 
