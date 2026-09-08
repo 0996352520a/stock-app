@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบร้านค้า (เวอร์ชันแก้บัญชีหนี้ 100%)</title>
+    <title>ระบบร้านค้า (สรุปยอดขายแยกหนี้และเงินเกิน)</title>
     
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -22,7 +22,7 @@
             color: #212529;
         }
         .app-container { 
-            max-width: 1250px; 
+            max-width: 1300px; 
             margin: 20px auto; 
             background: white; 
             padding: 30px; 
@@ -184,7 +184,7 @@
                         <h4 class="fw-bold border-bottom border-secondary pb-3 mb-4 text-warning">💰 3. คิดเงิน</h4>
                         
                         <div class="fs-5 d-flex justify-content-between text-light mb-2">
-                            <span>ราคาสินค้าที่ซื้อวันนี้:</span><span id="posCartTotal">0 ฿</span>
+                            <span>ราคาสินค้าบิลนี้:</span><span id="posCartTotal">0 ฿</span>
                         </div>
                         <div class="fs-5 d-flex justify-content-between text-danger mb-2" id="oldDebtRow">
                             <span>+ ยอดหนี้ค้างเก่า:</span><span id="posOldDebtTotal">0 ฿</span>
@@ -227,6 +227,7 @@
                 </div>
             </div>
 
+            <!-- ประวัติการขาย -->
             <div class="d-flex justify-content-between align-items-center mt-5 mb-3">
                 <h4 class="fw-bold mb-0">🕒 บิลรายการล่าสุดที่เพิ่งทำ</h4>
             </div>
@@ -240,7 +241,7 @@
                             <th>รายการสินค้า</th>
                             <th class="text-end">ยอดรวม</th>
                             <th class="text-end text-success">จ่ายแล้ว</th>
-                            <th class="text-end">หนี้ค้าง(จากบิลนี้)</th>
+                            <th class="text-end">หนี้ค้าง</th>
                             <th class="text-center">จัดการบิล</th>
                         </tr>
                     </thead>
@@ -249,7 +250,7 @@
             </div>
         </div>
 
-        <!-- ================= แท็บ 2: สรุปยอดขาย ================= -->
+        <!-- ================= แท็บ 2: สรุปยอดขาย (แยกเงินที่เกินมา) ================= -->
         <div class="tab-pane fade" id="summary" role="tabpanel">
             <div class="card mb-4 shadow-sm border-0 bg-white">
                 <div class="card-body p-4">
@@ -275,30 +276,37 @@
                     <h3 class="fw-bold mb-0" id="summaryTitleText">📊 สรุปยอดขาย</h3>
                 </div>
                 <div class="card-body p-4 bg-light">
-                    <div class="row g-4 text-center">
-                        <div class="col-md-4">
+                    <!-- กล่องสรุป 4 กล่อง (เพิ่มช่องเงินเกิน) -->
+                    <div class="row g-3 text-center">
+                        <div class="col-md-3">
                             <div class="bg-white p-3 rounded border h-100 shadow-sm">
-                                <span class="fs-4 text-muted d-block mb-2">ยอดขายรวมสุทธิ</span>
-                                <span class="fw-bold text-dark" style="font-size: 3.5rem;" id="sumTotal">0</span> <span class="fs-4 text-muted">฿</span>
+                                <span class="fs-5 text-muted d-block mb-2">ยอดขายรวมสุทธิ</span>
+                                <span class="fw-bold text-dark" style="font-size: 2.5rem;" id="sumTotal">0</span> <span class="fs-5 text-muted">฿</span>
                             </div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <div class="bg-white p-3 rounded border border-success h-100 shadow-sm">
-                                <span class="fs-4 text-success fw-bold d-block mb-2">รับเงินสดจริงเข้าเก๊ะ</span>
-                                <span class="fw-bold text-success" style="font-size: 3.5rem;" id="sumPaid">0</span> <span class="fs-4 text-success">฿</span>
+                                <span class="fs-5 text-success fw-bold d-block mb-2">รับเงินสดเข้าเก๊ะจริง</span>
+                                <span class="fw-bold text-success" style="font-size: 2.5rem;" id="sumPaid">0</span> <span class="fs-5 text-success">฿</span>
                             </div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <div class="bg-white p-3 rounded border border-danger h-100 shadow-sm">
-                                <span class="fs-4 text-danger fw-bold d-block mb-2">ยอดหนี้เพิ่ม/ลด ในรอบนี้</span>
-                                <span class="fw-bold text-danger" style="font-size: 3.5rem;" id="sumDebt">0</span> <span class="fs-4 text-danger">฿</span>
+                                <span class="fs-5 text-danger fw-bold d-block mb-2">ลูกค้าค้างหนี้เพิ่ม</span>
+                                <span class="fw-bold text-danger" style="font-size: 2.5rem;" id="sumDebt">0</span> <span class="fs-5 text-danger">฿</span>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="bg-white p-3 rounded border border-primary h-100 shadow-sm">
+                                <span class="fs-5 text-primary fw-bold d-block mb-2">เงินที่เกินมา (ลูกค้าจ่ายเกิน)</span>
+                                <span class="fw-bold text-primary" style="font-size: 2.5rem;" id="sumOverpaid">0</span> <span class="fs-5 text-primary">฿</span>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
             
-            <h4 class="fw-bold mb-3" id="summaryTableTitle">🧾 รายละเอียดการซื้อ (รวมยอดลูกค้า 1 คน / 1 บรรทัด)</h4>
+            <h4 class="fw-bold mb-3" id="summaryTableTitle">🧾 รายละเอียดบิลในรอบ (รวมยอดลูกค้า 1 คน / 1 บรรทัด)</h4>
             <div class="table-responsive border rounded bg-white shadow-sm border-0">
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-dark">
@@ -308,7 +316,8 @@
                             <th>รายการสินค้าที่ซื้อทั้งหมด</th>
                             <th class="text-end">ยอดรวม</th>
                             <th class="text-end text-success">จ่ายเงินแล้ว</th>
-                            <th class="text-end text-danger">หนี้ค้างรวม(ล่าสุด)</th>
+                            <th class="text-end text-danger">หนี้ค้าง(ล่าสุด)</th>
+                            <th class="text-end text-primary">เงินที่เกินมา(ล่าสุด)</th>
                         </tr>
                     </thead>
                     <tbody id="summaryTableBody"></tbody>
@@ -544,7 +553,7 @@
               <div class="col-12"><label class="form-label text-success">ยอดเงินที่ลูกค้าจ่ายจริง (฿)</label><input type="number" id="editTxPaid" class="form-control form-control-lg text-end fw-bold" min="0" oninput="calculateEditTxDebt()"></div>
           </div>
           <div class="mb-2 p-3 bg-light border rounded text-center">
-              <label class="form-label text-danger">สรุปหนี้ค้างเฉพาะบิลนี้ (฿)</label>
+              <label class="form-label text-danger">สรุปยอดหนี้จากบิลนี้ (฿)</label>
               <input type="text" id="editTxDebt" class="form-control form-control-lg bg-transparent border-0 text-danger fw-bold fs-2 text-center" readonly>
           </div>
         </div>
@@ -582,7 +591,7 @@
     let customers = JSON.parse(localStorage.getItem('myApp_customers')) || [];
     let cart = [];
 
-    // อัปเดตข้อมูลให้สมบูรณ์
+    // อัปเดตข้อมูลโครงสร้างเก่า
     inventory = inventory.map(p => { 
         if(!p.barcode) p.barcode = p.id.toString(); 
         if(p.isDaily === undefined) p.isDaily = false;
@@ -643,15 +652,12 @@
         }
     }
 
-    // ================= ระบบคำนวณบัญชีใหม่ 100% (แก้ไขบักการซ้อนทับ) =================
+    // ================= ระบบคำนวณบัญชีหนี้ =================
     function getCustomerBalance(barcode) {
-        // ใช้หลักการ เอาของที่เคยซื้อทั้งหมด มาลบกับ เงินที่เคยจ่ายทั้งหมด จะได้ยอดหนี้แท้จริง
         let custTrans = transactions.filter(t => t.barcode === barcode);
         let sumTotal = custTrans.reduce((sum, t) => sum + (parseFloat(t.total) || 0), 0);
         let sumPaid = custTrans.reduce((sum, t) => sum + (parseFloat(t.paid) || 0), 0);
-        
-        let netSum = sumTotal - sumPaid; // ยอดสุทธิ
-        
+        let netSum = sumTotal - sumPaid;
         let debt = netSum > 0 ? netSum : 0;
         let credit = netSum < 0 ? Math.abs(netSum) : 0;
         return { debt, credit, net: netSum };
@@ -682,7 +688,7 @@
         $('#saleCustomer, #productSelect, #viewCustomerSelect').select2({ theme: 'bootstrap-5', width: '100%' });
     }
 
-    // ================= ระบบสรุปยอดขาย (จัดกลุ่ม 1 ลูกค้า = 1 บรรทัด) =================
+    // ================= ระบบสรุปยอดขาย (แยกหนี้ กับ เงินเกินให้ชัดเจน) =================
     function initSummary() {
         document.getElementById('summaryDate').value = new Date().toLocaleDateString('en-CA');
         renderSummary();
@@ -693,30 +699,26 @@
         let filterShift = document.getElementById('summaryShiftFilter').value;
         if(!filterDate) return;
 
-        let mTotal = 0, mPaid = 0;
-        let eTotal = 0, ePaid = 0;
+        let sumTotal = 0, sumPaid = 0, sumDebt = 0, sumOverpaid = 0;
 
-        // แยกยอดรวมรายกะ (เพื่อหาส่วนต่างสุทธิของระบบ)
-        transactions.forEach(t => {
-            if (t.dateStr === filterDate) {
-                if (t.shift === 'รอบเย็น') {
-                    eTotal += t.total; ePaid += t.paid;
-                } else { 
-                    mTotal += t.total; mPaid += t.paid;
-                }
-            }
-        });
-        let mDebt = mTotal - mPaid; 
-        let eDebt = eTotal - ePaid; 
-
-        // กรองเฉพาะบิลในวันที่และกะที่เลือก
         let filteredTx = transactions.filter(t => {
             return (t.dateStr === filterDate) && (filterShift === 'all' || t.shift === filterShift);
         });
 
-        // ================= จัดกลุ่มลูกค้า 1 คน ต่อ 1 บรรทัด =================
+        filteredTx.forEach(t => {
+            sumTotal += t.total;
+            sumPaid += t.paid;
+            // แยกหาว่ายอดไหนลูกค้าติดหนี้เพิ่ม หรือยอดไหนลูกค้าจ่ายเกินมา
+            let diff = t.total - t.paid;
+            if (diff > 0) {
+                sumDebt += diff;
+            } else if (diff < 0) {
+                sumOverpaid += Math.abs(diff);
+            }
+        });
+
+        // จัดกลุ่มลูกค้า 1 คน ต่อ 1 บรรทัด
         let groupedByCustomer = {};
-        
         filteredTx.forEach(t => {
             if(!groupedByCustomer[t.barcode]) {
                 groupedByCustomer[t.barcode] = {
@@ -747,38 +749,42 @@
         tbody.innerHTML = "";
 
         if (Object.keys(groupedByCustomer).length === 0) {
-            tbody.innerHTML = "<tr><td colspan='6' class='text-center text-muted py-5 fs-5'>ไม่มีรายการขายในรอบ/วันที่เลือก</td></tr>";
+            tbody.innerHTML = "<tr><td colspan='7' class='text-center text-muted py-5 fs-5'>ไม่มีรายการขายในรอบ/วันที่เลือก</td></tr>";
         } else {
             Object.values(groupedByCustomer).forEach(g => {
+                // ดึงยอดหนี้สุทธิล่าสุดจริงๆ ของลูกค้านั้นมาโชว์ (ดึงจากประวัติทั้งหมด)
                 let bal = getCustomerBalance(g.barcode);
                 let currentDebt = bal.net;
                 
-                let debtClass = currentDebt > 0 ? "text-danger fw-bold" : (currentDebt < 0 ? "text-success fw-bold" : "text-muted");
+                let showDebt = currentDebt > 0 ? currentDebt.toLocaleString() : "-";
+                let showCredit = currentDebt < 0 ? Math.abs(currentDebt).toLocaleString() : "-";
+                
                 let shiftBadge = "";
                 if (g.shift === "รอบเช้า") shiftBadge = `<span class="badge bg-warning text-dark">☀️ รอบเช้า</span>`;
                 else if (g.shift === "รอบเย็น") shiftBadge = `<span class="badge bg-info text-dark">🌙 รอบเย็น</span>`;
                 else shiftBadge = `<span class="badge bg-secondary">เช้าและเย็น</span>`;
                 
                 let itemsText = g.items.length > 0 ? g.items.reverse().join(' , ') : "-";
-                let netText = currentDebt > 0 ? currentDebt.toLocaleString() : (currentDebt < 0 ? Math.abs(currentDebt).toLocaleString() + " (เครดิต)" : "0");
 
                 tbody.innerHTML += `
                     <tr>
                         <td class="text-center">${shiftBadge}</td>
                         <td class="fw-bold text-primary fs-5">${g.customer}</td>
-                        <td><span class="badge bg-light text-dark border fs-6 text-wrap text-start" style="max-width: 400px; line-height:1.5;">${itemsText}</span></td>
+                        <td><span class="badge bg-light text-dark border fs-6 text-wrap text-start" style="max-width: 350px; line-height:1.5;">${itemsText}</span></td>
                         <td class="text-end fw-bold fs-5">${g.total.toLocaleString()}</td>
                         <td class="text-end fw-bold text-success fs-5">${g.paid.toLocaleString()}</td>
-                        <td class="text-end fs-5 ${debtClass}">${netText}</td>
+                        <td class="text-end fw-bold text-danger fs-5">${showDebt}</td>
+                        <td class="text-end fw-bold text-primary fs-5">${showCredit}</td>
                     </tr>
                 `;
             });
         }
 
         // อัปเดตยอดรวมในกล่องด้านบน
-        document.getElementById('sumTotal').innerText = (filterShift==='รอบเย็น' ? eTotal : (filterShift==='รอบเช้า' ? mTotal : mTotal+eTotal)).toLocaleString();
-        document.getElementById('sumPaid').innerText = (filterShift==='รอบเย็น' ? ePaid : (filterShift==='รอบเช้า' ? mPaid : mPaid+ePaid)).toLocaleString();
-        document.getElementById('sumDebt').innerText = (filterShift==='รอบเย็น' ? eDebt : (filterShift==='รอบเช้า' ? mDebt : mDebt+eDebt)).toLocaleString();
+        document.getElementById('sumTotal').innerText = sumTotal.toLocaleString();
+        document.getElementById('sumPaid').innerText = sumPaid.toLocaleString();
+        document.getElementById('sumDebt').innerText = sumDebt.toLocaleString();
+        document.getElementById('sumOverpaid').innerText = sumOverpaid.toLocaleString();
 
         let shiftNameText = filterShift === 'all' ? "ทั้งวัน (ทุกกะ)" : filterShift;
         document.getElementById('summaryTitleText').innerText = `📊 สรุปยอดขาย ${shiftNameText}`;
@@ -1008,8 +1014,7 @@
 
         let itemDesc = itemDescArr.length > 0 ? itemDescArr.join(', ') : "💰 นำเงินมาเคลียร์หนี้เก่า";
         
-        // บันทึกเฉพาะส่วนต่างของบิลนั้นๆ
-        let txDebt = cartTotal - paid;
+        let txDebt = cartTotal - paid; // ยอดส่วนต่างเฉพาะบิลนี้
 
         let newRecord = {
             id: Date.now(),
@@ -1047,7 +1052,7 @@
             return;
         }
         transactions.forEach(t => {
-            let billDebt = t.total - t.paid; // หนี้ที่เกิดจากบิลใบนี้ใบเดียว
+            let billDebt = t.total - t.paid;
             let debtClass = billDebt > 0 ? "text-danger fw-bold" : (billDebt < 0 ? "text-success fw-bold" : "text-muted");
             let shiftBadge = t.shift === "รอบเช้า" ? `<span class="badge bg-warning text-dark">☀️ ${t.shift}</span>` : `<span class="badge bg-info text-dark">🌙 ${t.shift}</span>`;
             tbody.innerHTML += `
