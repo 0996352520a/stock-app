@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบคลังสินค้าและลูกค้า (POS Counter)</title>
+    <title>ระบบคลังสินค้าและลูกค้า (POS Smart Debt Offset)</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
@@ -14,7 +14,7 @@
         .scan-input { background-color: #f8faff; border: 2px solid #0d6efd; }
         .scan-input:focus { background-color: #fff; box-shadow: 0 0 8px rgba(13,110,253,0.3); }
         .pos-screen { background-color: #1e293b; color: white; border-radius: 10px; padding: 20px; }
-        .cart-table-container { max-height: 300px; overflow-y: auto; background: white; border-radius: 8px; }
+        .cart-table-container { max-height: 280px; overflow-y: auto; background: white; border-radius: 8px; }
     </style>
 </head>
 <body>
@@ -22,7 +22,6 @@
 <div class="app-container">
     <h4 class="text-primary mb-3 fw-bold">📦 ระบบร้านค้าและเคาน์เตอร์คิดเงิน (POS)</h4>
 
-    <!-- เมนู Tabs -->
     <ul class="nav nav-tabs mb-4" id="myTab" role="tablist">
         <li class="nav-item" role="presentation">
             <button class="nav-link active" id="sales-tab" data-bs-toggle="tab" data-bs-target="#sales" type="button" role="tab" onclick="initPOS()">🛒 เคาน์เตอร์ขาย</button>
@@ -42,9 +41,8 @@
         <!-- ================= แท็บ 1: เคาน์เตอร์คิดเงิน (POS) ================= -->
         <div class="tab-pane fade show active" id="sales" role="tabpanel">
             <div class="row g-3">
-                <!-- ฝั่งซ้าย: สแกนและตระกร้าสินค้า -->
                 <div class="col-lg-8">
-                    <!-- ส่วนเลือกหรือสแกนลูกค้า -->
+                    <!-- เลือกลูกค้า -->
                     <div class="card mb-3 shadow-sm border-0 bg-light">
                         <div class="card-body py-2">
                             <div class="row g-2 align-items-center">
@@ -54,16 +52,14 @@
                                 </div>
                                 <div class="col-md-7">
                                     <label class="form-label fw-bold small text-primary mb-1">รายชื่อลูกค้า</label>
-                                    <select id="saleCustomer" class="form-select form-select-sm border-primary" onchange="syncCustomerFromSelect(); showCustomerDebt();" required>
-                                        <!-- โหลดลูกค้า -->
-                                    </select>
+                                    <select id="saleCustomer" class="form-select form-select-sm border-primary" onchange="syncCustomerFromSelect(); showCustomerDebt();" required></select>
                                     <div id="currentCustomerDebtInfo" class="small mt-1" style="display:none;"></div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- ส่วนสแกนสินค้าใส่ตะกร้า -->
+                    <!-- สแกนสินค้า -->
                     <div class="card mb-3 shadow-sm border-0 bg-light">
                         <div class="card-body py-2">
                             <div class="row g-2 align-items-center">
@@ -73,15 +69,13 @@
                                 </div>
                                 <div class="col-md-7">
                                     <label class="form-label fw-bold small text-success mb-1">หรือเลือกสินค้าจากคลัง</label>
-                                    <select id="productSelect" class="form-select form-select-sm border-success" onchange="addSelectedProductToCart()">
-                                        <!-- โหลดสินค้า -->
-                                    </select>
+                                    <select id="productSelect" class="form-select form-select-sm border-success" onchange="addSelectedProductToCart()"></select>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- ตารางตะกร้าสินค้า -->
+                    <!-- ตะกร้าสินค้า -->
                     <div class="cart-table-container border">
                         <table class="table table-hover align-middle mb-0" style="font-size: 14px;">
                             <thead class="table-secondary sticky-top">
@@ -94,47 +88,56 @@
                                 </tr>
                             </thead>
                             <tbody id="cartTableBody">
-                                <tr><td colspan="5" class="text-center text-muted py-4">ยังไม่มีสินค้าในตะกร้า (สแกนบาร์โค้ดสินค้าหรือเลือกรายการ)</td></tr>
+                                <tr><td colspan="5" class="text-center text-muted py-4">ยังไม่มีสินค้าในตะกร้า</td></tr>
                             </tbody>
                         </table>
                     </div>
                 </div>
 
-                <!-- ฝั่งขวา: หน้าจอคิดเงิน (POS Screen) -->
+                <!-- หน้าจอ POS ฝั่งขวา -->
                 <div class="col-lg-4">
                     <div class="pos-screen h-100 d-flex flex-column justify-content-between">
                         <div>
-                            <h5 class="fw-bold border-bottom pb-2 mb-3 text-warning">💰 สรุปยอดชำระเงิน</h5>
+                            <h5 class="fw-bold border-bottom pb-2 mb-2 text-warning">💰 สรุปยอดชำระเงิน</h5>
                             
-                            <div class="mb-3">
-                                <span class="small text-light opacity-75">ยอดรวมทั้งสิ้น (บาท)</span>
-                                <h1 class="display-5 fw-bold text-warning mb-0" id="posGrandTotal">0.00</h1>
+                            <div class="d-flex justify-content-between text-light small mb-1">
+                                <span>ราคาสินค้าบิลนี้:</span>
+                                <span id="posCartTotal">0.00 ฿</span>
+                            </div>
+                            <div class="d-flex justify-content-between text-danger small mb-2 pb-2 border-bottom border-secondary">
+                                <span>+ หนี้ค้างเก่าสะสม:</span>
+                                <span id="posOldDebtTotal">0.00 ฿</span>
                             </div>
 
-                            <div class="mb-3">
-                                <label class="form-label small text-light">รับเงินสดจากลูกค้า (บาท)</label>
-                                <input type="number" id="posPaidAmount" class="form-control form-control-lg border-success fw-bold text-end" placeholder="0" oninput="calculateChange()" min="0">
+                            <div class="mb-2">
+                                <span class="small text-light opacity-75">ยอดรวมที่ต้องชำระทั้งหมด</span>
+                                <h3 class="fw-bold text-warning mb-0" id="posGrandTotal">0.00</h3>
+                            </div>
+
+                            <div class="mb-2">
+                                <label class="form-label small text-light mb-1">รับเงินสดจากลูกค้า (บาท)</label>
+                                <input type="number" id="posPaidAmount" class="form-control border-success fw-bold text-end" placeholder="0" oninput="calculateChange()" min="0">
                             </div>
 
                             <div class="row g-2 mb-3">
                                 <div class="col-6">
                                     <div class="p-2 bg-dark rounded border border-secondary text-center">
-                                        <span class="small text-muted d-block">เงินทอน</span>
-                                        <span class="fs-5 fw-bold text-success" id="posChangeAmount">0.00</span>
+                                        <span class="small text-muted d-block" style="font-size: 11px;">เงินทอน</span>
+                                        <span class="fw-bold text-success" id="posChangeAmount">0.00</span>
                                     </div>
                                 </div>
                                 <div class="col-6">
                                     <div class="p-2 bg-dark rounded border border-secondary text-center">
-                                        <span class="small text-muted d-block">ค้างชำระเพิ่ม</span>
-                                        <span class="fs-5 fw-bold text-danger" id="posDebtAmount">0.00</span>
+                                        <span class="small text-muted d-block" style="font-size: 11px;">หนี้ค้างรวมใหม่</span>
+                                        <span class="fw-bold text-danger" id="posDebtAmount">0.00</span>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
                         <div>
-                            <button type="button" class="btn btn-success btn-lg w-100 fw-bold py-3 mb-2 shadow" onclick="checkoutOrder()">
-                                🖨️ ยืนยันการชำระเงิน & บันทึกบิล
+                            <button type="button" class="btn btn-success btn-lg w-100 fw-bold py-2 mb-2 shadow" onclick="checkoutOrder()">
+                                🖨️ ชำระเงิน & ตัดหนี้อัตโนมัติ
                             </button>
                             <button type="button" class="btn btn-outline-light btn-sm w-100" onclick="clearCart()">
                                 🗑️ ล้างตะกร้า
@@ -144,7 +147,7 @@
                 </div>
             </div>
 
-            <!-- ประวัติการขายล่าสุด -->
+            <!-- ประวัติการขาย -->
             <h6 class="fw-bold mt-4 mb-2">ประวัติการทำรายการล่าสุด</h6>
             <div class="table-responsive border rounded bg-white">
                 <table class="table table-hover align-middle mb-0" style="font-size: 14px;">
@@ -155,7 +158,7 @@
                             <th>รายการสินค้า</th>
                             <th class="text-end">รวม(฿)</th>
                             <th class="text-end">จ่ายแล้ว(฿)</th>
-                            <th class="text-end">หนี้ค้าง</th>
+                            <th class="text-end">หนี้บิลนี้</th>
                             <th class="text-center">ลบ</th>
                         </tr>
                     </thead>
@@ -164,7 +167,7 @@
             </div>
         </div>
 
-        <!-- ================= แท็บ: ข้อมูลลูกค้า ================= -->
+        <!-- แท็บอื่นๆ (ข้อมูลลูกค้า, คลังสินค้า, จัดการรายชื่อ) -->
         <div class="tab-pane fade" id="customerView" role="tabpanel">
             <div class="card mb-3 shadow-sm border-0 bg-light">
                 <div class="card-body">
@@ -182,7 +185,6 @@
                     </div>
                 </div>
             </div>
-
             <div id="customerDetailsBox" class="p-3 mb-3 bg-light border-start border-primary border-4 rounded" style="display: none;">
                 <div class="row">
                     <div class="col-md-4"><span class="text-muted small d-block">ชื่อ-นามสกุล / ชื่อร้าน</span><h5 class="fw-bold text-dark mb-0" id="infoCusName">-</h5></div>
@@ -195,27 +197,16 @@
                     <h4 class="fw-bold text-danger mb-0" id="viewCustomerTotalDebt">0 ฿</h4>
                 </div>
             </div>
-
-            <h6 class="fw-bold mb-2">ประวัติการซื้อขายของลูกค้ารายนี้</h6>
             <div class="table-responsive border rounded bg-white">
                 <table class="table table-hover align-middle mb-0" style="font-size: 14px;">
                     <thead class="table-dark">
-                        <tr>
-                            <th class="ps-3">วัน-เวลา</th>
-                            <th>รายการสินค้า</th>
-                            <th class="text-end">ยอดรวม (฿)</th>
-                            <th class="text-end text-success">จ่ายแล้ว (฿)</th>
-                            <th class="text-end text-danger pe-3">หนี้ค้าง (฿)</th>
-                        </tr>
+                        <tr><th class="ps-3">วัน-เวลา</th><th>รายการสินค้า</th><th class="text-end">ยอดรวม (฿)</th><th class="text-end text-success">จ่ายแล้ว (฿)</th><th class="text-end text-danger pe-3">หนี้ค้าง (฿)</th></tr>
                     </thead>
-                    <tbody id="viewCustomerHistoryBody">
-                        <tr><td colspan="5" class="text-center text-muted py-4">กรุณาสแกนบาร์โค้ดหรือเลือกลูกค้าจากด้านบน</td></tr>
-                    </tbody>
+                    <tbody id="viewCustomerHistoryBody"><tr><td colspan="5" class="text-center text-muted py-4">กรุณาสแกนบาร์โค้ดหรือเลือกลูกค้าจากด้านบน</td></tr></tbody>
                 </table>
             </div>
         </div>
 
-        <!-- ================= แท็บ 2: คลังสินค้า ================= -->
         <div class="tab-pane fade" id="inventory" role="tabpanel">
             <div class="card mb-4 shadow-sm border-0 bg-light">
                 <div class="card-body">
@@ -236,70 +227,32 @@
                     </form>
                 </div>
             </div>
-            
-            <h6 class="fw-bold mb-2">รายการสินค้าในคลัง</h6>
             <div class="table-responsive border rounded bg-white">
                 <table class="table table-hover align-middle mb-0" style="font-size: 14px;">
-                    <thead class="table-secondary">
-                        <tr>
-                            <th>บาร์โค้ด</th>
-                            <th>หมวดหมู่</th>
-                            <th>ชื่อสินค้า</th>
-                            <th class="text-center">ราคา (฿)</th>
-                            <th class="text-center">คงเหลือ</th>
-                            <th class="text-center">จัดการ</th>
-                        </tr>
-                    </thead>
+                    <thead class="table-secondary"><tr><th>บาร์โค้ด</th><th>หมวดหมู่</th><th>ชื่อสินค้า</th><th class="text-center">ราคา (฿)</th><th class="text-center">คงเหลือ</th><th class="text-center">จัดการ</th></tr></thead>
                     <tbody id="inventoryTableBody"></tbody>
                 </table>
             </div>
         </div>
 
-        <!-- ================= แท็บ 3: จัดการรายชื่อลูกค้า ================= -->
         <div class="tab-pane fade" id="customers" role="tabpanel">
             <div class="card mb-4 shadow-sm border-0 bg-light">
                 <div class="card-body">
                     <form id="addCustomerForm" onsubmit="saveCustomer(event)">
                         <h6 class="text-primary fw-bold mb-3">➕ เพิ่มรายชื่อลูกค้าใหม่</h6>
                         <div class="row g-3">
-                            <div class="col-md-3">
-                                <label class="form-label fw-bold small">รหัสลูกค้า / บาร์โค้ด</label>
-                                <input type="text" id="newCusBarcode" class="form-control" placeholder="เช่น 001" required>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label fw-bold small">ชื่อ-นามสกุล / ชื่อร้าน</label>
-                                <input type="text" id="newCusName" class="form-control" placeholder="เช่น ยายม้วน" required>
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label fw-bold small">เบอร์โทรศัพท์</label>
-                                <input type="text" id="newCusPhone" class="form-control" placeholder="เช่น 081-234-5678">
-                            </div>
-                            <div class="col-md-2 d-flex align-items-end">
-                                <button type="submit" class="btn btn-primary w-100 fw-bold">บันทึก</button>
-                            </div>
-                            <div class="col-md-12">
-                                <label class="form-label fw-bold small">ที่อยู่</label>
-                                <input type="text" id="newCusAddress" class="form-control" placeholder="บ้านเลขที่, ถนน, ตำบล, อำเภอ, จังหวัด">
-                            </div>
+                            <div class="col-md-3"><label class="form-label fw-bold small">รหัสลูกค้า / บาร์โค้ด</label><input type="text" id="newCusBarcode" class="form-control" placeholder="เช่น 001" required></div>
+                            <div class="col-md-4"><label class="form-label fw-bold small">ชื่อ-นามสกุล / ชื่อร้าน</label><input type="text" id="newCusName" class="form-control" placeholder="เช่น ยายม้วน" required></div>
+                            <div class="col-md-3"><label class="form-label fw-bold small">เบอร์โทรศัพท์</label><input type="text" id="newCusPhone" class="form-control" placeholder="เช่น 081-234-5678"></div>
+                            <div class="col-md-2 d-flex align-items-end"><button type="submit" class="btn btn-primary w-100 fw-bold">บันทึก</button></div>
+                            <div class="col-md-12"><label class="form-label fw-bold small">ที่อยู่</label><input type="text" id="newCusAddress" class="form-control" placeholder="บ้านเลขที่, ตำบล, อำเภอ, จังหวัด"></div>
                         </div>
                     </form>
                 </div>
             </div>
-
-            <h6 class="fw-bold mb-2">รายชื่อลูกค้าและข้อมูลติดต่อ</h6>
             <div class="table-responsive border rounded bg-white">
                 <table class="table table-hover align-middle mb-0" style="font-size: 14px;">
-                    <thead class="table-dark">
-                        <tr>
-                            <th>บาร์โค้ด</th>
-                            <th>ชื่อลูกค้า</th>
-                            <th>เบอร์โทร</th>
-                            <th>ที่อยู่</th>
-                            <th class="text-end">ยอดค้าง (฿)</th>
-                            <th class="text-center">ประวัติ</th>
-                            <th class="text-center">จัดการ</th>
-                        </tr>
-                    </thead>
+                    <thead class="table-dark"><tr><th>บาร์โค้ด</th><th>ชื่อลูกค้า</th><th>เบอร์โทร</th><th>ที่อยู่</th><th class="text-end">ยอดค้าง (฿)</th><th class="text-center">ประวัติ</th><th class="text-center">จัดการ</th></tr></thead>
                     <tbody id="customerTableBody"></tbody>
                 </table>
             </div>
@@ -311,10 +264,7 @@
 <div class="modal fade" id="editProductModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-sm">
       <div class="modal-content">
-        <div class="modal-header bg-warning">
-          <h6 class="modal-title fw-bold">✏️ แก้ไขข้อมูลสินค้า</h6>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
+        <div class="modal-header bg-warning"><h6 class="modal-title fw-bold">✏️ แก้ไขข้อมูลสินค้า</h6><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
         <div class="modal-body">
           <input type="hidden" id="editProdId">
           <div class="mb-2"><label class="form-label small text-muted">บาร์โค้ด</label><input type="text" id="editProdBarcode" class="form-control"></div>
@@ -325,10 +275,7 @@
               <div class="col-6"><label class="form-label small text-muted">สต็อกคงเหลือ</label><input type="number" id="editProdStock" class="form-control" min="0"></div>
           </div>
         </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">ยกเลิก</button>
-          <button type="button" class="btn btn-success btn-sm" onclick="updateProduct()">💾 บันทึก</button>
-        </div>
+        <div class="modal-footer"><button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">ยกเลิก</button><button type="button" class="btn btn-success btn-sm" onclick="updateProduct()">💾 บันทึก</button></div>
       </div>
     </div>
 </div>
@@ -337,10 +284,7 @@
 <div class="modal fade" id="editCustomerModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content">
-        <div class="modal-header bg-warning">
-          <h6 class="modal-title fw-bold">✏️ แก้ไขข้อมูลลูกค้า</h6>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
+        <div class="modal-header bg-warning"><h6 class="modal-title fw-bold">✏️ แก้ไขข้อมูลลูกค้า</h6><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
         <div class="modal-body">
           <input type="hidden" id="editCusOriginalBarcode">
           <div class="mb-2"><label class="form-label small text-muted">บาร์โค้ด</label><input type="text" id="editCusBarcode" class="form-control"></div>
@@ -348,10 +292,7 @@
           <div class="mb-2"><label class="form-label small text-muted">เบอร์โทรศัพท์</label><input type="text" id="editCusPhone" class="form-control"></div>
           <div class="mb-2"><label class="form-label small text-muted">ที่อยู่</label><input type="text" id="editCusAddress" class="form-control"></div>
         </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">ยกเลิก</button>
-          <button type="button" class="btn btn-success btn-sm" onclick="updateCustomerData()">💾 บันทึก</button>
-        </div>
+        <div class="modal-footer"><button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">ยกเลิก</button><button type="button" class="btn btn-success btn-sm" onclick="updateCustomerData()">💾 บันทึก</button></div>
       </div>
     </div>
 </div>
@@ -360,30 +301,16 @@
 <div class="modal fade" id="customerHistoryModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
     <div class="modal-content">
-      <div class="modal-header bg-info text-dark">
-        <h5 class="modal-title fw-bold">📄 ประวัติ: <span id="modalHistoryCusName"></span></h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
+      <div class="modal-header bg-info text-dark"><h5 class="modal-title fw-bold">📄 ประวัติ: <span id="modalHistoryCusName"></span></h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
       <div class="modal-body p-0">
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0" style="font-size: 14px;">
-                <thead class="table-light">
-                    <tr>
-                        <th class="ps-3">วัน-เวลา</th>
-                        <th>รายการสินค้า</th>
-                        <th class="text-end">ยอดรวม (฿)</th>
-                        <th class="text-end text-success">จ่ายแล้ว (฿)</th>
-                        <th class="text-end text-danger pe-3">หนี้บิลนี้ (฿)</th>
-                    </tr>
-                </thead>
+                <thead class="table-light"><tr><th class="ps-3">วัน-เวลา</th><th>รายการสินค้า</th><th class="text-end">ยอดรวม (฿)</th><th class="text-end text-success">จ่ายแล้ว (฿)</th><th class="text-end text-danger pe-3">หนี้บิลนี้ (฿)</th></tr></thead>
                 <tbody id="modalCustomerHistoryBody"></tbody>
             </table>
         </div>
       </div>
-      <div class="modal-footer bg-light d-flex justify-content-between">
-          <h5 class="mb-0 fw-bold">ยอดค้างรวมทั้งหมด:</h5>
-          <h4 class="mb-0 fw-bold text-danger" id="modalTotalDebt">0 ฿</h4>
-      </div>
+      <div class="modal-footer bg-light d-flex justify-content-between"><h5 class="mb-0 fw-bold">ยอดค้างรวมทั้งหมด:</h5><h4 class="mb-0 fw-bold text-danger" id="modalTotalDebt">0 ฿</h4></div>
     </div>
   </div>
 </div>
@@ -393,15 +320,10 @@
     let inventory = JSON.parse(localStorage.getItem('myApp_inventory')) || [];
     let transactions = JSON.parse(localStorage.getItem('myApp_transactions')) || [];
     let customers = JSON.parse(localStorage.getItem('myApp_customers')) || [];
-    let cart = []; // ตะกร้าสินค้าปัจจุบัน
+    let cart = [];
 
     inventory = inventory.map(p => { if(!p.barcode) p.barcode = p.id.toString(); return p; });
-    customers = customers.map(c => ({
-        barcode: c.barcode,
-        name: c.name,
-        phone: c.phone || "-",
-        address: c.address || "-"
-    }));
+    customers = customers.map(c => ({ barcode: c.barcode, name: c.name, phone: c.phone || "-", address: c.address || "-" }));
 
     if (inventory.length === 0) {
         inventory = [{ id: 1, barcode: "1111", category: "น้ำแข็ง", name: "น้ำแข็งหลอด (สอบ)", price: 50, stock: 100 }];
@@ -415,7 +337,7 @@
         localStorage.setItem('myApp_customers', JSON.stringify(customers));
     }
 
-    // ================= POS / เคาน์เตอร์คิดเงิน =================
+    // ================= POS =================
     function initPOS() {
         let cusSelect = document.getElementById('saleCustomer');
         cusSelect.innerHTML = '<option value="">-- เลือกลูกค้า --</option>';
@@ -433,22 +355,24 @@
         document.getElementById('scanCustomerBarcode').focus();
     }
 
-    function showCustomerDebt() {
+    function getSelectedCustomerDebt() {
         let cusSelect = document.getElementById('saleCustomer');
+        if (cusSelect.selectedIndex <= 0) return 0;
+        let barcode = cusSelect.value;
+        return transactions.filter(t => t.barcode === barcode).reduce((sum, t) => sum + t.debt, 0);
+    }
+
+    function showCustomerDebt() {
         let infoDiv = document.getElementById('currentCustomerDebtInfo');
-        if (cusSelect.selectedIndex > 0) {
-            let barcode = cusSelect.value;
-            let totalDebt = transactions.filter(t => t.barcode === barcode).reduce((sum, t) => sum + t.debt, 0);
-            if (totalDebt > 0) {
-                infoDiv.innerText = `⚠️ ยอดค้างสะสมเดิม: ${totalDebt.toLocaleString()} บาท`;
-                infoDiv.className = "small mt-1 text-danger fw-bold";
-                infoDiv.style.display = "block";
-            } else {
-                infoDiv.style.display = "none";
-            }
+        let totalDebt = getSelectedCustomerDebt();
+        if (totalDebt > 0) {
+            infoDiv.innerText = `⚠️ ยอดค้างสะสมเดิม: ${totalDebt.toLocaleString()} บาท`;
+            infoDiv.className = "small mt-1 text-danger fw-bold";
+            infoDiv.style.display = "block";
         } else {
             infoDiv.style.display = "none";
         }
+        renderCart(); // คำนวณใหม่เมื่อเปลี่ยนลูกค้า
     }
 
     function handleCustomerScan(e) {
@@ -470,6 +394,7 @@
                 alert("❌ ไม่พบลูกค้ารหัสนี้");
                 e.target.value = '';
                 select.selectedIndex = 0;
+                showCustomerDebt();
             }
         }
     }
@@ -512,18 +437,11 @@
     function addToCart(prodId) {
         let product = inventory.find(p => p.id === prodId);
         if (!product) return;
-
         let existingItem = cart.find(item => item.id === prodId);
         if (existingItem) {
             existingItem.qty += 1;
         } else {
-            cart.push({
-                id: product.id,
-                name: product.name,
-                price: product.price,
-                qty: 1,
-                stock: product.stock
-            });
+            cart.push({ id: product.id, name: product.name, price: product.price, qty: 1, stock: product.stock });
         }
         renderCart();
     }
@@ -532,9 +450,7 @@
         let item = cart.find(x => x.id === prodId);
         if (item) {
             item.qty += delta;
-            if (item.qty <= 0) {
-                cart = cart.filter(x => x.id !== prodId);
-            }
+            if (item.qty <= 0) { cart = cart.filter(x => x.id !== prodId); }
         }
         renderCart();
     }
@@ -552,71 +468,69 @@
     function renderCart() {
         let tbody = document.getElementById('cartTableBody');
         tbody.innerHTML = "";
-        let grandTotal = 0;
+        let cartTotal = 0;
 
         if (cart.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">ยังไม่มีสินค้าในตะกร้า (สแกนบาร์โค้ดสินค้าหรือเลือกรายการ)</td></tr>';
-            document.getElementById('posGrandTotal').innerText = "0.00";
-            document.getElementById('posPaidAmount').value = "";
-            document.getElementById('posChangeAmount').innerText = "0.00";
-            document.getElementById('posDebtAmount').innerText = "0.00";
-            return;
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">ยังไม่มีสินค้าในตะกร้า</td></tr>';
+        } else {
+            cart.forEach(item => {
+                let total = item.price * item.qty;
+                cartTotal += total;
+                tbody.innerHTML += `
+                    <tr>
+                        <td class="ps-3 fw-bold">${item.name}</td>
+                        <td class="text-center">${item.price}</td>
+                        <td class="text-center">
+                            <button class="btn btn-sm btn-outline-secondary py-0 px-1" onclick="updateCartQty(${item.id}, -1)">-</button>
+                            <span class="mx-1 fw-bold">${item.qty}</span>
+                            <button class="btn btn-sm btn-outline-secondary py-0 px-1" onclick="updateCartQty(${item.id}, 1)">+</button>
+                        </td>
+                        <td class="text-end fw-bold">${total.toLocaleString()}</td>
+                        <td class="text-center"><button class="btn btn-sm btn-outline-danger py-0 px-1" onclick="removeFromCart(${item.id})">x</button></td>
+                    </tr>
+                `;
+            });
         }
 
-        cart.forEach(item => {
-            let total = item.price * item.qty;
-            grandTotal += total;
-            tbody.innerHTML += `
-                <tr>
-                    <td class="ps-3 fw-bold">${item.name}</td>
-                    <td class="text-center">${item.price}</td>
-                    <td class="text-center">
-                        <button class="btn btn-sm btn-outline-secondary py-0 px-1" onclick="updateCartQty(${item.id}, -1)">-</button>
-                        <span class="mx-1 fw-bold">${item.qty}</span>
-                        <button class="btn btn-sm btn-outline-secondary py-0 px-1" onclick="updateCartQty(${item.id}, 1)">+</button>
-                    </td>
-                    <td class="text-end fw-bold">${total.toLocaleString()}</td>
-                    <td class="text-center">
-                        <button class="btn btn-sm btn-outline-danger py-0 px-1" onclick="removeFromCart(${item.id})">x</button>
-                    </td>
-                </tr>
-            `;
-        });
+        let oldDebt = getSelectedCustomerDebt();
+        let grandTotal = cartTotal + oldDebt;
 
+        document.getElementById('posCartTotal').innerText = cartTotal.toLocaleString() + " ฿";
+        document.getElementById('posOldDebtTotal').innerText = oldDebt.toLocaleString() + " ฿";
         document.getElementById('posGrandTotal').innerText = grandTotal.toLocaleString();
         calculateChange();
     }
 
     function calculateChange() {
-        let grandTotal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+        let cartTotal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+        let oldDebt = getSelectedCustomerDebt();
+        let grandTotal = cartTotal + oldDebt;
         let paid = parseFloat(document.getElementById('posPaidAmount').value) || 0;
         
         let change = paid - grandTotal;
-        let debt = grandTotal - paid;
+        let remainingDebt = grandTotal - paid;
 
         if (change >= 0) {
             document.getElementById('posChangeAmount').innerText = change.toLocaleString();
             document.getElementById('posDebtAmount').innerText = "0.00";
         } else {
             document.getElementById('posChangeAmount').innerText = "0.00";
-            document.getElementById('posDebtAmount').innerText = Math.abs(debt).toLocaleString();
+            document.getElementById('posDebtAmount').innerText = Math.abs(remainingDebt).toLocaleString();
         }
     }
 
     function checkoutOrder() {
         let cusSelect = document.getElementById('saleCustomer');
         if (cusSelect.selectedIndex <= 0) { alert("❌ กรุณาเลือกลูกค้าก่อนชำระเงิน"); return; }
-        if (cart.length === 0) { alert("❌ ตะกร้าสินค้าว่างเปล่า"); return; }
+        if (cart.length === 0 && getSelectedCustomerDebt() === 0) { alert("❌ ไม่มีสินค้าในตะกร้าและไม่มีหนี้ค้าง"); return; }
 
         let paid = parseFloat(document.getElementById('posPaidAmount').value);
         if (isNaN(paid)) { alert("❌ กรุณากรอกจำนวนเงินสดที่รับมา"); return; }
 
         let barcode = cusSelect.value;
         let customerName = cusSelect.options[cusSelect.selectedIndex].text.replace(/\[.*?\] /, '');
-        let grandTotal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
-        let debt = grandTotal - paid;
-        if (debt < 0) debt = 0; // จ่ายเกินไม่มีหนี้เพิ่ม
-
+        let cartTotal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+        
         // ตัดสต็อกสินค้าจริง
         let itemDescArr = [];
         for (let item of cart) {
@@ -634,23 +548,26 @@
         let now = new Date();
         let dateTime = now.toLocaleDateString('th-TH') + " " + now.toLocaleTimeString('th-TH', {hour: '2-digit', minute:'2-digit'});
 
+        let itemDesc = itemDescArr.length > 0 ? itemDescArr.join(', ') : "💰 ชำระหนี้ค้างเก่า";
+        let finalDebt = cartTotal - paid; // หากจ่ายเกิน หนี้บิลนี้จะเป็นลบ ซึ่งจะไปหักลบหนี้เก่าในประวัติทับซ้อนกัน
+
         let newRecord = {
             id: Date.now(),
             time: dateTime,
             barcode: barcode,
             customer: customerName,
-            item: itemDescArr.join(', '),
-            total: grandTotal,
+            item: itemDesc,
+            total: cartTotal,
             paid: paid,
-            debt: debt
+            debt: finalDebt
         };
 
         transactions.unshift(newRecord);
         localStorage.setItem('myApp_transactions', JSON.stringify(transactions));
 
-        alert("✅ บันทึกการชำระเงินและตัดสต็อกสำเร็จ!");
+        alert("✅ บันทึกการชำระเงินและตัดหนี้สำเร็จ!");
         cart = [];
-        renderCart();
+        document.getElementById('posPaidAmount').value = "";
         initPOS();
         renderCustomerTable();
     }
@@ -664,7 +581,7 @@
             return;
         }
         transactions.forEach(t => {
-            let debtClass = t.debt > 0 ? "text-danger fw-bold" : "text-muted";
+            let debtClass = t.debt > 0 ? "text-danger fw-bold" : (t.debt < 0 ? "text-success fw-bold" : "text-muted");
             tbody.innerHTML += `
                 <tr>
                     <td class="text-muted" style="font-size: 12px;">${t.time}</td>
@@ -680,14 +597,14 @@
     }
 
     function deleteTransaction(id) {
-        if (confirm("ลบประวัตินี้? (สต็อกจะไม่ถูกคืนค่า)")) {
+        if (confirm("ลบประวัตินี้?")) {
             transactions = transactions.filter(t => t.id !== id);
             localStorage.setItem('myApp_transactions', JSON.stringify(transactions));
             renderTable();
         }
     }
 
-    // ================= โซนข้อมูลลูกค้า (แยกรายคน) =================
+    // ================= โซนข้อมูลลูกค้า =================
     function initCustomerView() {
         let viewSelect = document.getElementById('viewCustomerSelect');
         viewSelect.innerHTML = '<option value="">-- เลือกลูกค้า --</option>';
@@ -711,12 +628,7 @@
                     break;
                 }
             }
-            if (!found && barcode !== "") {
-                alert("❌ ไม่พบลูกค้ารหัสนี้");
-                e.target.value = '';
-                select.selectedIndex = 0;
-                renderSpecificCustomerView();
-            }
+            if (!found && barcode !== "") { alert("❌ ไม่พบลูกค้ารหัสนี้"); e.target.value = ''; select.selectedIndex = 0; renderSpecificCustomerView(); }
         }
     }
 
@@ -775,10 +687,7 @@
     function renderInventory() {
         let tbody = document.getElementById('inventoryTableBody');
         tbody.innerHTML = "";
-        if (inventory.length === 0) {
-            tbody.innerHTML = "<tr><td colspan='6' class='text-center text-muted'>ยังไม่มีสินค้าในคลัง</td></tr>";
-            return;
-        }
+        if (inventory.length === 0) { tbody.innerHTML = "<tr><td colspan='6' class='text-center text-muted'>ยังไม่มีสินค้าในคลัง</td></tr>"; return; }
         let sortedInventory = [...inventory].sort((a, b) => a.category.localeCompare(b.category));
         sortedInventory.forEach(p => {
             let stockColor = p.stock <= 5 ? "text-danger" : "text-success";
@@ -790,7 +699,6 @@
         e.preventDefault();
         let barcode = document.getElementById('newProdBarcode').value.trim();
         if (inventory.find(p => p.barcode === barcode)) { alert("❌ รหัสบาร์โค้ดซ้ำ!"); return; }
-
         let newProduct = {
             id: Date.now(),
             barcode: barcode,
@@ -821,10 +729,9 @@
 
     function updateProduct() {
         let id = parseInt(document.getElementById('editProdId').value);
-        let barcode = document.getElementById('editProdBarcode').value.trim();
         let p = inventory.find(x => x.id === id);
         if(p) {
-            p.barcode = barcode;
+            p.barcode = document.getElementById('editProdBarcode').value.trim();
             p.category = document.getElementById('editCategory').value.trim();
             p.name = document.getElementById('editProdName').value.trim();
             p.price = parseFloat(document.getElementById('editProdPrice').value) || 0;
@@ -845,14 +752,11 @@
         }
     }
 
-    // ================= โซนจัดการรายชื่อลูกค้า =================
+    // ================= โซนลูกค้า =================
     function renderCustomerTable() {
         let tbody = document.getElementById('customerTableBody');
         tbody.innerHTML = "";
-        if (customers.length === 0) {
-            tbody.innerHTML = "<tr><td colspan='7' class='text-center text-muted'>ยังไม่มีข้อมูลลูกค้า</td></tr>";
-            return;
-        }
+        if (customers.length === 0) { tbody.innerHTML = "<tr><td colspan='7' class='text-center text-muted'>ยังไม่มีข้อมูลลูกค้า</td></tr>"; return; }
         customers.forEach(c => {
             let totalDebt = transactions.filter(t => t.barcode === c.barcode).reduce((sum, t) => sum + t.debt, 0);
             let debtColor = totalDebt > 0 ? "text-danger fw-bold" : "text-success";
@@ -902,17 +806,12 @@
 
     function updateCustomerData() {
         let originalBarcode = document.getElementById('editCusOriginalBarcode').value;
-        let newBarcode = document.getElementById('editCusBarcode').value.trim();
-        let name = document.getElementById('editCusName').value.trim();
-        let phone = document.getElementById('editCusPhone').value.trim() || "-";
-        let address = document.getElementById('editCusAddress').value.trim() || "-";
-
         let c = customers.find(x => x.barcode === originalBarcode);
         if(c) {
-            c.barcode = newBarcode;
-            c.name = name;
-            c.phone = phone;
-            c.address = address;
+            c.barcode = document.getElementById('editCusBarcode').value.trim();
+            c.name = document.getElementById('editCusName').value.trim();
+            c.phone = document.getElementById('editCusPhone').value.trim() || "-";
+            c.address = document.getElementById('editCusAddress').value.trim() || "-";
             localStorage.setItem('myApp_customers', JSON.stringify(customers));
             renderCustomerTable();
             initPOS();
