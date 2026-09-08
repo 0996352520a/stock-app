@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบร้านค้า (สรุปยอดขายแยกหนี้และเงินเกิน)</title>
+    <title>ระบบร้านค้า (สรุปยอดรายวัน/รายเดือน)</title>
     
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -86,15 +86,13 @@
         @media print {
             body { background-color: white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             .app-container { box-shadow: none !important; margin: 0 !important; max-width: 100% !important; padding: 0 !important; }
-            .d-print-none { display: none !important; } /* ซ่อนส่วนที่ไม่ต้องการปริ้น */
+            .d-print-none { display: none !important; } 
             
-            /* ปรับตารางให้อ่านง่ายบนกระดาษขาวดำ */
             .table-responsive { max-height: none !important; overflow: visible !important; border: none !important; }
             .table { border-collapse: collapse !important; width: 100% !important; border: 1px solid #000 !important; }
             .table th, .table td { border: 1px solid #000 !important; padding: 8px !important; color: #000 !important; font-size: 16px !important; }
             .table th { background-color: #f2f2f2 !important; }
             
-            /* ปรับกล่องสรุปยอดให้มีขอบดำ */
             .card { border: 2px solid #000 !important; box-shadow: none !important; break-inside: avoid; }
             .bg-light, .bg-white { background-color: white !important; }
             .text-danger, .text-success, .text-primary, .text-info { color: #000 !important; } 
@@ -270,30 +268,43 @@
             </div>
         </div>
 
-        <!-- ================= แท็บ 2: สรุปยอดขาย ================= -->
+        <!-- ================= แท็บ 2: สรุปยอดขาย (รายวัน/รายเดือน) ================= -->
         <div class="tab-pane fade" id="summary" role="tabpanel">
             
             <!-- หัวข้อที่จะแสดงเฉพาะตอนปริ้น -->
             <div class="d-none d-print-block text-center mb-4">
-                <h1 class="fw-bold">รายงานสรุปยอดขายประจำวัน</h1>
+                <h1 class="fw-bold">รายงานสรุปยอดขาย</h1>
                 <h4 id="printHeaderDate" class="text-muted"></h4>
                 <h4 id="printHeaderShift" class="text-muted"></h4>
                 <hr>
             </div>
 
+            <!-- กล่องตั้งค่าการค้นหาสรุปยอด -->
             <div class="card mb-4 shadow-sm border-0 bg-white d-print-none">
                 <div class="card-body p-4">
-                    <div class="row align-items-center g-4">
-                        <div class="col-md-auto"><h4 class="fw-bold text-primary mb-0">📅 เลือกวันที่:</h4></div>
-                        <div class="col-md-3">
-                            <input type="date" id="summaryDate" class="form-control form-control-lg fs-4 fw-bold text-primary border-primary" onchange="renderSummary()">
+                    <div class="row align-items-center g-3">
+                        <div class="col-md-auto"><h4 class="fw-bold text-primary mb-0">รูปแบบ:</h4></div>
+                        <div class="col-md-auto">
+                            <select id="summaryViewType" class="form-select form-select-lg fs-5 fw-bold text-primary border-primary" onchange="toggleSummaryView()">
+                                <option value="daily">📅 ดูรายวัน</option>
+                                <option value="monthly">🗓️ ดูรายเดือน</option>
+                            </select>
                         </div>
-                        <div class="col-md-auto ms-md-4"><h4 class="fw-bold text-primary mb-0">⏰ เลือกรอบกะ:</h4></div>
-                        <div class="col-md-4">
-                            <select id="summaryShiftFilter" class="form-select form-select-lg fs-4 fw-bold text-primary border-primary" onchange="renderSummary()">
-                                <option value="all">ดูทุกกะ (สรุปทั้งวัน)</option>
-                                <option value="รอบเช้า">☀️ รอบเช้า (แสดงเฉพาะเช้า)</option>
-                                <option value="รอบเย็น">🌙 รอบเย็น (แสดงเฉพาะเย็น)</option>
+                        
+                        <div class="col-md-auto" id="dateInputBox">
+                            <input type="date" id="summaryDate" class="form-control form-control-lg fs-5 fw-bold text-primary border-primary" onchange="renderSummary()">
+                        </div>
+                        
+                        <div class="col-md-auto" id="monthInputBox" style="display:none;">
+                            <input type="month" id="summaryMonth" class="form-control form-control-lg fs-5 fw-bold text-primary border-primary" onchange="renderSummary()">
+                        </div>
+
+                        <div class="col-md-auto ms-md-3"><h4 class="fw-bold text-primary mb-0">⏰ รอบกะ:</h4></div>
+                        <div class="col-md-auto">
+                            <select id="summaryShiftFilter" class="form-select form-select-lg fs-5 fw-bold text-primary border-primary" onchange="renderSummary()">
+                                <option value="all">ดูทุกกะ (สรุปทั้งหมด)</option>
+                                <option value="รอบเช้า">☀️ รอบเช้า (เฉพาะเช้า)</option>
+                                <option value="รอบเย็น">🌙 รอบเย็น (เฉพาะเย็น)</option>
                             </select>
                         </div>
                     </div>
@@ -302,7 +313,7 @@
 
             <!-- ปุ่มปริ้นเอกสาร -->
             <div class="text-end mb-4 d-print-none">
-                <button class="btn btn-success btn-huge shadow px-5" onclick="window.print()">🖨️ ปริ้นเอกสารสรุปยอดรอบนี้</button>
+                <button class="btn btn-success btn-huge shadow px-5" onclick="window.print()">🖨️ ปริ้นเอกสารสรุปยอด</button>
             </div>
 
             <div class="card shadow-sm border-2 border-dark mb-5">
@@ -740,27 +751,57 @@
         $('#saleCustomer, #productSelect, #viewCustomerSelect').select2({ theme: 'bootstrap-5', width: '100%' });
     }
 
-    // ================= ระบบสรุปยอดขาย =================
+    // ================= ระบบสรุปยอดขาย (สลับดู รายวัน/รายเดือน) =================
     function initSummary() {
-        document.getElementById('summaryDate').value = new Date().toLocaleDateString('en-CA');
+        let today = new Date();
+        document.getElementById('summaryDate').value = today.toLocaleDateString('en-CA');
+        document.getElementById('summaryMonth').value = today.toISOString().slice(0, 7);
+        toggleSummaryView();
+    }
+
+    function toggleSummaryView() {
+        let viewType = document.getElementById('summaryViewType').value;
+        if (viewType === 'daily') {
+            document.getElementById('dateInputBox').style.display = 'block';
+            document.getElementById('monthInputBox').style.display = 'none';
+        } else {
+            document.getElementById('dateInputBox').style.display = 'none';
+            document.getElementById('monthInputBox').style.display = 'block';
+        }
         renderSummary();
     }
 
     function renderSummary() {
-        let filterDate = document.getElementById('summaryDate').value;
+        let viewType = document.getElementById('summaryViewType').value;
         let filterShift = document.getElementById('summaryShiftFilter').value;
-        if(!filterDate) return;
+        
+        let matchPrefix = "";
+        let displayTitle = "";
 
-        // อัปเดตหัวข้อเตรียมปริ้น
-        let dateObj = new Date(filterDate);
-        let thaiDate = dateObj.toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
-        document.getElementById('printHeaderDate').innerText = `ประจำวันที่: ${thaiDate}`;
-        document.getElementById('printHeaderShift').innerText = `รอบกะ: ${filterShift === 'all' ? 'รวมทั้งวัน' : filterShift}`;
+        if (viewType === 'daily') {
+            let filterDate = document.getElementById('summaryDate').value;
+            if (!filterDate) return;
+            matchPrefix = filterDate;
+            let dateObj = new Date(filterDate);
+            displayTitle = `ประจำวันที่: ${dateObj.toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}`;
+        } else {
+            let filterMonth = document.getElementById('summaryMonth').value;
+            if (!filterMonth) return;
+            matchPrefix = filterMonth;
+            let [y, m] = filterMonth.split('-');
+            let dateObj = new Date(y, m - 1);
+            displayTitle = `ประจำเดือน: ${dateObj.toLocaleDateString('th-TH', { year: 'numeric', month: 'long' })}`;
+        }
+
+        document.getElementById('printHeaderDate').innerText = displayTitle;
+        document.getElementById('printHeaderShift').innerText = `รอบกะ: ${filterShift === 'all' ? 'รวมทั้งหมด' : filterShift}`;
 
         let sumTotal = 0, sumPaid = 0, sumDebt = 0, sumOverpaid = 0;
 
         let filteredTx = transactions.filter(t => {
-            return (t.dateStr === filterDate) && (filterShift === 'all' || t.shift === filterShift);
+            let matchTime = t.dateStr.startsWith(matchPrefix);
+            let matchShift = (filterShift === 'all' || t.shift === filterShift);
+            return matchTime && matchShift;
         });
 
         filteredTx.forEach(t => {
@@ -806,7 +847,7 @@
         tbody.innerHTML = "";
 
         if (Object.keys(groupedByCustomer).length === 0) {
-            tbody.innerHTML = "<tr><td colspan='7' class='text-center text-muted py-5 fs-5'>ไม่มีรายการขายในรอบ/วันที่เลือก</td></tr>";
+            tbody.innerHTML = "<tr><td colspan='7' class='text-center text-muted py-5 fs-5'>ไม่มีรายการขายในรอบ/ช่วงเวลาที่เลือก</td></tr>";
         } else {
             Object.values(groupedByCustomer).forEach(g => {
                 let bal = getCustomerBalance(g.barcode);
@@ -842,7 +883,8 @@
         document.getElementById('sumOverpaid').innerText = sumOverpaid.toLocaleString();
 
         let shiftNameText = filterShift === 'all' ? "ทั้งวัน (ทุกกะ)" : filterShift;
-        document.getElementById('summaryTitleText').innerText = `📊 สรุปยอดขาย ${shiftNameText}`;
+        let viewTypeText = viewType === 'daily' ? "ยอดขาย" : "ยอดขายรายเดือน";
+        document.getElementById('summaryTitleText').innerText = `📊 สรุป${viewTypeText} ${shiftNameText}`;
     }
 
     // ================= ระบบหน้าคิดเงิน (POS) =================
@@ -1164,7 +1206,7 @@
         if(document.getElementById('customerView').classList.contains('active')) renderSpecificCustomerView();
         
         editTxModal.hide();
-        alert("✅ บันทึกการแก้ไขบิลเรียบร้อยแล้ว หนี้ลูกค้าจะถูกคำนวณใหม่ทันที!");
+        alert("✅ บันทึกการแก้ไขบิลเรียบร้อยแล้ว หหนี้ลูกค้าจะถูกคำนวณใหม่ทันที!");
     }
 
     function secureDeleteTransaction(id) {
