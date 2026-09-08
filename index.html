@@ -16,6 +16,7 @@
         .content-area { padding: 20px; }
         .barcode-input { font-size: 24px; text-align: center; letter-spacing: 2px; height: 60px; border: 2px solid #0d6efd; }
         .barcode-input:focus { box-shadow: 0 0 10px rgba(13, 110, 253, 0.5); }
+        .stock-box { background-color: #e9ecef; border-radius: 10px; padding: 15px; margin-bottom: 20px; border-left: 5px solid #198754; }
     </style>
 </head>
 <body>
@@ -25,34 +26,39 @@
         <h3 class="mb-0">📦 ระบบสต็อกและขายสินค้า</h3>
     </div>
 
-    <!-- เมนู Tabs -->
     <ul class="nav nav-tabs nav-fill" id="myTab" role="tablist">
         <li class="nav-item" role="presentation">
             <button class="nav-link active" id="scan-tab" data-bs-toggle="tab" data-bs-target="#scan" type="button" role="tab">📷 สแกนขาย</button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link" id="customers-tab" data-bs-toggle="tab" data-bs-target="#customers" type="button" role="tab" onclick="renderCustomers()">👥 ลูกค้า/บาร์โค้ด</button>
+            <button class="nav-link" id="customers-tab" data-bs-toggle="tab" data-bs-target="#customers" type="button" role="tab" onclick="renderCustomers()">👥 ลูกค้า</button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" id="history-tab" data-bs-toggle="tab" data-bs-target="#history" type="button" role="tab" onclick="renderHistory()">ประวัติ</button>
         </li>
     </ul>
 
-    <!-- เนื้อหาแต่ละ Tab -->
     <div class="tab-content content-area" id="myTabContent">
         
-        <!-- Tab 1: สแกนขาย -->
+        <!-- Tab 1: สแกนขาย & สต็อกส่วนกลาง -->
         <div class="tab-pane fade show active" id="scan" role="tabpanel">
+            
+            <!-- ส่วนจัดการสต็อกสินค้า -->
+            <div class="stock-box d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="text-muted mb-1">สต็อกสินค้าคงเหลือ (สอบ)</h6>
+                    <h2 class="mb-0 text-success fw-bold" id="displayMainStock">0</h2>
+                </div>
+                <button class="btn btn-outline-success btn-sm" onclick="addStockPrompt()">+ เติมสต็อก</button>
+            </div>
+
             <div class="text-center mb-4">
-                <p class="text-muted">จิ้มที่ช่องด้านล่าง แล้วใช้เครื่องสแกนบาร์โค้ดได้เลย<br>(หรือพิมพ์รหัสแล้วกด Enter)</p>
+                <p class="text-muted">จิ้มที่ช่องด้านล่าง แล้วใช้เครื่องสแกนบาร์โค้ดได้เลย</p>
                 <input type="text" id="barcodeInput" class="form-control barcode-input" placeholder="สแกนบาร์โค้ดที่นี่..." autofocus autocomplete="off">
             </div>
             
-            <div class="alert alert-info text-center">
-                <strong>ลูกค้าตัวอย่างที่มีในระบบ (เพื่อทดสอบ):</strong><br>
-                พิมพ์ 001 = บังเอ*<br>
-                พิมพ์ 002 = ยายม้วน<br>
-                พิมพ์ 003 = กะทิ
+            <div class="alert alert-info text-center" style="font-size: 14px;">
+                <strong>ทดสอบสแกน:</strong> พิมพ์ 001, 002, หรือ 003 แล้วกด Enter
             </div>
         </div>
 
@@ -62,7 +68,7 @@
                 <h5>➕ เพิ่มลูกค้าใหม่</h5>
                 <div class="row g-2">
                     <div class="col-4">
-                        <input type="text" id="newBarcode" class="form-control" placeholder="รหัสบาร์โค้ด" required>
+                        <input type="text" id="newBarcode" class="form-control" placeholder="รหัส" required>
                     </div>
                     <div class="col-8">
                         <input type="text" id="newName" class="form-control" placeholder="ชื่อลูกค้า" required>
@@ -81,9 +87,7 @@
                             <th class="text-end">ยอดค้าง (บาท)</th>
                         </tr>
                     </thead>
-                    <tbody id="customerTableBody">
-                        <!-- โหลดข้อมูลลูกค้ามาแสดงที่นี่ -->
-                    </tbody>
+                    <tbody id="customerTableBody"></tbody>
                 </table>
             </div>
         </div>
@@ -100,14 +104,11 @@
                         <tr>
                             <th>เวลา</th>
                             <th>ลูกค้า</th>
-                            <th>จำนวน</th>
-                            <th>ยอดรวม</th>
-                            <th>จ่าย</th>
+                            <th>ออก(สอบ)</th>
+                            <th>จ่าย(บาท)</th>
                         </tr>
                     </thead>
-                    <tbody id="historyTableBody">
-                        <!-- โหลดประวัติมาแสดงที่นี่ -->
-                    </tbody>
+                    <tbody id="historyTableBody"></tbody>
                 </table>
             </div>
         </div>
@@ -133,11 +134,11 @@
 
         <div class="row mb-3">
             <div class="col-6">
-                <label class="form-label">จำนวนสินค้า</label>
+                <label class="form-label">จำนวน (สอบ)</label>
                 <input type="number" id="modalQty" class="form-control" placeholder="0" oninput="calculateTotal()" required>
             </div>
             <div class="col-6">
-                <label class="form-label">ราคาต่อหน่วย (บาท)</label>
+                <label class="form-label">ราคาต่อสอบ</label>
                 <input type="number" id="modalPrice" class="form-control" value="50" oninput="calculateTotal()" required>
             </div>
         </div>
@@ -149,8 +150,7 @@
 
         <div class="mb-3 p-3 bg-success bg-opacity-10 border border-success rounded">
             <label class="form-label text-success fw-bold">ลูกค้าจ่ายเงินจริง (บาท)</label>
-            <input type="number" id="modalPaidAmount" class="form-control border-success form-control-lg" placeholder="กรอกจำนวนเงินที่รับมา" oninput="calculateTotal()">
-            <small class="text-muted">*หากจ่ายไม่ครบ ส่วนที่เหลือจะทบไปเป็นยอดค้าง</small>
+            <input type="number" id="modalPaidAmount" class="form-control border-success form-control-lg" placeholder="กรอกเงินที่รับมา" oninput="calculateTotal()">
         </div>
 
         <hr>
@@ -162,25 +162,23 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" onclick="resetScanner()">ยกเลิก</button>
-        <button type="button" class="btn btn-success w-50" onclick="saveTransaction()">💾 บันทึกข้อมูล</button>
+        <button type="button" class="btn btn-success w-50" onclick="saveTransaction()">💾 บันทึกและตัดสต็อก</button>
       </div>
     </div>
   </div>
 </div>
 
-<!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
 <script>
-    // 1. จำลองฐานข้อมูลด้วย LocalStorage (ถ้าเปิดครั้งแรกจะสร้างข้อมูลตัวอย่างให้)
+    // 1. จำลองฐานข้อมูล
     let dbCustomers = JSON.parse(localStorage.getItem('myStock_customers'));
     let dbTransactions = JSON.parse(localStorage.getItem('myStock_transactions'));
+    let mainStockQty = parseFloat(localStorage.getItem('myStock_mainQty')) || 0; // ยอดสต็อกรวม
 
     if (!dbCustomers) {
-        // ข้อมูลตัวอย่าง (ดึงชื่อมาจากไฟล์ตารางเปล่าที่คุณให้มา)
         dbCustomers = [
             { barcode: "001", name: "บังเอ*", debt: 0 },
-            { barcode: "002", name: "ยายม้วน", debt: 150 }, // สมมติยายม้วนค้างอยู่ 150
+            { barcode: "002", name: "ยายม้วน", debt: 150 },
             { barcode: "003", name: "กะทิ", debt: 0 }
         ];
         localStorage.setItem('myStock_customers', JSON.stringify(dbCustomers));
@@ -188,6 +186,28 @@
     if (!dbTransactions) {
         dbTransactions = [];
         localStorage.setItem('myStock_transactions', JSON.stringify(dbTransactions));
+    }
+
+    // อัปเดตหน้าจอสต็อก
+    function updateStockDisplay() {
+        document.getElementById('displayMainStock').innerText = mainStockQty;
+    }
+    updateStockDisplay();
+
+    // ฟังก์ชันเติมสต็อก (เพิ่มของเข้าคลัง)
+    function addStockPrompt() {
+        let addAmount = prompt("ระบุจำนวนสินค้าที่ต้องการเติมเข้าสต็อก (เช่น 100):");
+        if (addAmount !== null && addAmount.trim() !== "") {
+            let parsedAmount = parseFloat(addAmount);
+            if (!isNaN(parsedAmount) && parsedAmount > 0) {
+                mainStockQty += parsedAmount;
+                localStorage.setItem('myStock_mainQty', mainStockQty);
+                updateStockDisplay();
+                alert(`✅ เติมสต็อกสำเร็จ! ยอดคงเหลือปัจจุบันคือ ${mainStockQty} สอบ`);
+            } else {
+                alert("❌ กรุณากรอกตัวเลขที่ถูกต้อง");
+            }
+        }
     }
 
     // 2. ระบบสแกนบาร์โค้ด
@@ -200,49 +220,38 @@
             let scannedCode = this.value.trim();
             if(scannedCode === "") return;
 
-            // ค้นหาลูกค้า
             let customer = dbCustomers.find(c => c.barcode === scannedCode);
-            
             if (customer) {
-                // เจอลูกค้า -> เตรียมข้อมูลใส่ Pop-up
                 document.getElementById('currentCustomerBarcode').value = customer.barcode;
                 document.getElementById('modalCustomerName').innerText = customer.name;
                 document.getElementById('modalOldDebt').innerText = customer.debt;
-                
-                // ล้างช่องกรอกตัวเลข
                 document.getElementById('modalQty').value = "";
                 document.getElementById('modalTodayTotal').value = "0";
                 document.getElementById('modalPaidAmount').value = "";
                 document.getElementById('modalNewDebt').innerText = customer.debt;
 
                 recordModal.show();
-                
-                // เลื่อนเคอร์เซอร์ไปที่ช่องจำนวนสินค้าอัตโนมัติ (หน่วงเวลานิดนึงให้ Modal เปิดเสร็จก่อน)
                 setTimeout(() => document.getElementById('modalQty').focus(), 500);
             } else {
-                alert("❌ ไม่พบรหัสบาร์โค้ดนี้ในระบบ กรุณาเพิ่มลูกค้าที่เมนู 'ลูกค้า/บาร์โค้ด'");
+                alert("❌ ไม่พบรหัสบาร์โค้ดนี้ในระบบ กรุณาเพิ่มที่เมนู 'ลูกค้า'");
                 this.value = '';
             }
         }
     });
 
-    // 3. คำนวณยอดค้างใน Pop-up
+    // 3. คำนวณยอดค้าง
     function calculateTotal() {
         let oldDebt = parseFloat(document.getElementById('modalOldDebt').innerText) || 0;
         let qty = parseFloat(document.getElementById('modalQty').value) || 0;
         let price = parseFloat(document.getElementById('modalPrice').value) || 0;
-        
         let todayTotal = qty * price;
         document.getElementById('modalTodayTotal').value = todayTotal;
-
         let paid = parseFloat(document.getElementById('modalPaidAmount').value) || 0;
-        
-        // ยอดค้างใหม่ = ค้างเก่า + ค่าของวันนี้ - เงินที่จ่ายวันนี้
         let newDebt = (oldDebt + todayTotal) - paid;
         document.getElementById('modalNewDebt').innerText = newDebt;
     }
 
-    // 4. บันทึกข้อมูลการขาย
+    // 4. บันทึกข้อมูลและตัดสต็อก
     function saveTransaction() {
         let barcode = document.getElementById('currentCustomerBarcode').value;
         let qty = parseFloat(document.getElementById('modalQty').value) || 0;
@@ -256,19 +265,28 @@
             return;
         }
 
-        // หา Index ลูกค้าเพื่ออัปเดตยอดค้างชำระ
+        // ตรวจสอบว่าสต็อกพอหรือไม่ (แจ้งเตือนแต่ยอมให้ขายติดลบได้ เผื่อลืมเติมสต็อก)
+        if (mainStockQty < qty) {
+            if (!confirm(`⚠️ สต็อกคงเหลือ (${mainStockQty}) น้อยกว่าจำนวนที่ขาย (${qty}) คุณต้องการบันทึกต่อหรือไม่?`)) {
+                return;
+            }
+        }
+
+        // ตัดสต็อก
+        mainStockQty -= qty;
+        localStorage.setItem('myStock_mainQty', mainStockQty);
+        updateStockDisplay();
+
         let customerIndex = dbCustomers.findIndex(c => c.barcode === barcode);
         let customerName = dbCustomers[customerIndex].name;
         
-        // อัปเดตหนี้ในฐานข้อมูลลูกค้า
         dbCustomers[customerIndex].debt = newDebt;
         localStorage.setItem('myStock_customers', JSON.stringify(dbCustomers));
 
-        // บันทึกลงประวัติการขาย
         let now = new Date();
         let timeString = now.toLocaleDateString('th-TH') + " " + now.toLocaleTimeString('th-TH', {hour: '2-digit', minute:'2-digit'});
         
-        dbTransactions.unshift({ // unshift คือดันไว้บนสุด
+        dbTransactions.unshift({
             time: timeString,
             name: customerName,
             qty: qty,
@@ -277,10 +295,8 @@
         });
         localStorage.setItem('myStock_transactions', JSON.stringify(dbTransactions));
 
-        // ปิด Modal และเคลียร์ช่องสแกน
         recordModal.hide();
         resetScanner();
-        alert("✅ บันทึกข้อมูลสำเร็จ!");
     }
 
     function resetScanner() {
@@ -293,72 +309,48 @@
         e.preventDefault();
         let barcode = document.getElementById('newBarcode').value.trim();
         let name = document.getElementById('newName').value.trim();
-
         if (dbCustomers.find(c => c.barcode === barcode)) {
-            alert("❌ รหัสบาร์โค้ดนี้ซ้ำ มีในระบบแล้ว!");
-            return;
+            alert("❌ รหัสบาร์โค้ดซ้ำ!"); return;
         }
-
         dbCustomers.push({ barcode: barcode, name: name, debt: 0 });
         localStorage.setItem('myStock_customers', JSON.stringify(dbCustomers));
-        
         document.getElementById('addCustomerForm').reset();
         renderCustomers();
-        alert("✅ เพิ่มลูกค้าเรียบร้อย");
     }
 
-    // 6. แสดงผลรายชื่อลูกค้า (Tab 2)
+    // 6. แท็บลูกค้า
     function renderCustomers() {
         let tbody = document.getElementById('customerTableBody');
         tbody.innerHTML = "";
         dbCustomers.forEach(c => {
-            tbody.innerHTML += `
-                <tr>
-                    <td>${c.barcode}</td>
-                    <td>${c.name}</td>
-                    <td class="text-end fw-bold ${c.debt > 0 ? 'text-danger' : 'text-success'}">${c.debt}</td>
-                </tr>
-            `;
+            tbody.innerHTML += `<tr><td>${c.barcode}</td><td>${c.name}</td><td class="text-end fw-bold ${c.debt > 0 ? 'text-danger' : 'text-success'}">${c.debt}</td></tr>`;
         });
     }
 
-    // 7. แสดงผลประวัติการขาย (Tab 3)
+    // 7. แท็บประวัติ
     function renderHistory() {
         let tbody = document.getElementById('historyTableBody');
         tbody.innerHTML = "";
-        
         if (dbTransactions.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted">ยังไม่มีประวัติการขาย</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="4" class="text-center text-muted">ยังไม่มีประวัติ</td></tr>`;
             return;
         }
-
         dbTransactions.forEach(t => {
-            tbody.innerHTML += `
-                <tr>
-                    <td class="text-muted" style="font-size:12px;">${t.time}</td>
-                    <td>${t.name}</td>
-                    <td>${t.qty}</td>
-                    <td>${t.total}</td>
-                    <td class="text-success">${t.paid}</td>
-                </tr>
-            `;
+            tbody.innerHTML += `<tr><td class="text-muted" style="font-size:12px;">${t.time}</td><td>${t.name}</td><td>${t.qty}</td><td class="text-success">${t.paid}</td></tr>`;
         });
     }
 
-    // ล้างประวัติ (สำหรับตอนทดสอบ)
     function clearHistory() {
-        if(confirm("คุณต้องการล้างประวัติการขายทั้งหมดใช่หรือไม่? (ยอดค้างลูกค้าจะไม่หายไป)")) {
+        if(confirm("ล้างประวัติการขายทั้งหมด? (ยอดค้างลูกค้าและสต็อกจะไม่หาย)")) {
             dbTransactions = [];
             localStorage.setItem('myStock_transactions', JSON.stringify(dbTransactions));
             renderHistory();
         }
     }
 
-    // ให้ช่องสแกนบาร์โค้ดพร้อมทำงานเสมอเมื่อเปิดมาหน้าแรก
     document.getElementById('scan-tab').addEventListener('shown.bs.tab', function () {
         resetScanner();
     });
-
 </script>
 </body>
 </html>
