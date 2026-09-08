@@ -3,80 +3,311 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-width=1.0">
-    <title>ระบบบันทึกการซื้อขายลูกค้า</title>
+    <title>ระบบคลังสินค้าและงานขาย</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
-        body { background-color: #f8f9fa; font-family: 'Sarabun', sans-serif; }
-        .app-container { max-width: 800px; margin: 30px auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        body { background-color: #f4f6f9; font-family: 'Sarabun', sans-serif; }
+        .app-container { max-width: 900px; margin: 30px auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        .nav-tabs .nav-link { color: #495057; border-radius: 0; padding: 12px 20px; font-size: 16px; }
+        .nav-tabs .nav-link.active { font-weight: bold; color: #0d6efd; border-bottom: 3px solid #0d6efd; background: transparent; border-top: none; border-left: none; border-right: none;}
+        .table-responsive { max-height: 400px; overflow-y: auto; }
     </style>
 </head>
 <body>
 
 <div class="app-container">
-    <h3 class="text-primary mb-4">📝 บันทึกรายการซื้อขาย</h3>
+    <h4 class="text-primary mb-3 fw-bold">📦 ระบบร้านค้าและคลังสินค้า</h4>
 
-    <!-- ฟอร์มบันทึกข้อมูล -->
-    <div class="card mb-4 shadow-sm">
-        <div class="card-body">
-            <form id="transactionForm" onsubmit="saveTransaction(event)">
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <label class="form-label fw-bold">ชื่อลูกค้า / รหัส</label>
-                        <input type="text" id="customerName" class="form-control" placeholder="เช่น ยายม้วน หรือ 001" required>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label fw-bold">รายการสินค้า</label>
-                        <input type="text" id="itemName" class="form-control" placeholder="เช่น น้ำแข็ง 10 สอบ" required>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label fw-bold">ยอดรวม (บาท)</label>
-                        <input type="number" id="totalAmount" class="form-control" placeholder="0" required min="0">
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label fw-bold text-success">รับเงินสด (บาท)</label>
-                        <input type="number" id="paidAmount" class="form-control border-success" placeholder="0" required min="0">
-                    </div>
+    <!-- เมนู Tabs -->
+    <ul class="nav nav-tabs mb-4" id="myTab" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="sales-tab" data-bs-toggle="tab" data-bs-target="#sales" type="button" role="tab" onclick="loadProductOptions()">🛒 บันทึกการขาย</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="inventory-tab" data-bs-toggle="tab" data-bs-target="#inventory" type="button" role="tab" onclick="renderInventory()">📦 คลังสินค้า</button>
+        </li>
+    </ul>
+
+    <div class="tab-content">
+        <!-- ================= แท็บ 1: บันทึกการขาย ================= -->
+        <div class="tab-pane fade show active" id="sales" role="tabpanel">
+            <div class="card mb-4 shadow-sm border-0 bg-light">
+                <div class="card-body">
+                    <form id="transactionForm" onsubmit="saveTransaction(event)">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold small">ชื่อลูกค้า</label>
+                                <input type="text" id="customerName" class="form-control" placeholder="เช่น ยายม้วน" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold small">เลือกสินค้า</label>
+                                <select id="productSelect" class="form-select" onchange="calculateTotal()" required>
+                                    <!-- ตัวเลือกสินค้าจะถูกโหลดมาที่นี่ -->
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold small">จำนวน</label>
+                                <input type="number" id="saleQty" class="form-control" value="1" min="1" oninput="calculateTotal()" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold small">ยอดรวม (บาท)</label>
+                                <input type="number" id="totalAmount" class="form-control bg-white" readonly value="0">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold text-success small">รับเงินสด (บาท)</label>
+                                <input type="number" id="paidAmount" class="form-control border-success" placeholder="ใส่จำนวนเงิน" required min="0">
+                            </div>
+                        </div>
+                        <div class="mt-3 text-end">
+                            <button type="submit" class="btn btn-primary px-4">💾 บันทึกรายการ</button>
+                        </div>
+                    </form>
                 </div>
-                <div class="mt-3 text-end">
-                    <button type="submit" class="btn btn-primary px-4">💾 บันทึกรายการ</button>
-                </div>
-            </form>
+            </div>
+
+            <h6 class="fw-bold mb-2">ประวัติการทำรายการล่าสุด</h6>
+            <div class="table-responsive border rounded">
+                <table class="table table-hover align-middle mb-0" style="font-size: 14px;">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>วัน-เวลา</th>
+                            <th>ลูกค้า</th>
+                            <th>รายการ</th>
+                            <th class="text-end">รวม(฿)</th>
+                            <th class="text-end">รับมา(฿)</th>
+                            <th class="text-end">ค้างชำระ</th>
+                            <th class="text-center">ลบ</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyTableBody"></tbody>
+                </table>
+            </div>
         </div>
-    </div>
 
-    <!-- ตารางแสดงประวัติ -->
-    <h5 class="fw-bold mb-3">ประวัติการทำรายการล่าสุด</h5>
-    <div class="table-responsive">
-        <table class="table table-hover table-bordered align-middle">
-            <thead class="table-dark">
-                <tr>
-                    <th>วัน-เวลา</th>
-                    <th>ลูกค้า</th>
-                    <th>รายการ</th>
-                    <th class="text-end">ยอดรวม</th>
-                    <th class="text-end">รับเงินมา</th>
-                    <th class="text-end">ค้างชำระ</th>
-                    <th class="text-center">จัดการ</th>
-                </tr>
-            </thead>
-            <tbody id="historyTableBody">
-                <!-- ข้อมูลจะถูกแสดงที่นี่ -->
-            </tbody>
-        </table>
+        <!-- ================= แท็บ 2: คลังสินค้า ================= -->
+        <div class="tab-pane fade" id="inventory" role="tabpanel">
+            <div class="card mb-4 shadow-sm border-0 bg-light">
+                <div class="card-body">
+                    <form id="addProductForm" onsubmit="saveProduct(event)">
+                        <h6 class="text-primary fw-bold mb-3">➕ เพิ่มสินค้าใหม่</h6>
+                        <div class="row g-2 mb-2">
+                            <div class="col-md-3">
+                                <input type="text" id="newCategory" class="form-control form-control-sm" placeholder="หมวดหมู่ (เช่น เครื่องดื่ม)" required>
+                            </div>
+                            <div class="col-md-4">
+                                <input type="text" id="newProdName" class="form-control form-control-sm" placeholder="ชื่อสินค้า" required>
+                            </div>
+                            <div class="col-md-2">
+                                <input type="number" id="newProdPrice" class="form-control form-control-sm" placeholder="ราคาขาย/ชิ้น" required min="0">
+                            </div>
+                            <div class="col-md-3">
+                                <div class="input-group input-group-sm">
+                                    <input type="number" id="newProdStock" class="form-control" placeholder="จำนวนเริ่มต้น" required min="0">
+                                    <button type="submit" class="btn btn-primary">บันทึก</button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <h6 class="fw-bold mb-2">รายการสินค้าในคลัง</h6>
+            <div class="table-responsive border rounded bg-white">
+                <table class="table table-hover align-middle mb-0" style="font-size: 14px;">
+                    <thead class="table-secondary">
+                        <tr>
+                            <th>หมวดหมู่</th>
+                            <th>ชื่อสินค้า</th>
+                            <th class="text-center">ราคา (฿)</th>
+                            <th class="text-center">คงเหลือ</th>
+                            <th class="text-center">จัดการ</th>
+                        </tr>
+                    </thead>
+                    <tbody id="inventoryTableBody"></tbody>
+                </table>
+            </div>
+        </div>
     </div>
 </div>
 
-<script>
-    // ดึงข้อมูลจาก LocalStorage หรือสร้าง Array ว่างถ้ายังไม่มีข้อมูล
-    let transactions = JSON.parse(localStorage.getItem('simple_transactions')) || [];
+<!-- ================= Modal แก้ไขสินค้า ================= -->
+<div class="modal fade" id="editProductModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content">
+      <div class="modal-header bg-warning">
+        <h6 class="modal-title fw-bold">✏️ แก้ไขข้อมูลสินค้า</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="editProdId">
+        <div class="mb-2">
+            <label class="form-label small text-muted">หมวดหมู่</label>
+            <input type="text" id="editCategory" class="form-control">
+        </div>
+        <div class="mb-2">
+            <label class="form-label small text-muted">ชื่อสินค้า</label>
+            <input type="text" id="editProdName" class="form-control">
+        </div>
+        <div class="row mb-2">
+            <div class="col-6">
+                <label class="form-label small text-muted">ราคาขาย (฿)</label>
+                <input type="number" id="editProdPrice" class="form-control" min="0">
+            </div>
+            <div class="col-6">
+                <label class="form-label small text-muted">สต็อกคงเหลือ</label>
+                <input type="number" id="editProdStock" class="form-control" min="0">
+            </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">ยกเลิก</button>
+        <button type="button" class="btn btn-success btn-sm" onclick="updateProduct()">💾 บันทึก</button>
+      </div>
+    </div>
+  </div>
+</div>
 
-    // ฟังก์ชันบันทึกข้อมูล
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    // ฐานข้อมูล (LocalStorage)
+    let inventory = JSON.parse(localStorage.getItem('myApp_inventory')) || [];
+    let transactions = JSON.parse(localStorage.getItem('myApp_transactions')) || [];
+
+    // หากเปิดครั้งแรกและคลังว่าง ให้ใส่ข้อมูลตัวอย่าง
+    if (inventory.length === 0) {
+        inventory = [
+            { id: 1, category: "น้ำแข็ง", name: "น้ำแข็งหลอด (สอบ)", price: 50, stock: 100 },
+            { id: 2, category: "เครื่องดื่ม", name: "น้ำเปล่า 1 แพ็ค", price: 45, stock: 50 }
+        ];
+        localStorage.setItem('myApp_inventory', JSON.stringify(inventory));
+    }
+
+    // ================= โซนคลังสินค้า =================
+    function renderInventory() {
+        let tbody = document.getElementById('inventoryTableBody');
+        tbody.innerHTML = "";
+        
+        if (inventory.length === 0) {
+            tbody.innerHTML = "<tr><td colspan='5' class='text-center text-muted'>ยังไม่มีสินค้าในคลัง</td></tr>";
+            return;
+        }
+
+        // จัดเรียงตามหมวดหมู่
+        let sortedInventory = [...inventory].sort((a, b) => a.category.localeCompare(b.category));
+
+        sortedInventory.forEach(p => {
+            let stockColor = p.stock <= 5 ? "text-danger" : "text-success";
+            tbody.innerHTML += `
+                <tr>
+                    <td><span class="badge bg-secondary opacity-75">${p.category}</span></td>
+                    <td class="fw-bold">${p.name}</td>
+                    <td class="text-center">${p.price}</td>
+                    <td class="text-center fw-bold ${stockColor}">${p.stock}</td>
+                    <td class="text-center">
+                        <button class="btn btn-sm btn-outline-warning py-0 px-2" onclick="openEditModal(${p.id})">แก้ไข</button>
+                        <button class="btn btn-sm btn-outline-danger py-0 px-2" onclick="deleteProduct(${p.id})">ลบ</button>
+                    </td>
+                </tr>
+            `;
+        });
+    }
+
+    function saveProduct(e) {
+        e.preventDefault();
+        let newProduct = {
+            id: Date.now(),
+            category: document.getElementById('newCategory').value.trim(),
+            name: document.getElementById('newProdName').value.trim(),
+            price: parseFloat(document.getElementById('newProdPrice').value) || 0,
+            stock: parseFloat(document.getElementById('newProdStock').value) || 0
+        };
+        inventory.push(newProduct);
+        localStorage.setItem('myApp_inventory', JSON.stringify(inventory));
+        document.getElementById('addProductForm').reset();
+        renderInventory();
+        loadProductOptions();
+    }
+
+    const editModal = new bootstrap.Modal(document.getElementById('editProductModal'));
+
+    function openEditModal(id) {
+        let p = inventory.find(x => x.id === id);
+        if(!p) return;
+        document.getElementById('editProdId').value = p.id;
+        document.getElementById('editCategory').value = p.category;
+        document.getElementById('editProdName').value = p.name;
+        document.getElementById('editProdPrice').value = p.price;
+        document.getElementById('editProdStock').value = p.stock;
+        editModal.show();
+    }
+
+    function updateProduct() {
+        let id = parseInt(document.getElementById('editProdId').value);
+        let p = inventory.find(x => x.id === id);
+        if(p) {
+            p.category = document.getElementById('editCategory').value.trim();
+            p.name = document.getElementById('editProdName').value.trim();
+            p.price = parseFloat(document.getElementById('editProdPrice').value) || 0;
+            p.stock = parseFloat(document.getElementById('editProdStock').value) || 0;
+            localStorage.setItem('myApp_inventory', JSON.stringify(inventory));
+            renderInventory();
+            loadProductOptions();
+            editModal.hide();
+        }
+    }
+
+    function deleteProduct(id) {
+        if(confirm("ลบสินค้านี้ออกจากคลัง?")) {
+            inventory = inventory.filter(x => x.id !== id);
+            localStorage.setItem('myApp_inventory', JSON.stringify(inventory));
+            renderInventory();
+            loadProductOptions();
+        }
+    }
+
+    // ================= โซนบันทึกขาย =================
+    function loadProductOptions() {
+        let select = document.getElementById('productSelect');
+        select.innerHTML = '<option value="">-- เลือกสินค้า --</option>';
+        
+        let sortedInventory = [...inventory].sort((a, b) => a.category.localeCompare(b.category));
+        sortedInventory.forEach(p => {
+            select.innerHTML += `<option value="${p.id}" data-price="${p.price}" data-stock="${p.stock}">[${p.category}] ${p.name} (เหลือ ${p.stock})</option>`;
+        });
+        calculateTotal();
+    }
+
+    function calculateTotal() {
+        let select = document.getElementById('productSelect');
+        let qty = parseFloat(document.getElementById('saleQty').value) || 0;
+        
+        if (select.selectedIndex > 0) {
+            let price = parseFloat(select.options[select.selectedIndex].getAttribute('data-price')) || 0;
+            document.getElementById('totalAmount').value = price * qty;
+        } else {
+            document.getElementById('totalAmount').value = 0;
+        }
+    }
+
     function saveTransaction(e) {
         e.preventDefault();
-        
+        let select = document.getElementById('productSelect');
+        if (select.selectedIndex <= 0) { alert("กรุณาเลือกสินค้า"); return; }
+
+        let prodId = parseInt(select.value);
+        let product = inventory.find(x => x.id === prodId);
+        let qty = parseFloat(document.getElementById('saleQty').value) || 0;
+
+        if (product.stock < qty) {
+            if(!confirm(`⚠️ สินค้ามีแค่ ${product.stock} ชิ้น ต้องการบันทึกให้สต็อกติดลบหรือไม่?`)) return;
+        }
+
+        // ตัดสต็อก
+        product.stock -= qty;
+        localStorage.setItem('myApp_inventory', JSON.stringify(inventory));
+
         let customer = document.getElementById('customerName').value.trim();
-        let item = document.getElementById('itemName').value.trim();
         let total = parseFloat(document.getElementById('totalAmount').value) || 0;
         let paid = parseFloat(document.getElementById('paidAmount').value) || 0;
         let debt = total - paid;
@@ -84,30 +315,26 @@
         let now = new Date();
         let dateTime = now.toLocaleDateString('th-TH') + " " + now.toLocaleTimeString('th-TH', {hour: '2-digit', minute:'2-digit'});
 
-        // สร้าง Object เก็บข้อมูล
         let newRecord = {
             id: Date.now(),
             time: dateTime,
             customer: customer,
-            item: item,
+            item: `${product.name} (x${qty})`,
             total: total,
             paid: paid,
             debt: debt
         };
 
-        // เพิ่มข้อมูลลงหน้าสุดของ Array
         transactions.unshift(newRecord);
+        localStorage.setItem('myApp_transactions', JSON.stringify(transactions));
         
-        // บันทึกลง LocalStorage
-        localStorage.setItem('simple_transactions', JSON.stringify(transactions));
-        
-        // ล้างค่าในฟอร์มและโหลดตารางใหม่
         document.getElementById('transactionForm').reset();
+        document.getElementById('saleQty').value = 1;
         document.getElementById('customerName').focus();
+        loadProductOptions();
         renderTable();
     }
 
-    // ฟังก์ชันแสดงผลตาราง
     function renderTable() {
         let tbody = document.getElementById('historyTableBody');
         tbody.innerHTML = "";
@@ -121,31 +348,32 @@
             let debtClass = t.debt > 0 ? "text-danger fw-bold" : "text-success";
             tbody.innerHTML += `
                 <tr>
-                    <td class="text-muted small">${t.time}</td>
+                    <td class="text-muted" style="font-size: 12px;">${t.time}</td>
                     <td class="fw-bold">${t.customer}</td>
                     <td>${t.item}</td>
                     <td class="text-end">${t.total}</td>
                     <td class="text-end text-success">${t.paid}</td>
                     <td class="text-end ${debtClass}">${t.debt}</td>
                     <td class="text-center">
-                        <button class="btn btn-sm btn-outline-danger" onclick="deleteTransaction(${t.id})">ลบ</button>
+                        <button class="btn btn-sm btn-outline-danger py-0 px-1" onclick="deleteTransaction(${t.id})">x</button>
                     </td>
                 </tr>
             `;
         });
     }
 
-    // ฟังก์ชันลบข้อมูล
     function deleteTransaction(id) {
-        if (confirm("ยืนยันการลบรายการนี้?")) {
+        if (confirm("ลบประวัตินี้? (สต็อกจะไม่ถูกคืนค่า)")) {
             transactions = transactions.filter(t => t.id !== id);
-            localStorage.setItem('simple_transactions', JSON.stringify(transactions));
+            localStorage.setItem('myApp_transactions', JSON.stringify(transactions));
             renderTable();
         }
     }
 
-    // โหลดตารางครั้งแรกที่เปิดเว็บ
+    // เริ่มต้นระบบ
+    loadProductOptions();
     renderTable();
+    renderInventory();
 </script>
 
 </body>
