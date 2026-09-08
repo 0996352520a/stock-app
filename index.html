@@ -3,15 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-width=1.0">
-    <title>ระบบคลังสินค้าและลูกค้า</title>
+    <title>ระบบคลังสินค้าและลูกค้า (Pro Barcode)</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
         body { background-color: #f4f6f9; font-family: 'Sarabun', sans-serif; }
-        .app-container { max-width: 900px; margin: 30px auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        .app-container { max-width: 950px; margin: 30px auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
         .nav-tabs .nav-link { color: #495057; border-radius: 0; padding: 12px 20px; font-size: 16px; }
         .nav-tabs .nav-link.active { font-weight: bold; color: #0d6efd; border-bottom: 3px solid #0d6efd; background: transparent; border-top: none; border-left: none; border-right: none;}
         .table-responsive { max-height: 400px; overflow-y: auto; }
+        .scan-input { background-color: #f8faff; border: 2px solid #0d6efd; }
+        .scan-input:focus { background-color: #fff; box-shadow: 0 0 8px rgba(13,110,253,0.3); }
     </style>
 </head>
 <body>
@@ -38,55 +40,59 @@
             <div class="card mb-4 shadow-sm border-0 bg-light">
                 <div class="card-body">
                     <form id="transactionForm" onsubmit="saveTransaction(event)">
-                        <div class="row g-3">
-                            <!-- แยกระบบสแกนบาร์โค้ด และ เลือกลูกค้าออกจากกัน -->
-                            <div class="col-md-4">
-                                <label class="form-label fw-bold small text-primary">📷 สแกนรหัสลูกค้า</label>
-                                <input type="text" id="scanCustomerBarcode" class="form-control border-primary bg-white" placeholder="สแกนแล้วกด Enter..." onkeydown="handleBarcodeScan(event)" autofocus autocomplete="off">
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold small text-primary">👤 สแกนรหัสลูกค้า</label>
+                                <input type="text" id="scanCustomerBarcode" class="form-control scan-input" placeholder="สแกน..." onkeydown="handleCustomerScan(event)" autofocus autocomplete="off">
                             </div>
-                            <div class="col-md-4">
-                                <label class="form-label fw-bold small text-primary">🔍 หรือ ค้นหาชื่อ</label>
-                                <select id="saleCustomer" class="form-select border-primary" onchange="syncBarcodeFromSelect()" required>
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold small text-primary">หรือ ค้นหาชื่อลูกค้า</label>
+                                <select id="saleCustomer" class="form-select border-primary" onchange="syncBarcodeFromSelect('saleCustomer', 'scanCustomerBarcode')" required>
                                     <!-- โหลดรายชื่อลูกค้า -->
                                 </select>
                             </div>
-                            <div class="col-md-4">
-                                <label class="form-label fw-bold small text-primary">📦 เลือกสินค้า</label>
-                                <select id="productSelect" class="form-select border-primary" onchange="calculateTotal()" required>
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold small text-success">📦 สแกนรหัสสินค้า</label>
+                                <input type="text" id="scanProductBarcode" class="form-control scan-input border-success" placeholder="สแกน..." onkeydown="handleProductScan(event)" autocomplete="off">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold small text-success">หรือ ค้นหาชื่อสินค้า</label>
+                                <select id="productSelect" class="form-select border-success" onchange="syncBarcodeFromSelect('productSelect', 'scanProductBarcode'); calculateTotal();" required>
                                     <!-- โหลดรายการสินค้า -->
                                 </select>
                             </div>
-                            
+                        </div>
+                        <div class="row g-3">
                             <div class="col-md-4">
-                                <label class="form-label fw-bold small">จำนวน</label>
+                                <label class="form-label fw-bold small">จำนวนสินค้า (ชิ้น/สอบ)</label>
                                 <input type="number" id="saleQty" class="form-control" value="1" min="1" oninput="calculateTotal()" required>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label fw-bold small">ยอดรวม (บาท)</label>
-                                <input type="number" id="totalAmount" class="form-control bg-white" readonly value="0">
+                                <input type="number" id="totalAmount" class="form-control bg-white text-danger fw-bold fs-5" readonly value="0">
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label fw-bold text-success small">รับเงินสด (บาท)</label>
-                                <input type="number" id="paidAmount" class="form-control border-success" placeholder="ใส่จำนวนเงิน" required min="0">
+                                <label class="form-label fw-bold small">ลูกค้าจ่ายเงิน (บาท)</label>
+                                <input type="number" id="paidAmount" class="form-control border-dark form-control-lg" placeholder="ใส่เงินที่รับมา" required min="0">
                             </div>
                         </div>
-                        <div class="mt-3 text-end">
-                            <button type="submit" class="btn btn-primary px-4">💾 บันทึกรายการ</button>
+                        <div class="mt-4 text-end">
+                            <button type="submit" class="btn btn-primary px-5 py-2 fw-bold">💾 บันทึกรายการ</button>
                         </div>
                     </form>
                 </div>
             </div>
 
             <h6 class="fw-bold mb-2">ประวัติการทำรายการล่าสุด</h6>
-            <div class="table-responsive border rounded">
+            <div class="table-responsive border rounded bg-white">
                 <table class="table table-hover align-middle mb-0" style="font-size: 14px;">
                     <thead class="table-dark">
                         <tr>
-                            <th>วัน-เวลา</th>
+                            <th>เวลา</th>
                             <th>ลูกค้า</th>
-                            <th>รายการ</th>
+                            <th>รายการสินค้า</th>
                             <th class="text-end">รวม(฿)</th>
-                            <th class="text-end">รับมา(฿)</th>
+                            <th class="text-end">จ่ายแล้ว(฿)</th>
                             <th class="text-end">ค้างชำระ</th>
                             <th class="text-center">ลบ</th>
                         </tr>
@@ -101,14 +107,15 @@
             <div class="card mb-4 shadow-sm border-0 bg-light">
                 <div class="card-body">
                     <form id="addProductForm" onsubmit="saveProduct(event)">
-                        <h6 class="text-primary fw-bold mb-3">➕ เพิ่มสินค้าใหม่</h6>
+                        <h6 class="text-primary fw-bold mb-3">➕ เพิ่มสินค้าใหม่เข้าระบบ</h6>
                         <div class="row g-2 mb-2">
-                            <div class="col-md-3"><input type="text" id="newCategory" class="form-control form-control-sm" placeholder="หมวดหมู่" required></div>
+                            <div class="col-md-2"><input type="text" id="newProdBarcode" class="form-control form-control-sm" placeholder="บาร์โค้ด" required></div>
+                            <div class="col-md-2"><input type="text" id="newCategory" class="form-control form-control-sm" placeholder="หมวดหมู่" required></div>
                             <div class="col-md-4"><input type="text" id="newProdName" class="form-control form-control-sm" placeholder="ชื่อสินค้า" required></div>
                             <div class="col-md-2"><input type="number" id="newProdPrice" class="form-control form-control-sm" placeholder="ราคา/ชิ้น" required min="0"></div>
-                            <div class="col-md-3">
+                            <div class="col-md-2">
                                 <div class="input-group input-group-sm">
-                                    <input type="number" id="newProdStock" class="form-control" placeholder="จำนวนเริ่ม" required min="0">
+                                    <input type="number" id="newProdStock" class="form-control" placeholder="สต็อก" required min="0">
                                     <button type="submit" class="btn btn-primary">บันทึก</button>
                                 </div>
                             </div>
@@ -122,6 +129,7 @@
                 <table class="table table-hover align-middle mb-0" style="font-size: 14px;">
                     <thead class="table-secondary">
                         <tr>
+                            <th>บาร์โค้ด</th>
                             <th>หมวดหมู่</th>
                             <th>ชื่อสินค้า</th>
                             <th class="text-center">ราคา (฿)</th>
@@ -218,6 +226,7 @@
         </div>
         <div class="modal-body">
           <input type="hidden" id="editProdId">
+          <div class="mb-2"><label class="form-label small text-muted">บาร์โค้ด</label><input type="text" id="editProdBarcode" class="form-control"></div>
           <div class="mb-2"><label class="form-label small text-muted">หมวดหมู่</label><input type="text" id="editCategory" class="form-control"></div>
           <div class="mb-2"><label class="form-label small text-muted">ชื่อสินค้า</label><input type="text" id="editProdName" class="form-control"></div>
           <div class="row mb-2">
@@ -239,8 +248,14 @@
     let transactions = JSON.parse(localStorage.getItem('myApp_transactions')) || [];
     let customers = JSON.parse(localStorage.getItem('myApp_customers')) || [];
 
+    // อัปเดตข้อมูลเก่าให้มีบาร์โค้ดสินค้าหากยังไม่มี
+    inventory = inventory.map(p => {
+        if(!p.barcode) p.barcode = p.id.toString(); 
+        return p;
+    });
+
     if (inventory.length === 0) {
-        inventory = [{ id: 1, category: "น้ำแข็ง", name: "น้ำแข็งหลอด (สอบ)", price: 50, stock: 100 }];
+        inventory = [{ id: 1, barcode: "1111", category: "น้ำแข็ง", name: "น้ำแข็งหลอด (สอบ)", price: 50, stock: 100 }];
         localStorage.setItem('myApp_inventory', JSON.stringify(inventory));
     }
     if (customers.length === 0) {
@@ -249,6 +264,271 @@
             { barcode: "002", name: "ยายม้วน" }
         ];
         localStorage.setItem('myApp_customers', JSON.stringify(customers));
+    }
+
+    // ================= โซนสแกนบาร์โค้ด (หน้าขาย) =================
+    function handleCustomerScan(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            let barcode = e.target.value.trim();
+            let select = document.getElementById('saleCustomer');
+            let found = false;
+            
+            for (let i = 0; i < select.options.length; i++) {
+                if (select.options[i].value === barcode) {
+                    select.selectedIndex = i;
+                    found = true;
+                    document.getElementById('scanProductBarcode').focus(); // เลื่อนไปช่องสแกนสินค้า
+                    break;
+                }
+            }
+            if (!found && barcode !== "") {
+                alert("❌ ไม่พบลูกค้ารหัสนี้");
+                e.target.value = '';
+                select.selectedIndex = 0;
+            }
+        }
+    }
+
+    function handleProductScan(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            let barcode = e.target.value.trim();
+            let select = document.getElementById('productSelect');
+            let found = false;
+            
+            for (let i = 0; i < select.options.length; i++) {
+                if (select.options[i].getAttribute('data-barcode') === barcode) {
+                    select.selectedIndex = i;
+                    found = true;
+                    calculateTotal();
+                    document.getElementById('saleQty').focus(); // เลื่อนไปช่องจำนวน
+                    break;
+                }
+            }
+            if (!found && barcode !== "") {
+                alert("❌ ไม่พบสินค้ารหัสนี้");
+                e.target.value = '';
+                select.selectedIndex = 0;
+            }
+        }
+    }
+
+    function syncBarcodeFromSelect(selectId, inputId) {
+        let select = document.getElementById(selectId);
+        let input = document.getElementById(inputId);
+        if (select.selectedIndex > 0) {
+            let barcode = selectId === 'saleCustomer' ? select.value : select.options[select.selectedIndex].getAttribute('data-barcode');
+            input.value = barcode;
+        } else {
+            input.value = "";
+        }
+    }
+
+    function loadDropdowns() {
+        let cusSelect = document.getElementById('saleCustomer');
+        cusSelect.innerHTML = '<option value="">-- ค้นหารายชื่อลูกค้า --</option>';
+        customers.forEach(c => { cusSelect.innerHTML += `<option value="${c.barcode}">[${c.barcode}] ${c.name}</option>`; });
+
+        let prodSelect = document.getElementById('productSelect');
+        prodSelect.innerHTML = '<option value="">-- ค้นหาชื่อสินค้า --</option>';
+        let sortedInventory = [...inventory].sort((a, b) => a.category.localeCompare(b.category));
+        sortedInventory.forEach(p => {
+            prodSelect.innerHTML += `<option value="${p.id}" data-barcode="${p.barcode}" data-price="${p.price}" data-stock="${p.stock}">[${p.barcode}] ${p.name} (เหลือ ${p.stock})</option>`;
+        });
+        
+        calculateTotal();
+        document.getElementById('scanCustomerBarcode').focus(); 
+    }
+
+    function calculateTotal() {
+        let select = document.getElementById('productSelect');
+        let qty = parseFloat(document.getElementById('saleQty').value) || 0;
+        if (select.selectedIndex > 0) {
+            let price = parseFloat(select.options[select.selectedIndex].getAttribute('data-price')) || 0;
+            document.getElementById('totalAmount').value = price * qty;
+        } else {
+            document.getElementById('totalAmount').value = 0;
+        }
+    }
+
+    function saveTransaction(e) {
+        e.preventDefault();
+        
+        let cusSelect = document.getElementById('saleCustomer');
+        if (cusSelect.selectedIndex <= 0) { alert("กรุณาเลือกลูกค้า"); return; }
+        
+        let prodSelect = document.getElementById('productSelect');
+        if (prodSelect.selectedIndex <= 0) { alert("กรุณาเลือกสินค้า"); return; }
+
+        let barcode = cusSelect.value;
+        let customerName = cusSelect.options[cusSelect.selectedIndex].text.replace(/\[.*?\] /, ''); // ตัดบาร์โค้ดออกจากชื่อ
+        
+        let prodId = parseInt(prodSelect.value);
+        let product = inventory.find(x => x.id === prodId);
+        let qty = parseFloat(document.getElementById('saleQty').value) || 0;
+
+        if (product.stock < qty) {
+            if(!confirm(`⚠️ สินค้าเหลือ ${product.stock} ชิ้น ต้องการบันทึกให้สต็อกติดลบหรือไม่?`)) return;
+        }
+
+        product.stock -= qty; 
+        localStorage.setItem('myApp_inventory', JSON.stringify(inventory));
+
+        let total = parseFloat(document.getElementById('totalAmount').value) || 0;
+        let paid = parseFloat(document.getElementById('paidAmount').value) || 0;
+        let debt = total - paid;
+        
+        let now = new Date();
+        let dateTime = now.toLocaleDateString('th-TH') + " " + now.toLocaleTimeString('th-TH', {hour: '2-digit', minute:'2-digit'});
+
+        let newRecord = {
+            id: Date.now(),
+            time: dateTime,
+            barcode: barcode,
+            customer: customerName,
+            item: `${product.name} (x${qty})`,
+            total: total,
+            paid: paid,
+            debt: debt
+        };
+
+        transactions.unshift(newRecord);
+        localStorage.setItem('myApp_transactions', JSON.stringify(transactions));
+        
+        document.getElementById('transactionForm').reset();
+        document.getElementById('saleQty').value = 1;
+        document.getElementById('scanCustomerBarcode').value = '';
+        document.getElementById('scanProductBarcode').value = '';
+        
+        loadDropdowns();
+        renderTable();
+        renderCustomerTable();
+    }
+
+    function renderTable() {
+        let tbody = document.getElementById('historyTableBody');
+        tbody.innerHTML = "";
+        
+        if (transactions.length === 0) {
+            tbody.innerHTML = "<tr><td colspan='7' class='text-center text-muted py-3'>ยังไม่มีประวัติการทำรายการ</td></tr>";
+            return;
+        }
+
+        transactions.forEach(t => {
+            let debtClass = t.debt > 0 ? "text-danger fw-bold" : "text-success";
+            tbody.innerHTML += `
+                <tr>
+                    <td class="text-muted" style="font-size: 12px;">${t.time}</td>
+                    <td class="fw-bold">${t.customer}</td>
+                    <td><span class="badge bg-light text-dark border">${t.item}</span></td>
+                    <td class="text-end">${t.total}</td>
+                    <td class="text-end text-success">${t.paid}</td>
+                    <td class="text-end ${debtClass}">${t.debt}</td>
+                    <td class="text-center"><button class="btn btn-sm btn-outline-danger py-0 px-1" onclick="deleteTransaction(${t.id})">x</button></td>
+                </tr>
+            `;
+        });
+    }
+
+    function deleteTransaction(id) {
+        if (confirm("ลบประวัตินี้? (สต็อกจะไม่ถูกคืนค่า)")) {
+            transactions = transactions.filter(t => t.id !== id);
+            localStorage.setItem('myApp_transactions', JSON.stringify(transactions));
+            renderTable();
+            renderCustomerTable();
+        }
+    }
+
+    // ================= โซนคลังสินค้า =================
+    function renderInventory() {
+        let tbody = document.getElementById('inventoryTableBody');
+        tbody.innerHTML = "";
+        if (inventory.length === 0) {
+            tbody.innerHTML = "<tr><td colspan='6' class='text-center text-muted'>ยังไม่มีสินค้าในคลัง</td></tr>";
+            return;
+        }
+        let sortedInventory = [...inventory].sort((a, b) => a.category.localeCompare(b.category));
+        sortedInventory.forEach(p => {
+            let stockColor = p.stock <= 5 ? "text-danger" : "text-success";
+            tbody.innerHTML += `
+                <tr>
+                    <td><span class="text-primary small">${p.barcode}</span></td>
+                    <td><span class="badge bg-secondary opacity-75">${p.category}</span></td>
+                    <td class="fw-bold">${p.name}</td>
+                    <td class="text-center">${p.price}</td>
+                    <td class="text-center fw-bold ${stockColor}">${p.stock}</td>
+                    <td class="text-center">
+                        <button class="btn btn-sm btn-outline-warning py-0 px-2" onclick="openEditModal(${p.id})">แก้ไข</button>
+                        <button class="btn btn-sm btn-outline-danger py-0 px-2" onclick="deleteProduct(${p.id})">ลบ</button>
+                    </td>
+                </tr>
+            `;
+        });
+    }
+
+    function saveProduct(e) {
+        e.preventDefault();
+        let barcode = document.getElementById('newProdBarcode').value.trim();
+        if (inventory.find(p => p.barcode === barcode)) { alert("❌ รหัสบาร์โค้ดสินค้านี้ซ้ำ!"); return; }
+
+        let newProduct = {
+            id: Date.now(),
+            barcode: barcode,
+            category: document.getElementById('newCategory').value.trim(),
+            name: document.getElementById('newProdName').value.trim(),
+            price: parseFloat(document.getElementById('newProdPrice').value) || 0,
+            stock: parseFloat(document.getElementById('newProdStock').value) || 0
+        };
+        inventory.push(newProduct);
+        localStorage.setItem('myApp_inventory', JSON.stringify(inventory));
+        document.getElementById('addProductForm').reset();
+        renderInventory();
+        loadDropdowns();
+    }
+
+    const editModal = new bootstrap.Modal(document.getElementById('editProductModal'));
+    function openEditModal(id) {
+        let p = inventory.find(x => x.id === id);
+        if(!p) return;
+        document.getElementById('editProdId').value = p.id;
+        document.getElementById('editProdBarcode').value = p.barcode;
+        document.getElementById('editCategory').value = p.category;
+        document.getElementById('editProdName').value = p.name;
+        document.getElementById('editProdPrice').value = p.price;
+        document.getElementById('editProdStock').value = p.stock;
+        editModal.show();
+    }
+
+    function updateProduct() {
+        let id = parseInt(document.getElementById('editProdId').value);
+        let barcode = document.getElementById('editProdBarcode').value.trim();
+        
+        let p = inventory.find(x => x.id === id);
+        if(p) {
+            // เช็กบาร์โค้ดซ้ำกับตัวอื่น
+            let duplicate = inventory.find(x => x.barcode === barcode && x.id !== id);
+            if(duplicate) { alert("❌ บาร์โค้ดนี้ถูกใช้กับสินค้าอื่นแล้ว"); return; }
+
+            p.barcode = barcode;
+            p.category = document.getElementById('editCategory').value.trim();
+            p.name = document.getElementById('editProdName').value.trim();
+            p.price = parseFloat(document.getElementById('editProdPrice').value) || 0;
+            p.stock = parseFloat(document.getElementById('editProdStock').value) || 0;
+            localStorage.setItem('myApp_inventory', JSON.stringify(inventory));
+            renderInventory();
+            loadDropdowns();
+            editModal.hide();
+        }
+    }
+
+    function deleteProduct(id) {
+        if(confirm("ลบสินค้านี้ออกจากคลัง?")) {
+            inventory = inventory.filter(x => x.id !== id);
+            localStorage.setItem('myApp_inventory', JSON.stringify(inventory));
+            renderInventory();
+            loadDropdowns();
+        }
     }
 
     // ================= โซนลูกค้า =================
@@ -319,219 +599,6 @@
         }
         document.getElementById('modalTotalDebt').innerText = totalDebt.toLocaleString() + " ฿";
         historyModal.show();
-    }
-
-    // ================= โซนบันทึกขาย =================
-    
-    // จัดการเมื่อกด Enter ในช่องสแกนบาร์โค้ด
-    function handleBarcodeScan(e) {
-        if (e.key === 'Enter') {
-            e.preventDefault(); // ป้องกันฟอร์มบันทึกอัตโนมัติ
-            let barcode = document.getElementById('scanCustomerBarcode').value.trim();
-            let select = document.getElementById('saleCustomer');
-            let found = false;
-            
-            for (let i = 0; i < select.options.length; i++) {
-                if (select.options[i].value === barcode) {
-                    select.selectedIndex = i;
-                    found = true;
-                    document.getElementById('productSelect').focus(); // เลื่อนไปช่องถัดไป
-                    break;
-                }
-            }
-            
-            if (!found && barcode !== "") {
-                alert("❌ ไม่พบลูกค้ารหัสนี้ในระบบ");
-                document.getElementById('scanCustomerBarcode').value = '';
-                select.selectedIndex = 0;
-            }
-        }
-    }
-
-    // เมื่อเลือกชื่อจาก Dropdown ให้บาร์โค้ดเปลี่ยนตาม
-    function syncBarcodeFromSelect() {
-        let select = document.getElementById('saleCustomer');
-        document.getElementById('scanCustomerBarcode').value = select.value;
-    }
-
-    function loadDropdowns() {
-        let cusSelect = document.getElementById('saleCustomer');
-        cusSelect.innerHTML = '<option value="">-- ค้นหารายชื่อลูกค้า --</option>';
-        customers.forEach(c => { cusSelect.innerHTML += `<option value="${c.barcode}">[${c.barcode}] ${c.name}</option>`; });
-
-        let prodSelect = document.getElementById('productSelect');
-        prodSelect.innerHTML = '<option value="">-- เลือกสินค้า --</option>';
-        let sortedInventory = [...inventory].sort((a, b) => a.category.localeCompare(b.category));
-        sortedInventory.forEach(p => {
-            prodSelect.innerHTML += `<option value="${p.id}" data-price="${p.price}" data-stock="${p.stock}">[${p.category}] ${p.name} (เหลือ ${p.stock})</option>`;
-        });
-        calculateTotal();
-        document.getElementById('scanCustomerBarcode').focus(); // ดึงเคอร์เซอร์กลับมาที่ช่องสแกน
-    }
-
-    function calculateTotal() {
-        let select = document.getElementById('productSelect');
-        let qty = parseFloat(document.getElementById('saleQty').value) || 0;
-        if (select.selectedIndex > 0) {
-            let price = parseFloat(select.options[select.selectedIndex].getAttribute('data-price')) || 0;
-            document.getElementById('totalAmount').value = price * qty;
-        } else {
-            document.getElementById('totalAmount').value = 0;
-        }
-    }
-
-    function saveTransaction(e) {
-        e.preventDefault();
-        
-        let cusSelect = document.getElementById('saleCustomer');
-        if (cusSelect.selectedIndex <= 0) { alert("กรุณาเลือกลูกค้า (สแกนหรือค้นหาชื่อ)"); return; }
-        
-        let prodSelect = document.getElementById('productSelect');
-        if (prodSelect.selectedIndex <= 0) { alert("กรุณาเลือกสินค้า"); return; }
-
-        let barcode = cusSelect.value;
-        let customerName = cusSelect.options[cusSelect.selectedIndex].text;
-        
-        let prodId = parseInt(prodSelect.value);
-        let product = inventory.find(x => x.id === prodId);
-        let qty = parseFloat(document.getElementById('saleQty').value) || 0;
-
-        if (product.stock < qty) {
-            if(!confirm(`⚠️ สินค้ามีแค่ ${product.stock} ชิ้น ต้องการบันทึกให้สต็อกติดลบหรือไม่?`)) return;
-        }
-
-        product.stock -= qty; 
-        localStorage.setItem('myApp_inventory', JSON.stringify(inventory));
-
-        let total = parseFloat(document.getElementById('totalAmount').value) || 0;
-        let paid = parseFloat(document.getElementById('paidAmount').value) || 0;
-        let debt = total - paid;
-        
-        let now = new Date();
-        let dateTime = now.toLocaleDateString('th-TH') + " " + now.toLocaleTimeString('th-TH', {hour: '2-digit', minute:'2-digit'});
-
-        let newRecord = {
-            id: Date.now(),
-            time: dateTime,
-            barcode: barcode,
-            customer: customerName,
-            item: `${product.name} (x${qty})`,
-            total: total,
-            paid: paid,
-            debt: debt
-        };
-
-        transactions.unshift(newRecord);
-        localStorage.setItem('myApp_transactions', JSON.stringify(transactions));
-        
-        document.getElementById('transactionForm').reset();
-        document.getElementById('saleQty').value = 1;
-        document.getElementById('scanCustomerBarcode').value = '';
-        
-        loadDropdowns();
-        renderTable();
-        renderCustomerTable();
-    }
-
-    function renderTable() {
-        let tbody = document.getElementById('historyTableBody');
-        tbody.innerHTML = "";
-        
-        if (transactions.length === 0) {
-            tbody.innerHTML = "<tr><td colspan='7' class='text-center text-muted py-3'>ยังไม่มีประวัติการซื้อขาย</td></tr>";
-            return;
-        }
-
-        transactions.forEach(t => {
-            let debtClass = t.debt > 0 ? "text-danger fw-bold" : "text-success";
-            tbody.innerHTML += `
-                <tr>
-                    <td class="text-muted" style="font-size: 12px;">${t.time}</td>
-                    <td class="fw-bold">${t.customer}</td>
-                    <td>${t.item}</td>
-                    <td class="text-end">${t.total}</td>
-                    <td class="text-end text-success">${t.paid}</td>
-                    <td class="text-end ${debtClass}">${t.debt}</td>
-                    <td class="text-center"><button class="btn btn-sm btn-outline-danger py-0 px-1" onclick="deleteTransaction(${t.id})">x</button></td>
-                </tr>
-            `;
-        });
-    }
-
-    function deleteTransaction(id) {
-        if (confirm("ลบประวัตินี้? (สต็อกจะไม่ถูกคืนค่า)")) {
-            transactions = transactions.filter(t => t.id !== id);
-            localStorage.setItem('myApp_transactions', JSON.stringify(transactions));
-            renderTable();
-            renderCustomerTable();
-        }
-    }
-
-    // ================= โซนคลังสินค้า =================
-    function renderInventory() {
-        let tbody = document.getElementById('inventoryTableBody');
-        tbody.innerHTML = "";
-        if (inventory.length === 0) {
-            tbody.innerHTML = "<tr><td colspan='5' class='text-center text-muted'>ยังไม่มีสินค้าในคลัง</td></tr>";
-            return;
-        }
-        let sortedInventory = [...inventory].sort((a, b) => a.category.localeCompare(b.category));
-        sortedInventory.forEach(p => {
-            let stockColor = p.stock <= 5 ? "text-danger" : "text-success";
-            tbody.innerHTML += `<tr><td><span class="badge bg-secondary opacity-75">${p.category}</span></td><td class="fw-bold">${p.name}</td><td class="text-center">${p.price}</td><td class="text-center fw-bold ${stockColor}">${p.stock}</td><td class="text-center"><button class="btn btn-sm btn-outline-warning py-0 px-2" onclick="openEditModal(${p.id})">แก้ไข</button> <button class="btn btn-sm btn-outline-danger py-0 px-2" onclick="deleteProduct(${p.id})">ลบ</button></td></tr>`;
-        });
-    }
-
-    function saveProduct(e) {
-        e.preventDefault();
-        let newProduct = {
-            id: Date.now(),
-            category: document.getElementById('newCategory').value.trim(),
-            name: document.getElementById('newProdName').value.trim(),
-            price: parseFloat(document.getElementById('newProdPrice').value) || 0,
-            stock: parseFloat(document.getElementById('newProdStock').value) || 0
-        };
-        inventory.push(newProduct);
-        localStorage.setItem('myApp_inventory', JSON.stringify(inventory));
-        document.getElementById('addProductForm').reset();
-        renderInventory();
-        loadDropdowns();
-    }
-
-    const editModal = new bootstrap.Modal(document.getElementById('editProductModal'));
-    function openEditModal(id) {
-        let p = inventory.find(x => x.id === id);
-        if(!p) return;
-        document.getElementById('editProdId').value = p.id;
-        document.getElementById('editCategory').value = p.category;
-        document.getElementById('editProdName').value = p.name;
-        document.getElementById('editProdPrice').value = p.price;
-        document.getElementById('editProdStock').value = p.stock;
-        editModal.show();
-    }
-
-    function updateProduct() {
-        let id = parseInt(document.getElementById('editProdId').value);
-        let p = inventory.find(x => x.id === id);
-        if(p) {
-            p.category = document.getElementById('editCategory').value.trim();
-            p.name = document.getElementById('editProdName').value.trim();
-            p.price = parseFloat(document.getElementById('editProdPrice').value) || 0;
-            p.stock = parseFloat(document.getElementById('editProdStock').value) || 0;
-            localStorage.setItem('myApp_inventory', JSON.stringify(inventory));
-            renderInventory();
-            loadDropdowns();
-            editModal.hide();
-        }
-    }
-
-    function deleteProduct(id) {
-        if(confirm("ลบสินค้านี้ออกจากคลัง?")) {
-            inventory = inventory.filter(x => x.id !== id);
-            localStorage.setItem('myApp_inventory', JSON.stringify(inventory));
-            renderInventory();
-            loadDropdowns();
-        }
     }
 
     // เริ่มต้นระบบ
