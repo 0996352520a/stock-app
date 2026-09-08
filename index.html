@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบคลังสินค้าและลูกค้า (Pro Customer Management)</title>
+    <title>ระบบคลังสินค้าและลูกค้า (Pro Customer View)</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
@@ -14,6 +14,7 @@
         .table-responsive { max-height: 400px; overflow-y: auto; }
         .scan-input { background-color: #f8faff; border: 2px solid #0d6efd; }
         .scan-input:focus { background-color: #fff; box-shadow: 0 0 8px rgba(13,110,253,0.3); }
+        .customer-info-box { background-color: #eef2f7; border-left: 5px solid #0d6efd; border-radius: 8px; padding: 15px; margin-bottom: 20px; }
     </style>
 </head>
 <body>
@@ -106,28 +107,45 @@
             </div>
         </div>
 
-        <!-- ================= แท็บ: ข้อมูลลูกค้า (แยกรายคน) ================= -->
+        <!-- ================= แท็บ: ข้อมูลลูกค้า (แยกรายคน + แสดงข้อมูลส่วนตัว) ================= -->
         <div class="tab-pane fade" id="customerView" role="tabpanel">
-            <div class="card mb-4 shadow-sm border-0 bg-light">
+            <div class="card mb-3 shadow-sm border-0 bg-light">
                 <div class="card-body">
                     <div class="row g-3 align-items-center">
-                        <div class="col-md-3">
+                        <div class="col-md-4">
                             <label class="form-label fw-bold text-primary">📷 สแกนบาร์โค้ดลูกค้า</label>
                             <input type="text" id="viewScanBarcode" class="form-control scan-input form-control-lg" placeholder="สแกนรหัส..." onkeydown="handleViewCustomerScan(event)" autocomplete="off">
                         </div>
-                        <div class="col-md-5">
+                        <div class="col-md-8">
                             <label class="form-label fw-bold text-primary">🔍 หรือ ค้นหารายชื่อลูกค้า</label>
                             <select id="viewCustomerSelect" class="form-select form-select-lg border-primary" onchange="syncViewBarcode(); renderSpecificCustomerView();">
                                 <option value="">-- เลือกลูกค้า --</option>
                             </select>
                         </div>
-                        <div class="col-md-4 text-md-end mt-3 mt-md-0">
-                            <div class="p-2 bg-white rounded border shadow-sm">
-                                <span class="text-muted small d-block">ยอดค้างชำระรวมสุทธิ</span>
-                                <span class="fs-4 fw-bold text-danger" id="viewCustomerTotalDebt">0 ฿</span>
-                            </div>
-                        </div>
                     </div>
+                </div>
+            </div>
+
+            <!-- กล่องแสดงข้อมูลส่วนตัวของลูกค้าที่เลือก -->
+            <div id="customerDetailsBox" class="customer-info-box" style="display: none;">
+                <div class="row">
+                    <div class="col-md-4 mb-2 mb-md-0">
+                        <span class="text-muted small d-block">ชื่อ-นามสกุล / ชื่อร้าน</span>
+                        <h5 class="fw-bold text-dark mb-0" id="infoCusName">-</h5>
+                    </div>
+                    <div class="col-md-3 mb-2 mb-md-0">
+                        <span class="text-muted small d-block">เบอร์โทรศัพท์</span>
+                        <span class="fw-bold text-secondary" id="infoCusPhone">-</span>
+                    </div>
+                    <div class="col-md-5">
+                        <span class="text-muted small d-block">ที่อยู่</span>
+                        <span class="fw-bold text-secondary" id="infoCusAddress">-</span>
+                    </div>
+                </div>
+                <hr class="my-2">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="fw-bold text-danger">ยอดค้างชำระรวมสุทธิ:</span>
+                    <h4 class="fw-bold text-danger mb-0" id="viewCustomerTotalDebt">0 ฿</h4>
                 </div>
             </div>
 
@@ -190,7 +208,7 @@
             </div>
         </div>
 
-        <!-- ================= แท็บ 3: บัญชีลูกค้า (จัดการรายชื่อ + ที่อยู่ + เบอร์โทร) ================= -->
+        <!-- ================= แท็บ 3: บัญชีลูกค้า ================= -->
         <div class="tab-pane fade" id="customers" role="tabpanel">
             <div class="card mb-4 shadow-sm border-0 bg-light">
                 <div class="card-body">
@@ -252,22 +270,10 @@
         </div>
         <div class="modal-body">
           <input type="hidden" id="editCusOriginalBarcode">
-          <div class="mb-2">
-              <label class="form-label small text-muted">บาร์โค้ด</label>
-              <input type="text" id="editCusBarcode" class="form-control">
-          </div>
-          <div class="mb-2">
-              <label class="form-label small text-muted">ชื่อลูกค้า / ชื่อร้าน</label>
-              <input type="text" id="editCusName" class="form-control">
-          </div>
-          <div class="mb-2">
-              <label class="form-label small text-muted">เบอร์โทรศัพท์</label>
-              <input type="text" id="editCusPhone" class="form-control">
-          </div>
-          <div class="mb-2">
-              <label class="form-label small text-muted">ที่อยู่</label>
-              <input type="text" id="editCusAddress" class="form-control">
-          </div>
+          <div class="mb-2"><label class="form-label small text-muted">บาร์โค้ด</label><input type="text" id="editCusBarcode" class="form-control"></div>
+          <div class="mb-2"><label class="form-label small text-muted">ชื่อลูกค้า / ชื่อร้าน</label><input type="text" id="editCusName" class="form-control"></div>
+          <div class="mb-2"><label class="form-label small text-muted">เบอร์โทรศัพท์</label><input type="text" id="editCusPhone" class="form-control"></div>
+          <div class="mb-2"><label class="form-label small text-muted">ที่อยู่</label><input type="text" id="editCusAddress" class="form-control"></div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">ยกเลิก</button>
@@ -277,7 +283,7 @@
     </div>
 </div>
 
-<!-- ================= Modal ดูประวัติลูกค้า (จากหน้าจัดการลูกค้า) ================= -->
+<!-- ================= Modal ดูประวัติลูกค้า ================= -->
 <div class="modal fade" id="customerHistoryModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
     <div class="modal-content">
@@ -342,8 +348,6 @@
     let customers = JSON.parse(localStorage.getItem('myApp_customers')) || [];
 
     inventory = inventory.map(p => { if(!p.barcode) p.barcode = p.id.toString(); return p; });
-    
-    // อัปเดตข้อมูลลูกค้าเดิมให้รองรับ field phone และ address ถ้ายังไม่มี
     customers = customers.map(c => ({
         barcode: c.barcode,
         name: c.name,
@@ -363,7 +367,7 @@
         localStorage.setItem('myApp_customers', JSON.stringify(customers));
     }
 
-    // ================= โซนหน้าข้อมูลลูกค้า (แยกรายคน) =================
+    // ================= โซนหน้าข้อมูลลูกค้า =================
     function initCustomerView() {
         let viewSelect = document.getElementById('viewCustomerSelect');
         viewSelect.innerHTML = '<option value="">-- เลือกลูกค้า --</option>';
@@ -413,11 +417,26 @@
         let barcode = document.getElementById('viewCustomerSelect').value;
         let tbody = document.getElementById('viewCustomerHistoryBody');
         let totalDebtEl = document.getElementById('viewCustomerTotalDebt');
+        let detailsBox = document.getElementById('customerDetailsBox');
+
+        let nameEl = document.getElementById('infoCusName');
+        let phoneEl = document.getElementById('infoCusPhone');
+        let addressEl = document.getElementById('infoCusAddress');
 
         if (!barcode) {
+            detailsBox.style.display = "none";
             tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">กรุณาสแกนบาร์โค้ดหรือเลือกลูกค้าจากด้านบน</td></tr>';
             totalDebtEl.innerText = "0 ฿";
             return;
+        }
+
+        // ค้นหาข้อมูลลูกค้า
+        let cus = customers.find(c => c.barcode === barcode);
+        if (cus) {
+            nameEl.innerText = `[${cus.barcode}] ${cus.name}`;
+            phoneEl.innerText = cus.phone || "-";
+            addressEl.innerText = cus.address || "-";
+            detailsBox.style.display = "block";
         }
 
         let custTrans = transactions.filter(t => t.barcode === barcode);
@@ -740,7 +759,7 @@
         }
     }
 
-    // ================= โซนบัญชีลูกค้า (จัดการรายชื่อ + แก้ไขข้อมูล) =================
+    // ================= โซนบัญชีลูกค้า (จัดการรายชื่อ) =================
     function renderCustomerTable() {
         let tbody = document.getElementById('customerTableBody');
         tbody.innerHTML = "";
@@ -808,11 +827,9 @@
 
         let c = customers.find(x => x.barcode === originalBarcode);
         if(c) {
-            // เช็กบาร์โค้ดซ้ำ
             let duplicate = customers.find(x => x.barcode === newBarcode && x.barcode !== originalBarcode);
             if(duplicate) { alert("❌ บาร์โค้ดนี้ซ้ำกับลูกค้าอื่นแล้ว"); return; }
 
-            // ถ้ามีการเปลี่ยนบาร์โค้ด ต้องตามไปอัปเดตบาร์โค้ดในประวัติการทำรายการเดิมด้วย
             if (originalBarcode !== newBarcode) {
                 transactions.forEach(t => {
                     if (t.barcode === originalBarcode) t.barcode = newBarcode;
