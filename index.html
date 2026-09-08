@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบร้านค้า (เวอร์ชันใช้งานง่าย + สรุปยอดรวมต่อคน)</title>
+    <title>ระบบร้านค้า (เวอร์ชันแก้บัญชีหนี้ 100%)</title>
     
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -127,7 +127,6 @@
 
             <div class="row g-4">
                 <div class="col-lg-7">
-                    <!-- โซนเลือกลูกค้า -->
                     <div class="card mb-4 shadow-sm">
                         <div class="card-header bg-primary text-white py-3"><h5 class="mb-0 fw-bold">1. เลือกลูกค้า</h5></div>
                         <div class="card-body p-4">
@@ -145,7 +144,6 @@
                         </div>
                     </div>
 
-                    <!-- โซนสแกนสินค้า -->
                     <div class="card mb-4 shadow-sm">
                         <div class="card-header bg-success text-white py-3"><h5 class="mb-0 fw-bold">2. เลือกสินค้าใส่ตะกร้า</h5></div>
                         <div class="card-body p-4">
@@ -162,7 +160,6 @@
                         </div>
                     </div>
 
-                    <!-- ตะกร้าสินค้า -->
                     <h5 class="fw-bold mb-3">🧺 ตะกร้าสินค้าของคุณ</h5>
                     <div class="table-responsive bg-white">
                         <table class="table table-hover align-middle mb-0">
@@ -182,13 +179,12 @@
                     </div>
                 </div>
 
-                <!-- ฝั่งขวา: หน้าจอคิดเงิน -->
                 <div class="col-lg-5">
                     <div class="pos-screen h-100 d-flex flex-column">
                         <h4 class="fw-bold border-bottom border-secondary pb-3 mb-4 text-warning">💰 3. คิดเงิน</h4>
                         
                         <div class="fs-5 d-flex justify-content-between text-light mb-2">
-                            <span>ราคาสินค้าบิลนี้:</span><span id="posCartTotal">0 ฿</span>
+                            <span>ราคาสินค้าที่ซื้อวันนี้:</span><span id="posCartTotal">0 ฿</span>
                         </div>
                         <div class="fs-5 d-flex justify-content-between text-danger mb-2" id="oldDebtRow">
                             <span>+ ยอดหนี้ค้างเก่า:</span><span id="posOldDebtTotal">0 ฿</span>
@@ -231,7 +227,6 @@
                 </div>
             </div>
 
-            <!-- ประวัติการขาย -->
             <div class="d-flex justify-content-between align-items-center mt-5 mb-3">
                 <h4 class="fw-bold mb-0">🕒 บิลรายการล่าสุดที่เพิ่งทำ</h4>
             </div>
@@ -245,7 +240,7 @@
                             <th>รายการสินค้า</th>
                             <th class="text-end">ยอดรวม</th>
                             <th class="text-end text-success">จ่ายแล้ว</th>
-                            <th class="text-end">หนี้ค้าง</th>
+                            <th class="text-end">หนี้ค้าง(จากบิลนี้)</th>
                             <th class="text-center">จัดการบิล</th>
                         </tr>
                     </thead>
@@ -254,7 +249,7 @@
             </div>
         </div>
 
-        <!-- ================= แท็บ 2: สรุปยอดขาย (จัดกลุ่มลูกค้า) ================= -->
+        <!-- ================= แท็บ 2: สรุปยอดขาย ================= -->
         <div class="tab-pane fade" id="summary" role="tabpanel">
             <div class="card mb-4 shadow-sm border-0 bg-white">
                 <div class="card-body p-4">
@@ -373,7 +368,7 @@
                             <th>รายการที่ซื้อ</th>
                             <th class="text-end">ยอดบิล (฿)</th>
                             <th class="text-end text-success">เงินที่จ่าย (฿)</th>
-                            <th class="text-end text-danger pe-3">หนี้จากบิล (฿)</th>
+                            <th class="text-end text-danger pe-3">หนี้จากบิลนี้ (฿)</th>
                             <th class="text-center">จัดการบิล</th>
                         </tr>
                     </thead>
@@ -539,7 +534,7 @@
 <div class="modal fade" id="editTransactionModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content border-0 shadow">
-        <div class="modal-header bg-warning"><h5 class="modal-title fw-bold text-dark">✏️ แก้ไขข้อมูลบิลขาย</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+        <div class="modal-header bg-warning"><h5 class="modal-title fw-bold text-dark">✏️ แก้ไขข้อมูลบิลขาย (แก้หนี้)</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
         <div class="modal-body p-4">
           <input type="hidden" id="editTxId">
           <div class="mb-3"><label class="form-label">ลูกค้า</label><input type="text" id="editTxCustomer" class="form-control bg-light" readonly></div>
@@ -549,7 +544,7 @@
               <div class="col-12"><label class="form-label text-success">ยอดเงินที่ลูกค้าจ่ายจริง (฿)</label><input type="number" id="editTxPaid" class="form-control form-control-lg text-end fw-bold" min="0" oninput="calculateEditTxDebt()"></div>
           </div>
           <div class="mb-2 p-3 bg-light border rounded text-center">
-              <label class="form-label text-danger">สรุปยอดหนี้จากบิลนี้ (฿)</label>
+              <label class="form-label text-danger">สรุปหนี้ค้างเฉพาะบิลนี้ (฿)</label>
               <input type="text" id="editTxDebt" class="form-control form-control-lg bg-transparent border-0 text-danger fw-bold fs-2 text-center" readonly>
           </div>
         </div>
@@ -587,6 +582,7 @@
     let customers = JSON.parse(localStorage.getItem('myApp_customers')) || [];
     let cart = [];
 
+    // อัปเดตข้อมูลให้สมบูรณ์
     inventory = inventory.map(p => { 
         if(!p.barcode) p.barcode = p.id.toString(); 
         if(p.isDaily === undefined) p.isDaily = false;
@@ -615,6 +611,7 @@
         localStorage.setItem('myApp_customers', JSON.stringify(customers));
     }
 
+    // ================= ล้างสต็อกรายวันอัตโนมัติ =================
     function checkDailyStockReset() {
         let lastDate = localStorage.getItem('myApp_lastDate');
         let today = new Date().toLocaleDateString('en-CA');
@@ -646,9 +643,15 @@
         }
     }
 
+    // ================= ระบบคำนวณบัญชีใหม่ 100% (แก้ไขบักการซ้อนทับ) =================
     function getCustomerBalance(barcode) {
+        // ใช้หลักการ เอาของที่เคยซื้อทั้งหมด มาลบกับ เงินที่เคยจ่ายทั้งหมด จะได้ยอดหนี้แท้จริง
         let custTrans = transactions.filter(t => t.barcode === barcode);
-        let netSum = custTrans.reduce((sum, t) => sum + t.debt, 0);
+        let sumTotal = custTrans.reduce((sum, t) => sum + (parseFloat(t.total) || 0), 0);
+        let sumPaid = custTrans.reduce((sum, t) => sum + (parseFloat(t.paid) || 0), 0);
+        
+        let netSum = sumTotal - sumPaid; // ยอดสุทธิ
+        
         let debt = netSum > 0 ? netSum : 0;
         let credit = netSum < 0 ? Math.abs(netSum) : 0;
         return { debt, credit, net: netSum };
@@ -717,12 +720,12 @@
         filteredTx.forEach(t => {
             if(!groupedByCustomer[t.barcode]) {
                 groupedByCustomer[t.barcode] = {
+                    barcode: t.barcode,
                     customer: t.customer,
                     shift: t.shift,
                     items: [],
                     total: 0,
-                    paid: 0,
-                    latestDebt: t.debt // เก็บยอดหนี้จากรายการล่าสุด (เพราะ array transactions เรียงล่าสุดขึ้นก่อน)
+                    paid: 0
                 };
             }
             
@@ -747,14 +750,17 @@
             tbody.innerHTML = "<tr><td colspan='6' class='text-center text-muted py-5 fs-5'>ไม่มีรายการขายในรอบ/วันที่เลือก</td></tr>";
         } else {
             Object.values(groupedByCustomer).forEach(g => {
-                let debtClass = g.latestDebt > 0 ? "text-danger fw-bold" : (g.latestDebt < 0 ? "text-success fw-bold" : "text-muted");
+                let bal = getCustomerBalance(g.barcode);
+                let currentDebt = bal.net;
+                
+                let debtClass = currentDebt > 0 ? "text-danger fw-bold" : (currentDebt < 0 ? "text-success fw-bold" : "text-muted");
                 let shiftBadge = "";
                 if (g.shift === "รอบเช้า") shiftBadge = `<span class="badge bg-warning text-dark">☀️ รอบเช้า</span>`;
                 else if (g.shift === "รอบเย็น") shiftBadge = `<span class="badge bg-info text-dark">🌙 รอบเย็น</span>`;
                 else shiftBadge = `<span class="badge bg-secondary">เช้าและเย็น</span>`;
                 
-                // เอาลิสต์สินค้ามาต่อกัน (ย้อน array กลับเพื่อให้รายการเก่าขึ้นก่อน)
                 let itemsText = g.items.length > 0 ? g.items.reverse().join(' , ') : "-";
+                let netText = currentDebt > 0 ? currentDebt.toLocaleString() : (currentDebt < 0 ? Math.abs(currentDebt).toLocaleString() + " (เครดิต)" : "0");
 
                 tbody.innerHTML += `
                     <tr>
@@ -763,7 +769,7 @@
                         <td><span class="badge bg-light text-dark border fs-6 text-wrap text-start" style="max-width: 400px; line-height:1.5;">${itemsText}</span></td>
                         <td class="text-end fw-bold fs-5">${g.total.toLocaleString()}</td>
                         <td class="text-end fw-bold text-success fs-5">${g.paid.toLocaleString()}</td>
-                        <td class="text-end fs-5 ${debtClass}">${g.latestDebt.toLocaleString()}</td>
+                        <td class="text-end fs-5 ${debtClass}">${netText}</td>
                     </tr>
                 `;
             });
@@ -1001,7 +1007,9 @@
         let dateOnly = now.toLocaleDateString('en-CA');
 
         let itemDesc = itemDescArr.length > 0 ? itemDescArr.join(', ') : "💰 นำเงินมาเคลียร์หนี้เก่า";
-        let finalDebt = cartTotal + bal.debt - bal.credit - paid;
+        
+        // บันทึกเฉพาะส่วนต่างของบิลนั้นๆ
+        let txDebt = cartTotal - paid;
 
         let newRecord = {
             id: Date.now(),
@@ -1013,7 +1021,7 @@
             item: itemDesc,
             total: cartTotal,
             paid: paid,
-            debt: finalDebt
+            debt: txDebt
         };
 
         transactions.unshift(newRecord);
@@ -1030,7 +1038,7 @@
         renderCustomerTable();
     }
 
-    // ================= โซนประวัติการขาย & ลบด้วยรหัสผ่าน =================
+    // ================= โซนประวัติการขาย & ระบบป้องกันการลบ =================
     function renderTable() {
         let tbody = document.getElementById('historyTableBody');
         tbody.innerHTML = "";
@@ -1039,7 +1047,8 @@
             return;
         }
         transactions.forEach(t => {
-            let debtClass = t.debt > 0 ? "text-danger fw-bold" : (t.debt < 0 ? "text-success fw-bold" : "text-muted");
+            let billDebt = t.total - t.paid; // หนี้ที่เกิดจากบิลใบนี้ใบเดียว
+            let debtClass = billDebt > 0 ? "text-danger fw-bold" : (billDebt < 0 ? "text-success fw-bold" : "text-muted");
             let shiftBadge = t.shift === "รอบเช้า" ? `<span class="badge bg-warning text-dark">☀️ ${t.shift}</span>` : `<span class="badge bg-info text-dark">🌙 ${t.shift}</span>`;
             tbody.innerHTML += `
                 <tr>
@@ -1049,7 +1058,7 @@
                     <td><span class="badge bg-light text-dark border fs-6 text-wrap text-start" style="max-width: 250px; line-height:1.5;">${t.item}</span></td>
                     <td class="text-end fw-bold">${t.total}</td>
                     <td class="text-end fw-bold text-success">${t.paid}</td>
-                    <td class="text-end ${debtClass}">${t.debt}</td>
+                    <td class="text-end ${debtClass}">${billDebt}</td>
                     <td class="text-center">
                         <button class="btn btn-sm btn-outline-warning fw-bold mb-1 w-100" onclick="openEditTxModal(${t.id})">✏️ แก้ไข</button>
                         <button class="btn btn-sm btn-outline-danger fw-bold w-100" onclick="secureDeleteTransaction(${t.id})">🗑️ ลบ</button>
@@ -1068,7 +1077,7 @@
         document.getElementById('editTxItem').value = tx.item;
         document.getElementById('editTxTotal').value = tx.total;
         document.getElementById('editTxPaid').value = tx.paid;
-        document.getElementById('editTxDebt').value = tx.debt;
+        document.getElementById('editTxDebt').value = tx.total - tx.paid;
         editTxModal.show();
     }
 
@@ -1086,7 +1095,7 @@
         tx.item = document.getElementById('editTxItem').value.trim();
         tx.total = parseFloat(document.getElementById('editTxTotal').value) || 0;
         tx.paid = parseFloat(document.getElementById('editTxPaid').value) || 0;
-        tx.debt = parseFloat(document.getElementById('editTxDebt').value) || 0;
+        tx.debt = tx.total - tx.paid;
 
         localStorage.setItem('myApp_transactions', JSON.stringify(transactions));
         renderTable();
@@ -1187,7 +1196,8 @@
             tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-5 fs-5">ลูกค้ารายนี้ยังไม่เคยซื้อของ</td></tr>';
         } else {
             custTrans.forEach(t => {
-                let debtClass = t.debt > 0 ? "text-danger fw-bold" : (t.debt < 0 ? "text-success fw-bold" : "text-muted");
+                let billDebt = t.total - t.paid;
+                let debtClass = billDebt > 0 ? "text-danger fw-bold" : (billDebt < 0 ? "text-success fw-bold" : "text-muted");
                 let shiftBadge = t.shift === "รอบเช้า" ? `<span class="badge bg-warning text-dark">☀️</span>` : `<span class="badge bg-info text-dark">🌙</span>`;
                 tbody.innerHTML += `
                     <tr>
@@ -1196,7 +1206,7 @@
                         <td><span class="badge bg-light text-dark border fs-6">${t.item}</span></td>
                         <td class="text-end fw-bold">${t.total}</td>
                         <td class="text-end fw-bold text-success">${t.paid}</td>
-                        <td class="text-end pe-3 ${debtClass}">${t.debt}</td>
+                        <td class="text-end pe-3 ${debtClass}">${billDebt}</td>
                         <td class="text-center">
                             <button class="btn btn-sm btn-outline-warning fw-bold mb-1 w-100" onclick="openEditTxModal(${t.id})">✏️ แก้ไข</button>
                             <button class="btn btn-sm btn-outline-danger fw-bold w-100" onclick="secureDeleteTransaction(${t.id})">🗑️ ลบ</button>
