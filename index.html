@@ -18,11 +18,11 @@
         body { 
             background-color: #f0f4f8; 
             font-family: 'Sarabun', sans-serif; 
-            font-size: 18px; /* ขยายขนาดฟอนต์พื้นฐาน */
+            font-size: 18px; 
             color: #212529;
         }
         .app-container { 
-            max-width: 1200px; /* ขยายหน้าจอให้กว้างขึ้น */
+            max-width: 1200px; 
             margin: 20px auto; 
             background: white; 
             padding: 30px; 
@@ -30,7 +30,6 @@
             box-shadow: 0 8px 20px rgba(0,0,0,0.1); 
         }
         
-        /* เมนูแท็บ ใหญ่และกดง่าย */
         .nav-tabs .nav-link { 
             color: #495057; 
             border-radius: 10px 10px 0 0; 
@@ -47,7 +46,6 @@
             font-size: 22px;
         }
 
-        /* ตกแต่งกล่องและช่องกรอกข้อมูลให้ใหญ่ ชัดเจน */
         .card { border-radius: 15px; border: 2px solid #dee2e6; }
         .form-label { font-size: 18px; font-weight: 700; color: #343a40; }
         .form-control, .form-select { 
@@ -61,20 +59,17 @@
             box-shadow: 0 0 0 4px rgba(13,110,253,0.2); 
         }
 
-        /* สีพิเศษสำหรับช่องสแกนและช่องเงิน */
+        /* กล่องสแกนเด่นๆ */
         .scan-input { background-color: #e6f2ff; border-color: #0d6efd; font-weight: bold; }
         .money-input { background-color: #e8f5e9; border-color: #198754; font-size: 24px !important; font-weight: bold; color: #198754; }
         
-        /* ปุ่มใหญ่กดง่าย */
         .btn { border-radius: 10px; font-size: 18px; padding: 10px 20px; font-weight: bold; }
         .btn-huge { font-size: 26px; padding: 20px; border-radius: 15px; }
 
-        /* ตารางอ่านง่าย */
         .table-responsive { max-height: 500px; overflow-y: auto; border: 2px solid #dee2e6; border-radius: 10px; }
         .table th { font-size: 18px; padding: 15px; background-color: #343a40; color: white; position: sticky; top: 0; z-index: 1;}
         .table td { font-size: 18px; padding: 15px; vertical-align: middle; }
 
-        /* Select2 ปรับให้ใหญ่เข้ากับระบบ */
         .select2-container--bootstrap-5 .select2-selection { 
             height: auto; 
             padding: 10px 15px; 
@@ -84,7 +79,6 @@
         }
         .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered { padding: 0; }
 
-        /* โซนคิดเงิน */
         .pos-screen { background-color: #1e293b; color: white; border-radius: 15px; padding: 25px; border: 4px solid #334155;}
         .huge-total { font-size: 4rem; line-height: 1; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); }
         .summary-box { background-color: rgba(255,255,255,0.1); border-radius: 10px; padding: 15px; margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.2); }
@@ -103,7 +97,7 @@
             <button class="nav-link active" id="sales-tab" data-bs-toggle="tab" data-bs-target="#sales" type="button" role="tab">🛒 หน้าคิดเงิน</button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link" id="customer-view-tab" data-bs-toggle="tab" data-bs-target="#customerView" type="button" role="tab">👤 ดูหนี้ลูกค้า</button>
+            <button class="nav-link" id="customer-view-tab" data-bs-toggle="tab" data-bs-target="#customerView" type="button" role="tab">👤 ดูข้อมูลลูกค้า</button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" id="inventory-tab" data-bs-toggle="tab" data-bs-target="#inventory" type="button" role="tab">📦 คลังสินค้า</button>
@@ -127,7 +121,8 @@
                             <div class="row g-3">
                                 <div class="col-md-5">
                                     <label class="form-label text-primary">📷 เอาปืนยิงบาร์โค้ดลูกค้า</label>
-                                    <input type="text" id="scanCustomerBarcode" class="form-control scan-input" placeholder="ยิงรหัสตรงนี้..." onkeydown="handleCustomerScan(event)" autofocus autocomplete="off">
+                                    <!-- ใส่ oninput เพื่อแปลงภาษาไทยเป็นอังกฤษอัตโนมัติ -->
+                                    <input type="text" id="scanCustomerBarcode" class="form-control scan-input" placeholder="ยิงรหัสตรงนี้..." onkeydown="handleCustomerScan(event)" oninput="this.value = convertThaiToEng(this.value)" autofocus autocomplete="off">
                                 </div>
                                 <div class="col-md-7">
                                     <label class="form-label text-primary">🔍 หรือ พิมพ์หาชื่อลูกค้า</label>
@@ -147,7 +142,8 @@
                             <div class="row g-3">
                                 <div class="col-md-5">
                                     <label class="form-label text-success">📦 เอาปืนยิงบาร์โค้ดสินค้า</label>
-                                    <input type="text" id="scanProductBarcode" class="form-control scan-input" placeholder="ยิงสินค้าตรงนี้..." onkeydown="handleProductScan(event)" autocomplete="off">
+                                    <!-- ใส่ oninput เพื่อแปลงภาษาไทยเป็นอังกฤษอัตโนมัติ -->
+                                    <input type="text" id="scanProductBarcode" class="form-control scan-input" placeholder="ยิงสินค้าตรงนี้..." onkeydown="handleProductScan(event)" oninput="this.value = convertThaiToEng(this.value)" autocomplete="off">
                                 </div>
                                 <div class="col-md-7">
                                     <label class="form-label text-success">🔍 หรือ พิมพ์หาชื่อสินค้า</label>
@@ -255,15 +251,15 @@
             </div>
         </div>
 
-        <!-- ================= แท็บ: ดูหนี้ลูกค้า ================= -->
+        <!-- ================= แท็บ: ดูข้อมูลลูกค้า ================= -->
         <div class="tab-pane fade" id="customerView" role="tabpanel">
             <div class="card mb-4 shadow-sm border-0 bg-white">
                 <div class="card-body p-4">
-                    <h5 class="fw-bold text-primary border-bottom pb-3 mb-4">🔍 ค้นหาประวัติและยอดหนี้ของลูกค้า</h5>
+                    <h5 class="fw-bold text-primary border-bottom pb-3 mb-4">🔍 ค้นหาข้อมูลและประวัติของลูกค้า</h5>
                     <div class="row g-4 align-items-center">
                         <div class="col-md-5">
                             <label class="form-label text-primary">📷 สแกนบาร์โค้ดลูกค้า</label>
-                            <input type="text" id="viewScanBarcode" class="form-control scan-input" placeholder="ยิงรหัสตรงนี้..." onkeydown="handleViewCustomerScan(event)" autocomplete="off">
+                            <input type="text" id="viewScanBarcode" class="form-control scan-input" placeholder="ยิงรหัสตรงนี้..." onkeydown="handleViewCustomerScan(event)" oninput="this.value = convertThaiToEng(this.value)" autocomplete="off">
                         </div>
                         <div class="col-md-7">
                             <label class="form-label text-primary">🔍 หรือ พิมพ์ชื่อลูกค้า</label>
@@ -319,7 +315,7 @@
                         <div class="row g-4">
                             <div class="col-md-3">
                                 <label class="form-label">บาร์โค้ด</label>
-                                <input type="text" id="newProdBarcode" class="form-control" placeholder="เช่น 885..." required>
+                                <input type="text" id="newProdBarcode" class="form-control" placeholder="เช่น 885..." oninput="this.value = convertThaiToEng(this.value)" required>
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label">หมวดหมู่</label>
@@ -363,7 +359,7 @@
                 <div class="card-body p-4 bg-white">
                     <form id="addCustomerForm" onsubmit="saveCustomer(event)">
                         <div class="row g-4">
-                            <div class="col-md-3"><label class="form-label">รหัสลูกค้า / บาร์โค้ด</label><input type="text" id="newCusBarcode" class="form-control" placeholder="เช่น 001" required></div>
+                            <div class="col-md-3"><label class="form-label">รหัสลูกค้า / บาร์โค้ด</label><input type="text" id="newCusBarcode" class="form-control" placeholder="เช่น 001" oninput="this.value = convertThaiToEng(this.value)" required></div>
                             <div class="col-md-5"><label class="form-label">ชื่อ-นามสกุล / ชื่อร้าน</label><input type="text" id="newCusName" class="form-control" placeholder="เช่น ยายม้วน" required></div>
                             <div class="col-md-4"><label class="form-label">เบอร์โทรศัพท์</label><input type="text" id="newCusPhone" class="form-control" placeholder="เช่น 081-234-5678"></div>
                             <div class="col-md-9"><label class="form-label">ที่อยู่</label><input type="text" id="newCusAddress" class="form-control" placeholder="บ้านเลขที่, ตำบล, อำเภอ, จังหวัด"></div>
@@ -394,8 +390,7 @@
     </div>
 </div>
 
-<!-- ================= Modals (หน้าต่างแจ้งเตือนและแก้ไข) ================= -->
-
+<!-- ================= Modals ================= -->
 <!-- Modal แก้ไขสินค้า -->
 <div class="modal fade" id="editProductModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
@@ -403,7 +398,7 @@
         <div class="modal-header bg-warning"><h5 class="modal-title fw-bold text-dark">✏️ แก้ไขข้อมูลสินค้า</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
         <div class="modal-body p-4">
           <input type="hidden" id="editProdId">
-          <div class="mb-3"><label class="form-label">บาร์โค้ด</label><input type="text" id="editProdBarcode" class="form-control"></div>
+          <div class="mb-3"><label class="form-label">บาร์โค้ด</label><input type="text" id="editProdBarcode" class="form-control" oninput="this.value = convertThaiToEng(this.value)"></div>
           <div class="mb-3"><label class="form-label">หมวดหมู่</label><input type="text" id="editCategory" class="form-control"></div>
           <div class="mb-3"><label class="form-label">ชื่อสินค้า</label><input type="text" id="editProdName" class="form-control"></div>
           <div class="row mb-3">
@@ -423,7 +418,7 @@
         <div class="modal-header bg-warning"><h5 class="modal-title fw-bold text-dark">✏️ แก้ไขข้อมูลลูกค้า</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
         <div class="modal-body p-4">
           <input type="hidden" id="editCusOriginalBarcode">
-          <div class="mb-3"><label class="form-label">รหัสลูกค้า</label><input type="text" id="editCusBarcode" class="form-control"></div>
+          <div class="mb-3"><label class="form-label">รหัสลูกค้า</label><input type="text" id="editCusBarcode" class="form-control" oninput="this.value = convertThaiToEng(this.value)"></div>
           <div class="mb-3"><label class="form-label">ชื่อลูกค้า / ชื่อร้าน</label><input type="text" id="editCusName" class="form-control"></div>
           <div class="mb-3"><label class="form-label">เบอร์โทรศัพท์</label><input type="text" id="editCusPhone" class="form-control"></div>
           <div class="mb-3"><label class="form-label">ที่อยู่</label><input type="text" id="editCusAddress" class="form-control"></div>
@@ -456,21 +451,40 @@
     </div>
 </div>
 
-<!-- jQuery (จำเป็นสำหรับระบบค้นหา) -->
+<!-- jQuery และปลั๊กอิน -->
 <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
-<!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<!-- Select2 JS -->
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
 <script>
+    // ================= ฟังก์ชันแปลงภาษาไทยเป็นอังกฤษอัตโนมัติ =================
+    // หากพิมพ์หรือยิงบาร์โค้ดแล้วติดภาษาไทย ระบบจะแปลงเป็นอังกฤษให้ทันที
+    const thToEnMap = {
+        'ๅ':'1', '/':'2', '-':'3', 'ภ':'4', 'ถ':'5', 'ุ':'6', 'ึ':'7', 'ค':'8', 'ต':'9', 'จ':'0', 'ข':'-', 'ช':'=',
+        'ๆ':'q', 'ไ':'w', 'ำ':'e', 'พ':'r', 'ะ':'t', 'ั':'y', 'ี':'u', 'ร':'i', 'น':'o', 'ย':'p', 'บ':'[', 'ล':']',
+        'ฟ':'a', 'ห':'s', 'ก':'d', 'ด':'f', 'เ':'g', '้':'h', '่':'j', 'า':'k', 'ส':'l', 'ว':';', 'ง':'\'',
+        'ผ':'z', 'ป':'x', 'แ':'c', 'อ':'v', 'ิ':'b', 'ื':'n', 'ท':'m', 'ม':',', 'ใ':'.', 'ฝ':'/',
+        '+':'!', '๑':'@', '๒':'#', '๓':'$', '๔':'%', 'ู':'^', '฿':'&', '๕':'*', '๖':'(', '๗':')', '๘':'_', '๙':'+',
+        '๐':'Q', '"':'W', 'ฎ':'E', 'ฑ':'R', 'ธ':'T', 'ํ':'Y', '๊':'U', 'ณ':'I', 'ฯ':'O', 'ญ':'P', 'ฐ':'{', ',':'}',
+        'ฤ':'A', 'ฆ':'S', 'ฏ':'D', 'โ':'F', 'ฌ':'G', '็':'H', '๋':'J', 'ษ':'K', 'ศ':'L', 'ซ':':', '.':'"',
+        '(':'Z', ')':'X', 'ฉ':'C', 'ฮ':'V', 'ฺ':'B', '์':'N', '?':'M', 'ฒ':'<', 'ฬ':'>', 'ฦ':'?'
+    };
+
+    function convertThaiToEng(text) {
+        if(!text) return "";
+        let result = '';
+        for (let i = 0; i < text.length; i++) {
+            result += thToEnMap[text[i]] || text[i];
+        }
+        return result;
+    }
+
     // ฐานข้อมูล (LocalStorage)
     let inventory = JSON.parse(localStorage.getItem('myApp_inventory')) || [];
     let transactions = JSON.parse(localStorage.getItem('myApp_transactions')) || [];
     let customers = JSON.parse(localStorage.getItem('myApp_customers')) || [];
     let cart = [];
 
-    // เตรียมข้อมูลตั้งต้นให้สมบูรณ์
     inventory = inventory.map(p => { if(!p.barcode) p.barcode = p.id.toString(); return p; });
     customers = customers.map(c => ({ barcode: c.barcode, name: c.name, phone: c.phone || "-", address: c.address || "-" }));
 
@@ -486,7 +500,6 @@
         localStorage.setItem('myApp_customers', JSON.stringify(customers));
     }
 
-    // ฟังก์ชันคำนวณหนี้ของลูกค้าแต่ละคน
     function getCustomerBalance(barcode) {
         let custTrans = transactions.filter(t => t.barcode === barcode);
         let netSum = custTrans.reduce((sum, t) => sum + t.debt, 0);
@@ -495,7 +508,6 @@
         return { debt, credit, net: netSum };
     }
 
-    // ================= โซนอัปเดตระบบพิมพ์ค้นหา (Select2) =================
     function updateDropdownHtml() {
         let cusSelect = $('#saleCustomer');
         let prodSelect = $('#productSelect');
@@ -839,7 +851,7 @@
         }
     }
 
-    // ================= โซนหน้าดูหนี้ลูกค้า =================
+    // ================= โซนหน้าดูข้อมูลลูกค้า =================
     function initCustomerView() {
         updateDropdownHtml();
         document.getElementById('viewScanBarcode').value = "";
