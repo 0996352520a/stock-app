@@ -2,13 +2,13 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-width=1.0">
-    <title>ระบบคลังสินค้าและลูกค้า (Pro Barcode)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบคลังสินค้าและลูกค้า (Pro Customer Management)</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
         body { background-color: #f4f6f9; font-family: 'Sarabun', sans-serif; }
-        .app-container { max-width: 950px; margin: 30px auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        .app-container { max-width: 1000px; margin: 30px auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
         .nav-tabs .nav-link { color: #495057; border-radius: 0; padding: 12px 20px; font-size: 16px; }
         .nav-tabs .nav-link.active { font-weight: bold; color: #0d6efd; border-bottom: 3px solid #0d6efd; background: transparent; border-top: none; border-left: none; border-right: none;}
         .table-responsive { max-height: 400px; overflow-y: auto; }
@@ -106,7 +106,7 @@
             </div>
         </div>
 
-        <!-- ================= แท็บ: หน้าข้อมูลลูกค้า (เพิ่มช่องสแกนบาร์โค้ด) ================= -->
+        <!-- ================= แท็บ: ข้อมูลลูกค้า (แยกรายคน) ================= -->
         <div class="tab-pane fade" id="customerView" role="tabpanel">
             <div class="card mb-4 shadow-sm border-0 bg-light">
                 <div class="card-body">
@@ -190,45 +190,90 @@
             </div>
         </div>
 
-        <!-- ================= แท็บ 3: บัญชีลูกค้า ================= -->
+        <!-- ================= แท็บ 3: บัญชีลูกค้า (จัดการรายชื่อ + ที่อยู่ + เบอร์โทร) ================= -->
         <div class="tab-pane fade" id="customers" role="tabpanel">
             <div class="card mb-4 shadow-sm border-0 bg-light">
                 <div class="card-body">
                     <form id="addCustomerForm" onsubmit="saveCustomer(event)">
                         <h6 class="text-primary fw-bold mb-3">➕ เพิ่มรายชื่อลูกค้าใหม่</h6>
                         <div class="row g-3">
-                            <div class="col-md-4">
+                            <div class="col-md-3">
                                 <label class="form-label fw-bold small">รหัสลูกค้า / บาร์โค้ด</label>
-                                <input type="text" id="newCusBarcode" class="form-control" placeholder="เช่น 001, หรือสแกน..." required>
+                                <input type="text" id="newCusBarcode" class="form-control" placeholder="เช่น 001" required>
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-md-4">
                                 <label class="form-label fw-bold small">ชื่อ-นามสกุล / ชื่อร้าน</label>
                                 <input type="text" id="newCusName" class="form-control" placeholder="เช่น ยายม้วน" required>
                             </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold small">เบอร์โทรศัพท์</label>
+                                <input type="text" id="newCusPhone" class="form-control" placeholder="เช่น 081-234-5678">
+                            </div>
                             <div class="col-md-2 d-flex align-items-end">
                                 <button type="submit" class="btn btn-primary w-100 fw-bold">บันทึก</button>
+                            </div>
+                            <div class="col-md-12">
+                                <label class="form-label fw-bold small">ที่อยู่</label>
+                                <input type="text" id="newCusAddress" class="form-control" placeholder="บ้านเลขที่, ถนน, ตำบล, อำเภอ, จังหวัด">
                             </div>
                         </div>
                     </form>
                 </div>
             </div>
 
-            <h6 class="fw-bold mb-2">รายชื่อลูกค้าและยอดค้างชำระ</h6>
+            <h6 class="fw-bold mb-2">รายชื่อลูกค้าและข้อมูลติดต่อ</h6>
             <div class="table-responsive border rounded bg-white">
                 <table class="table table-hover align-middle mb-0" style="font-size: 14px;">
                     <thead class="table-dark">
                         <tr>
                             <th>บาร์โค้ด</th>
                             <th>ชื่อลูกค้า</th>
-                            <th class="text-end">ยอดค้างสะสม (฿)</th>
+                            <th>เบอร์โทร</th>
+                            <th>ที่อยู่</th>
+                            <th class="text-end">ยอดค้าง (฿)</th>
                             <th class="text-center">ประวัติ</th>
-                            <th class="text-center">ลบ</th>
+                            <th class="text-center">จัดการ</th>
                         </tr>
                     </thead>
                     <tbody id="customerTableBody"></tbody>
                 </table>
             </div>
         </div>
+    </div>
+</div>
+
+<!-- ================= Modal แก้ไขข้อมูลลูกค้า ================= -->
+<div class="modal fade" id="editCustomerModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header bg-warning">
+          <h6 class="modal-title fw-bold">✏️ แก้ไขข้อมูลลูกค้า</h6>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="editCusOriginalBarcode">
+          <div class="mb-2">
+              <label class="form-label small text-muted">บาร์โค้ด</label>
+              <input type="text" id="editCusBarcode" class="form-control">
+          </div>
+          <div class="mb-2">
+              <label class="form-label small text-muted">ชื่อลูกค้า / ชื่อร้าน</label>
+              <input type="text" id="editCusName" class="form-control">
+          </div>
+          <div class="mb-2">
+              <label class="form-label small text-muted">เบอร์โทรศัพท์</label>
+              <input type="text" id="editCusPhone" class="form-control">
+          </div>
+          <div class="mb-2">
+              <label class="form-label small text-muted">ที่อยู่</label>
+              <input type="text" id="editCusAddress" class="form-control">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">ยกเลิก</button>
+          <button type="button" class="btn btn-success btn-sm" onclick="updateCustomerData()">💾 บันทึกการแก้ไข</button>
+        </div>
+      </div>
     </div>
 </div>
 
@@ -297,6 +342,14 @@
     let customers = JSON.parse(localStorage.getItem('myApp_customers')) || [];
 
     inventory = inventory.map(p => { if(!p.barcode) p.barcode = p.id.toString(); return p; });
+    
+    // อัปเดตข้อมูลลูกค้าเดิมให้รองรับ field phone และ address ถ้ายังไม่มี
+    customers = customers.map(c => ({
+        barcode: c.barcode,
+        name: c.name,
+        phone: c.phone || "-",
+        address: c.address || "-"
+    }));
 
     if (inventory.length === 0) {
         inventory = [{ id: 1, barcode: "1111", category: "น้ำแข็ง", name: "น้ำแข็งหลอด (สอบ)", price: 50, stock: 100 }];
@@ -304,13 +357,13 @@
     }
     if (customers.length === 0) {
         customers = [
-            { barcode: "001", name: "ลูกค้าเงินสดทั่วไป" },
-            { barcode: "002", name: "ยายม้วน" }
+            { barcode: "001", name: "ลูกค้าเงินสดทั่วไป", phone: "-", address: "-" },
+            { barcode: "002", name: "ยายม้วน", phone: "081-111-2222", address: "หมู่ 1 ต.น้ำกระจาย" }
         ];
         localStorage.setItem('myApp_customers', JSON.stringify(customers));
     }
 
-    // ================= โซนหน้าข้อมูลลูกค้า (เพิ่มสแกนบาร์โค้ด) =================
+    // ================= โซนหน้าข้อมูลลูกค้า (แยกรายคน) =================
     function initCustomerView() {
         let viewSelect = document.getElementById('viewCustomerSelect');
         viewSelect.innerHTML = '<option value="">-- เลือกลูกค้า --</option>';
@@ -572,6 +625,7 @@
         
         loadDropdowns();
         renderTable();
+        renderCustomerTable();
     }
 
     function renderTable() {
@@ -606,6 +660,7 @@
             transactions = transactions.filter(t => t.id !== id);
             localStorage.setItem('myApp_transactions', JSON.stringify(transactions));
             renderTable();
+            renderCustomerTable();
         }
     }
 
@@ -685,13 +740,13 @@
         }
     }
 
-    // ================= โซนบัญชีลูกค้า (จัดการรายชื่อ) =================
+    // ================= โซนบัญชีลูกค้า (จัดการรายชื่อ + แก้ไขข้อมูล) =================
     function renderCustomerTable() {
         let tbody = document.getElementById('customerTableBody');
         tbody.innerHTML = "";
         
         if (customers.length === 0) {
-            tbody.innerHTML = "<tr><td colspan='5' class='text-center text-muted'>ยังไม่มีข้อมูลลูกค้า</td></tr>";
+            tbody.innerHTML = "<tr><td colspan='7' class='text-center text-muted'>ยังไม่มีข้อมูลลูกค้า</td></tr>";
             return;
         }
 
@@ -703,9 +758,14 @@
                 <tr>
                     <td><span class="badge bg-secondary">${c.barcode}</span></td>
                     <td class="fw-bold">${c.name}</td>
+                    <td>${c.phone || "-"}</td>
+                    <td class="small text-muted">${c.address || "-"}</td>
                     <td class="text-end ${debtColor}">${totalDebt.toLocaleString()}</td>
                     <td class="text-center"><button class="btn btn-sm btn-info text-white py-0 px-2" onclick="openCustomerHistory('${c.barcode}', '${c.name}')">ดูประวัติ</button></td>
-                    <td class="text-center"><button class="btn btn-sm btn-outline-danger py-0 px-2" onclick="deleteCustomer('${c.barcode}')">ลบ</button></td>
+                    <td class="text-center">
+                        <button class="btn btn-sm btn-outline-warning py-0 px-2 me-1" onclick="openEditCustomerModal('${c.barcode}')">แก้ไข</button>
+                        <button class="btn btn-sm btn-outline-danger py-0 px-2" onclick="deleteCustomer('${c.barcode}')">ลบ</button>
+                    </td>
                 </tr>
             `;
         });
@@ -715,13 +775,62 @@
         e.preventDefault();
         let barcode = document.getElementById('newCusBarcode').value.trim();
         let name = document.getElementById('newCusName').value.trim();
+        let phone = document.getElementById('newCusPhone').value.trim() || "-";
+        let address = document.getElementById('newCusAddress').value.trim() || "-";
+
         if (customers.find(c => c.barcode === barcode)) { alert("❌ รหัสบาร์โค้ดลูกค้านี้ซ้ำ!"); return; }
 
-        customers.push({ barcode: barcode, name: name });
+        customers.push({ barcode: barcode, name: name, phone: phone, address: address });
         localStorage.setItem('myApp_customers', JSON.stringify(customers));
         document.getElementById('addCustomerForm').reset();
         renderCustomerTable();
         loadDropdowns(); 
+    }
+
+    const editCustomerModal = new bootstrap.Modal(document.getElementById('editCustomerModal'));
+    function openEditCustomerModal(barcode) {
+        let c = customers.find(x => x.barcode === barcode);
+        if(!c) return;
+        document.getElementById('editCusOriginalBarcode').value = c.barcode;
+        document.getElementById('editCusBarcode').value = c.barcode;
+        document.getElementById('editCusName').value = c.name;
+        document.getElementById('editCusPhone').value = c.phone;
+        document.getElementById('editCusAddress').value = c.address;
+        editCustomerModal.show();
+    }
+
+    function updateCustomerData() {
+        let originalBarcode = document.getElementById('editCusOriginalBarcode').value;
+        let newBarcode = document.getElementById('editCusBarcode').value.trim();
+        let name = document.getElementById('editCusName').value.trim();
+        let phone = document.getElementById('editCusPhone').value.trim() || "-";
+        let address = document.getElementById('editCusAddress').value.trim() || "-";
+
+        let c = customers.find(x => x.barcode === originalBarcode);
+        if(c) {
+            // เช็กบาร์โค้ดซ้ำ
+            let duplicate = customers.find(x => x.barcode === newBarcode && x.barcode !== originalBarcode);
+            if(duplicate) { alert("❌ บาร์โค้ดนี้ซ้ำกับลูกค้าอื่นแล้ว"); return; }
+
+            // ถ้ามีการเปลี่ยนบาร์โค้ด ต้องตามไปอัปเดตบาร์โค้ดในประวัติการทำรายการเดิมด้วย
+            if (originalBarcode !== newBarcode) {
+                transactions.forEach(t => {
+                    if (t.barcode === originalBarcode) t.barcode = newBarcode;
+                });
+                localStorage.setItem('myApp_transactions', JSON.stringify(transactions));
+            }
+
+            c.barcode = newBarcode;
+            c.name = name;
+            c.phone = phone;
+            c.address = address;
+
+            localStorage.setItem('myApp_customers', JSON.stringify(customers));
+            renderCustomerTable();
+            loadDropdowns();
+            editCustomerModal.hide();
+            alert("✅ บันทึกการแก้ไขข้อมูลลูกค้าเรียบร้อย!");
+        }
     }
 
     function deleteCustomer(barcode) {
