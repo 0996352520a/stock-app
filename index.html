@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบร้านค้า (Full Version: Excel + ค้างภาชนะ + จ่ายหนี้ + ล็อกราคา)</title>
+    <title>ระบบร้านค้า (เพิ่ม/แก้ไขลูกค้าในแอป + Excel)</title>
     
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -96,7 +96,6 @@
         .table th { background-color: #f8f9fa; color: #495057; font-weight: 600; font-size: 15px; border-bottom: 2px solid #eef2f5; padding: 14px 16px; }
         .table td { vertical-align: middle; font-size: 16px; padding: 12px 16px; border-bottom: 1px solid #eef2f5; }
 
-        /* กล่องราคาในตะกร้า ซ่อนขอบให้ดูเนียน */
         .cart-price-input { padding: 4px 8px; font-size: 16px; width: 85px; margin: 0 auto; border: 1px solid transparent; background: transparent; transition: 0.2s; }
         .cart-price-input:hover, .cart-price-input:focus { border: 1px solid #86b7fe; background: #fff; border-radius: 6px; }
 
@@ -137,7 +136,7 @@
         <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#summary" type="button" onclick="initSummary()">📊 สรุปยอดขาย</button></li>
         <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#customerView" type="button" onclick="initCustomerView()">👤 ข้อมูลลูกค้า</button></li>
         <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#inventory" type="button" onclick="viewInventoryHistory()">📦 คลังสินค้า</button></li>
-        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#customers" type="button" onclick="renderCustomerTable()">👥 จัดการลูกค้า (Excel)</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#customers" type="button" onclick="renderCustomerTable()">👥 จัดการลูกค้า</button></li>
     </ul>
 
     <div class="tab-content">
@@ -175,7 +174,6 @@
                                     <select id="saleCustomer" class="form-select" required></select>
                                 </div>
                             </div>
-                            <!-- แจ้งเตือนหนี้และค้างภาชนะ -->
                             <div id="currentCustomerDebtInfo" class="mt-2 py-2 px-3 rounded" style="display:none; font-size: 15px;"></div>
                             <div id="currentCustomerPendingInfo" class="mt-2 py-2 px-3 rounded text-danger fw-bold bg-danger bg-opacity-10 border border-danger" style="display:none; font-size: 16px;"></div>
                         </div>
@@ -597,24 +595,62 @@
             </div>
         </div>
 
-        <!-- ================= แท็บ 5: จัดการรายชื่อลูกค้า (นำเข้า/ส่งออก Excel) ================= -->
+        <!-- ================= แท็บ 5: จัดการรายชื่อลูกค้า ================= -->
         <div class="tab-pane fade d-print-none" id="customers" role="tabpanel">
             
-            <!-- กล่องควบคุมการจัดการ Excel -->
-            <div class="card mb-4 border-0 shadow-sm" style="background-color: #f0fdf4; border-left: 5px solid #198754 !important;">
-                <div class="card-body p-4 text-center">
-                    <h4 class="fw-bold text-success mb-3">📗 จัดการลูกค้ารวดเร็วผ่านตาราง Excel</h4>
-                    <p class="text-muted" style="font-size: 16px;">โหลดไฟล์ออกไปแก้ไข เพิ่ม/ลบรายชื่อใน Excel แล้วบันทึก จากนั้นนำกลับมาอัปโหลดที่นี่ได้เลยครับ</p>
-                    
-                    <div class="d-flex flex-wrap justify-content-center gap-3 mt-4">
-                        <button class="btn btn-outline-success btn-lg fw-bold px-4" onclick="exportCustomersToExcel()">
-                            📤 1. โหลดรายชื่อไปแก้ (Export)
-                        </button>
-                        
-                        <label class="btn btn-success btn-lg fw-bold px-4 mb-0" style="cursor: pointer;">
-                            📥 2. อัปโหลดไฟล์ที่แก้เสร็จแล้ว (Import)
-                            <input type="file" id="importExcel" accept=".xlsx, .xls" style="display: none;" onchange="importCustomersFromExcel(event)">
-                        </label>
+            <div class="row g-4 mb-4">
+                <!-- ฝั่งซ้าย: ฟอร์มเพิ่มลูกค้าแบบในแอป -->
+                <div class="col-lg-7">
+                    <div class="card h-100">
+                        <div class="card-header bg-transparent border-bottom-0 pt-4 pb-0">
+                            <h5 class="fw-bold mb-0">➕ เพิ่มลูกค้าใหม่ทีละคน</h5>
+                        </div>
+                        <div class="card-body p-4">
+                            <form id="addCustomerForm" onsubmit="saveCustomer(event)">
+                                <div class="row g-3">
+                                    <div class="col-md-4">
+                                        <label class="form-label">รหัสลูกค้า</label>
+                                        <input type="text" id="newCusBarcode" class="form-control" oninput="this.value = convertThaiToEng(this.value)" required>
+                                    </div>
+                                    <div class="col-md-8">
+                                        <label class="form-label">ชื่อ-นามสกุล / ร้าน</label>
+                                        <input type="text" id="newCusName" class="form-control" required>
+                                    </div>
+                                    <div class="col-md-5">
+                                        <label class="form-label">เบอร์โทรศัพท์</label>
+                                        <input type="text" id="newCusPhone" class="form-control">
+                                    </div>
+                                    <div class="col-md-7">
+                                        <label class="form-label">ที่อยู่</label>
+                                        <input type="text" id="newCusAddress" class="form-control">
+                                    </div>
+                                    <div class="col-12 mt-4 text-end">
+                                        <button type="submit" class="btn btn-primary px-5 fw-bold">💾 บันทึกลูกค้า</button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ฝั่งขวา: จัดการผ่าน Excel -->
+                <div class="col-lg-5">
+                    <div class="card h-100 border-0 shadow-sm" style="background-color: #f0fdf4; border-left: 5px solid #198754 !important;">
+                        <div class="card-body p-4 text-center d-flex flex-column justify-content-center">
+                            <h5 class="fw-bold text-success mb-3">📗 จัดการผ่านตาราง Excel</h5>
+                            <p class="text-muted mb-4" style="font-size: 15px;">เพิ่ม/แก้ข้อมูลทีละมากๆ ได้รวดเร็ว</p>
+                            
+                            <div class="d-grid gap-3">
+                                <button class="btn btn-outline-success fw-bold py-2" onclick="exportCustomersToExcel()">
+                                    📤 1. โหลดรายชื่อไปแก้ (Export)
+                                </button>
+                                
+                                <label class="btn btn-success fw-bold py-2 mb-0" style="cursor: pointer;">
+                                    📥 2. อัปโหลดไฟล์ (Import)
+                                    <input type="file" id="importExcel" accept=".xlsx, .xls" style="display: none;" onchange="importCustomersFromExcel(event)">
+                                </label>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -646,7 +682,6 @@
                     <tbody id="customerTableBody"></tbody>
                 </table>
             </div>
-            <div class="text-muted mt-2" style="font-size: 14px;">* หมายเหตุ: สามารถลบ/แก้ไข ลูกค้าเก่าได้ที่นี่ แต่ถ้าต้องการเพิ่มทีละเยอะๆ ให้ใช้การ Export ไปทำใน Excel จะเร็วกว่าครับ</div>
         </div>
     </div>
 </div>
@@ -1756,7 +1791,7 @@
         }
     }
 
-    // ================= โซนจัดการลูกค้า (นำเข้า/ส่งออก Excel) =================
+    // ================= โซนจัดการลูกค้า (นำเข้า/ส่งออก Excel + ฟอร์มในแอป) =================
     function renderCustomerTable() {
         let searchInput = document.getElementById('searchCustomerTable');
         let searchTerm = searchInput ? searchInput.value.trim().toLowerCase() : '';
@@ -1790,6 +1825,7 @@
                     <td class="text-end fw-bold ${bal.debt > 0 ? 'text-danger' : 'text-muted'}">${bal.debt > 0 ? bal.debt.toLocaleString() : '-'}</td>
                     <td class="text-end fw-bold ${bal.credit > 0 ? 'text-success' : 'text-muted'}">${bal.credit > 0 ? bal.credit.toLocaleString() : '-'}</td>
                     <td class="text-center d-print-none">
+                        <button class="btn btn-sm btn-light text-primary" onclick="openEditCustomerModal('${c.barcode}')">แก้</button>
                         <button class="btn btn-sm btn-light text-danger" onclick="deleteCustomer('${c.barcode}')">ลบ</button>
                     </td>
                 </tr>
@@ -1842,6 +1878,52 @@
             document.getElementById('importExcel').value = ""; 
         };
         reader.readAsArrayBuffer(file);
+    }
+
+    function saveCustomer(e) {
+        e.preventDefault();
+        let barcode = document.getElementById('newCusBarcode').value.trim();
+        if (customers.find(c => c.barcode === barcode)) { alert("❌ รหัสลูกค้าซ้ำกัน"); return; }
+        customers.push({
+            barcode: barcode,
+            name: document.getElementById('newCusName').value.trim(),
+            phone: document.getElementById('newCusPhone').value.trim() || "-",
+            address: document.getElementById('newCusAddress').value.trim() || "-",
+            pendingItem: ""
+        });
+        localStorage.setItem('myApp_customers', JSON.stringify(customers));
+        document.getElementById('addCustomerForm').reset();
+        renderCustomerTable();
+        updateDropdownHtml();
+    }
+
+    const editCustomerModal = new bootstrap.Modal(document.getElementById('editCustomerModal'));
+    function openEditCustomerModal(barcode) {
+        let c = customers.find(x => x.barcode === barcode);
+        if(!c) return;
+        document.getElementById('editCusOriginalBarcode').value = c.barcode;
+        document.getElementById('editCusBarcode').value = c.barcode;
+        document.getElementById('editCusName').value = c.name;
+        document.getElementById('editCusPhone').value = c.phone;
+        document.getElementById('editCusAddress').value = c.address;
+        document.getElementById('editCusPendingItem').value = c.pendingItem || "";
+        editCustomerModal.show();
+    }
+
+    function updateCustomerData() {
+        let originalBarcode = document.getElementById('editCusOriginalBarcode').value;
+        let c = customers.find(x => x.barcode === originalBarcode);
+        if(c) {
+            c.barcode = document.getElementById('editCusBarcode').value.trim();
+            c.name = document.getElementById('editCusName').value.trim();
+            c.phone = document.getElementById('editCusPhone').value.trim() || "-";
+            c.address = document.getElementById('editCusAddress').value.trim() || "-";
+            c.pendingItem = document.getElementById('editCusPendingItem').value.trim();
+            localStorage.setItem('myApp_customers', JSON.stringify(customers));
+            renderCustomerTable();
+            updateDropdownHtml();
+            editCustomerModal.hide();
+        }
     }
 
     function deleteCustomer(barcode) {
