@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบร้านค้า (ล็อกราคาสินค้าได้)</title>
+    <title>ระบบร้านค้า (ระบบติดตามภาชนะค้างรับ)</title>
     
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -172,7 +172,9 @@
                                     <select id="saleCustomer" class="form-select" required></select>
                                 </div>
                             </div>
+                            <!-- กล่องแจ้งเตือนค้างหนี้ / ค้างภาชนะ -->
                             <div id="currentCustomerDebtInfo" class="mt-2 py-2 px-3 rounded" style="display:none; font-size: 15px;"></div>
+                            <div id="currentCustomerPendingInfo" class="mt-2 py-2 px-3 rounded text-danger fw-bold bg-danger bg-opacity-10 border border-danger" style="display:none; font-size: 16px;"></div>
                         </div>
                     </div>
 
@@ -234,14 +236,19 @@
                             </div>
                         </div>
 
+                        <!-- หมายเหตุ, ส่วนลด และ ค้างภาชนะ -->
                         <div class="row g-2 mb-3">
                             <div class="col-5">
                                 <label class="form-label text-dark mb-1" style="font-size: 14px;">🎁 ส่วนลด (฿)</label>
                                 <input type="number" id="posDiscount" class="form-control" placeholder="0" oninput="calculateChange()" min="0">
                             </div>
                             <div class="col-7">
-                                <label class="form-label text-dark mb-1" style="font-size: 14px;">📝 หมายเหตุ</label>
+                                <label class="form-label text-dark mb-1" style="font-size: 14px;">📝 หมายเหตุบิล</label>
                                 <input type="text" id="posRemark" class="form-control" placeholder="เช่น ลูกค้า VIP">
+                            </div>
+                            <div class="col-12 mt-2">
+                                <label class="form-label text-danger mb-1" style="font-size: 14px;">📦 ค้างภาชนะ (อัปเดตสถานะให้ลูกค้า)</label>
+                                <input type="text" id="posPendingItem" class="form-control border-danger border-2 text-danger fw-bold" placeholder="เช่น ค้างถังแก๊ส 1 ถัง (ถ้าเอามาคืนแล้วให้ลบข้อความออก)">
                             </div>
                         </div>
 
@@ -436,19 +443,23 @@
             <div id="customerDetailsBox" class="card mb-4 bg-light border-0" style="display: none;">
                 <div class="card-body p-4">
                     <div class="row align-items-center">
-                        <div class="col-md-6 mb-3 mb-md-0">
+                        <div class="col-md-4 mb-3 mb-md-0">
                             <span class="form-label text-muted d-block">ข้อมูลลูกค้า</span>
                             <h4 class="fw-bold text-dark mb-1" id="infoCusName">-</h4>
-                            <span class="text-secondary" id="infoCusPhone">-</span> | 
+                            <span class="text-secondary" id="infoCusPhone">-</span><br>
                             <span class="text-secondary" id="infoCusAddress">-</span>
                         </div>
                         <div class="col-md-3 text-center border-start">
-                            <span class="form-label text-danger d-block">หนี้ค้างชำระรวม</span>
-                            <h3 class="fw-bold text-danger mb-0" id="viewCustomerDebt">0 ฿</h3>
+                            <span class="form-label text-danger d-block">📦 ค้างของ/ภาชนะ</span>
+                            <h5 class="fw-bold text-danger mb-0 mt-2" id="viewCustomerPending">-</h5>
+                        </div>
+                        <div class="col-md-2 text-center border-start">
+                            <span class="form-label text-danger d-block">หนี้ค้างรวม</span>
+                            <h4 class="fw-bold text-danger mb-0 mt-2" id="viewCustomerDebt">0 ฿</h4>
                         </div>
                         <div class="col-md-3 text-center border-start">
                             <span class="form-label text-success d-block">เงินฝากล่วงหน้า</span>
-                            <h3 class="fw-bold text-success mb-0" id="viewCustomerCredit">0 ฿</h3>
+                            <h4 class="fw-bold text-success mb-0 mt-2" id="viewCustomerCredit">0 ฿</h4>
                         </div>
                     </div>
                 </div>
@@ -528,7 +539,7 @@
                             <div class="col-md-4 d-flex flex-column justify-content-end">
                                 <div class="form-check mb-1">
                                     <input class="form-check-input" type="checkbox" id="newProdIsPriceLocked" checked>
-                                    <label class="form-check-label text-primary fw-bold" for="newProdIsPriceLocked">🔒 ล็อกราคา (ห้ามแก้ที่หน้าคิดเงิน)</label>
+                                    <label class="form-check-label text-primary fw-bold" for="newProdIsPriceLocked">🔒 ล็อกราคา (ห้ามแก้ตอนคิดเงิน)</label>
                                 </div>
                                 <div class="form-check">
                                     <input class="form-check-input" type="checkbox" id="newProdIsDaily">
@@ -611,10 +622,10 @@
                         <tr>
                             <th>รหัส</th>
                             <th>ชื่อลูกค้า</th>
-                            <th>เบอร์โทร</th>
-                            <th>ที่อยู่</th>
+                            <th>เบอร์โทร/ที่อยู่</th>
+                            <th class="text-danger">ค้างภาชนะ</th>
                             <th class="text-end">หนี้ค้าง</th>
-                            <th class="text-end">มีเงินฝาก</th>
+                            <th class="text-end">เงินฝาก</th>
                             <th class="text-center">จัดการ</th>
                         </tr>
                     </thead>
@@ -665,6 +676,10 @@
           <div class="mb-3"><label class="form-label">ชื่อลูกค้า</label><input type="text" id="editCusName" class="form-control"></div>
           <div class="mb-3"><label class="form-label">เบอร์โทร</label><input type="text" id="editCusPhone" class="form-control"></div>
           <div class="mb-3"><label class="form-label">ที่อยู่</label><input type="text" id="editCusAddress" class="form-control"></div>
+          <div class="mb-3">
+              <label class="form-label text-danger">📦 ค้างภาชนะ (อัปเดตสถานะให้ลูกค้า)</label>
+              <input type="text" id="editCusPendingItem" class="form-control border-danger" placeholder="เช่น ค้างถัง 1 ใบ">
+          </div>
         </div>
         <div class="modal-footer"><button type="button" class="btn btn-light" data-bs-dismiss="modal">ยกเลิก</button><button type="button" class="btn btn-primary" onclick="updateCustomerData()">บันทึก</button></div>
       </div>
@@ -732,10 +747,18 @@
     inventory = inventory.map(p => { 
         if(!p.barcode) p.barcode = p.id.toString(); 
         if(p.isDaily === undefined) p.isDaily = false;
-        if(p.isPriceLocked === undefined) p.isPriceLocked = false; // ของเก่าให้แก้ราคาได้เหมือนเดิม
+        if(p.isPriceLocked === undefined) p.isPriceLocked = false;
         return p; 
     });
-    customers = customers.map(c => ({ barcode: c.barcode, name: c.name, phone: c.phone || "-", address: c.address || "-" }));
+    
+    // โครงสร้างลูกค้าใหม่ เพิ่มตัวแปรเก็บภาชนะค้าง (pendingItem)
+    customers = customers.map(c => ({ 
+        barcode: c.barcode, 
+        name: c.name, 
+        phone: c.phone || "-", 
+        address: c.address || "-",
+        pendingItem: c.pendingItem || ""
+    }));
 
     transactions = transactions.map(t => {
         if(!t.dateStr && t.time) {
@@ -749,13 +772,12 @@
     });
 
     if (inventory.length === 0) {
-        inventory = [{ id: 1, barcode: "1111", category: "น้ำแข็ง", name: "น้ำแข็งหลอด (สอบ)", price: 50, stock: 100, isDaily: true, isPriceLocked: true }];
+        inventory = [{ id: 1, barcode: "1111", category: "น้ำแข็ง", name: "น้ำแข็งหลอด", price: 50, stock: 100, isDaily: true, isPriceLocked: true }];
         saveInventoryData();
     }
     if (customers.length === 0) {
         customers = [
-            { barcode: "001", name: "ลูกค้าทั่วไป", phone: "-", address: "-" },
-            { barcode: "002", name: "ยายม้วน", phone: "081-111-2222", address: "หมู่ 1" }
+            { barcode: "001", name: "ลูกค้าทั่วไป", phone: "-", address: "-", pendingItem: "" }
         ];
         localStorage.setItem('myApp_customers', JSON.stringify(customers));
     }
@@ -806,7 +828,10 @@
         if (viewSelect.hasClass("select2-hidden-accessible")) viewSelect.select2('destroy');
 
         let cusOptions = '<option value="">-- พิมพ์ชื่อลูกค้า --</option>';
-        customers.forEach(c => { cusOptions += `<option value="${c.barcode}">[${c.barcode}] ${c.name}</option>`; });
+        customers.forEach(c => { 
+            let alertPin = c.pendingItem ? ' ⚠️ (มีค้างของ)' : '';
+            cusOptions += `<option value="${c.barcode}">[${c.barcode}] ${c.name}${alertPin}</option>`; 
+        });
         cusSelect.html(cusOptions);
         viewSelect.html(cusOptions);
 
@@ -1005,8 +1030,23 @@
     function showCustomerDebt() {
         let cusSelect = document.getElementById('saleCustomer');
         let infoDiv = document.getElementById('currentCustomerDebtInfo');
+        let pendingDiv = document.getElementById('currentCustomerPendingInfo');
+        let pendingInput = document.getElementById('posPendingItem');
+        
         if (cusSelect.selectedIndex > 0) {
             let barcode = cusSelect.value;
+            let cus = customers.find(x => x.barcode === barcode);
+            
+            // นำค้างภาชนะมาใส่ในช่องพิมพ์
+            pendingInput.value = cus && cus.pendingItem ? cus.pendingItem : "";
+
+            if (cus && cus.pendingItem) {
+                pendingDiv.innerText = `📦 แจ้งเตือน: ลูกค้าค้าง ${cus.pendingItem}`;
+                pendingDiv.style.display = "block";
+            } else {
+                pendingDiv.style.display = "none";
+            }
+
             let bal = getCustomerBalance(barcode);
             if (bal.debt > 0) {
                 infoDiv.innerText = `🚨 มีหนี้ค้าง: ${bal.debt.toLocaleString()} บาท`;
@@ -1021,6 +1061,8 @@
             }
         } else {
             infoDiv.style.display = "none";
+            pendingDiv.style.display = "none";
+            pendingInput.value = "";
         }
         renderCart();
     }
@@ -1122,6 +1164,7 @@
         document.getElementById('posPaidAmount').value = '';
         document.getElementById('posDiscount').value = '';
         document.getElementById('posRemark').value = '';
+        document.getElementById('posPendingItem').value = '';
         renderCart();
     }
 
@@ -1137,7 +1180,6 @@
                 let total = item.price * item.qty;
                 cartTotal += total;
                 
-                // ตรวจสอบว่าถูกล็อคราคาหรือไม่
                 let priceHtml = item.isPriceLocked 
                     ? `<span class="fw-bold text-dark">${item.price}</span> <span style="font-size:12px; color:#aaa;">🔒</span>`
                     : `<input type="number" class="form-control text-center fw-bold text-primary cart-price-input" value="${item.price}" onchange="updateCartPrice(${item.id}, this.value)" onfocus="this.select()" min="0">`;
@@ -1213,6 +1255,7 @@
         let cartTotal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
         let discount = parseFloat(document.getElementById('posDiscount').value) || 0;
         let remark = document.getElementById('posRemark').value.trim();
+        let pendingItemStr = document.getElementById('posPendingItem').value.trim();
 
         let netTotal = cartTotal - discount;
         if(netTotal < 0) netTotal = 0;
@@ -1247,6 +1290,13 @@
         }
         
         saveInventoryData(); 
+        
+        // อัปเดตค้างภาชนะให้ลูกค้าคนนี้
+        let cusIndex = customers.findIndex(c => c.barcode === barcode);
+        if (cusIndex > -1) {
+            customers[cusIndex].pendingItem = pendingItemStr;
+            localStorage.setItem('myApp_customers', JSON.stringify(customers));
+        }
 
         let now = new Date();
         let dateTime = now.toLocaleDateString('th-TH') + " " + now.toLocaleTimeString('th-TH', {hour: '2-digit', minute:'2-digit'});
@@ -1277,11 +1327,12 @@
         document.getElementById('posPaidAmount').value = "";
         document.getElementById('posDiscount').value = "";
         document.getElementById('posRemark').value = "";
+        document.getElementById('posPendingItem').value = "";
         $('#saleCustomer').val('').trigger('change.select2');
         document.getElementById('scanCustomerBarcode').value = "";
         initPOS();
         renderCustomerTable();
-        alert("✅ บันทึกยอดขายและตัดสต็อกเรียบร้อยแล้ว!");
+        alert("✅ บันทึกยอดขายและอัปเดตข้อมูลเรียบร้อยแล้ว!");
     }
 
     function renderTable() {
@@ -1424,6 +1475,7 @@
             document.getElementById('infoCusName').innerText = `${cus.name}`;
             document.getElementById('infoCusPhone').innerText = `📞 ${cus.phone || "-"}`;
             document.getElementById('infoCusAddress').innerText = `🏠 ${cus.address || "-"}`;
+            document.getElementById('viewCustomerPending').innerText = cus.pendingItem ? cus.pendingItem : "ไม่มีค้าง";
             detailsBox.style.display = "block";
         }
 
@@ -1568,7 +1620,7 @@
         document.getElementById('editProdPrice').value = p.price;
         document.getElementById('editProdStock').value = p.stock;
         document.getElementById('editProdIsDaily').checked = p.isDaily || false;
-        document.getElementById('editProdIsPriceLocked').checked = p.isPriceLocked !== false; // กันค่าเก่าที่ยังไม่เคยมี
+        document.getElementById('editProdIsPriceLocked').checked = p.isPriceLocked !== false; 
         editModal.show();
     }
 
@@ -1618,18 +1670,19 @@
         );
 
         if (filteredCustomers.length === 0) { 
-            tbody.innerHTML = "<tr><td colspan='7' class='text-center text-muted py-4'>ไม่พบข้อมูลลูกค้า</td></tr>"; 
+            tbody.innerHTML = "<tr><td colspan='8' class='text-center text-muted py-4'>ไม่พบข้อมูลลูกค้า</td></tr>"; 
             return; 
         }
 
         filteredCustomers.forEach(c => {
             let bal = getCustomerBalance(c.barcode);
+            let pendingHtml = c.pendingItem ? `<span class="badge bg-danger">${c.pendingItem}</span>` : "-";
             tbody.innerHTML += `
                 <tr>
                     <td class="text-primary fw-bold">${c.barcode}</td>
                     <td class="fw-bold">${c.name}</td>
-                    <td class="text-muted">${c.phone || "-"}</td>
-                    <td class="text-muted" style="font-size:14px;">${c.address || "-"}</td>
+                    <td class="text-muted" style="font-size:14px;">${c.phone || "-"}<br>${c.address || "-"}</td>
+                    <td class="text-center">${pendingHtml}</td>
                     <td class="text-end fw-bold ${bal.debt > 0 ? 'text-danger' : 'text-muted'}">${bal.debt > 0 ? bal.debt.toLocaleString() : '-'}</td>
                     <td class="text-end fw-bold ${bal.credit > 0 ? 'text-success' : 'text-muted'}">${bal.credit > 0 ? bal.credit.toLocaleString() : '-'}</td>
                     <td class="text-center d-print-none">
@@ -1649,7 +1702,8 @@
             barcode: barcode,
             name: document.getElementById('newCusName').value.trim(),
             phone: document.getElementById('newCusPhone').value.trim() || "-",
-            address: document.getElementById('newCusAddress').value.trim() || "-"
+            address: document.getElementById('newCusAddress').value.trim() || "-",
+            pendingItem: ""
         });
         localStorage.setItem('myApp_customers', JSON.stringify(customers));
         document.getElementById('addCustomerForm').reset();
@@ -1666,6 +1720,7 @@
         document.getElementById('editCusName').value = c.name;
         document.getElementById('editCusPhone').value = c.phone;
         document.getElementById('editCusAddress').value = c.address;
+        document.getElementById('editCusPendingItem').value = c.pendingItem || "";
         editCustomerModal.show();
     }
 
@@ -1677,6 +1732,7 @@
             c.name = document.getElementById('editCusName').value.trim();
             c.phone = document.getElementById('editCusPhone').value.trim() || "-";
             c.address = document.getElementById('editCusAddress').value.trim() || "-";
+            c.pendingItem = document.getElementById('editCusPendingItem').value.trim();
             localStorage.setItem('myApp_customers', JSON.stringify(customers));
             renderCustomerTable();
             updateDropdownHtml();
