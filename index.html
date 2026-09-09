@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบร้านค้า (Modern POS)</title>
+    <title>ระบบร้านค้า (เช็คสต็อกย้อนหลังได้)</title>
     
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -84,7 +84,6 @@
         .btn { border-radius: 8px; font-weight: 600; padding: 10px 20px; transition: all 0.2s; }
         .btn-checkout { font-size: 22px; padding: 15px; border-radius: 12px; }
 
-        /* ปุ่มเลือกรอบกะ */
         .shift-toggle .btn { font-size: 22px; border-width: 2px; }
         .shift-toggle .btn-check:checked + .btn-outline-warning { background-color: #ffc107; color: #000 !important; border-color: #ffc107; box-shadow: inset 0 3px 5px rgba(0,0,0,0.125); }
         .shift-toggle .btn-check:checked + .btn-outline-info { background-color: #0dcaf0; color: #000 !important; border-color: #0dcaf0; box-shadow: inset 0 3px 5px rgba(0,0,0,0.125); }
@@ -110,7 +109,7 @@
             body { background-color: white !important; font-size: 14px !important; }
             .app-container { box-shadow: none !important; margin: 0 !important; padding: 0 !important; width: 100% !important; }
             .d-print-none { display: none !important; } 
-            .table-responsive { border: none !important; }
+            .table-responsive { border: none !important; overflow: visible !important; max-height: none !important;}
             .table th, .table td { border: 1px solid #ddd !important; padding: 6px !important; }
             .badge { border: 1px solid #ccc !important; color: #000 !important; padding: 2px 5px !important; }
             .col-lg-4, .col-lg-8 { width: 100% !important; margin-bottom: 20px; }
@@ -130,7 +129,7 @@
         <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#sales" type="button" onclick="initPOS()">🛒 คิดเงิน</button></li>
         <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#summary" type="button" onclick="initSummary()">📊 สรุปยอดขาย</button></li>
         <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#customerView" type="button" onclick="initCustomerView()">👤 ข้อมูลลูกค้า</button></li>
-        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#inventory" type="button" onclick="renderInventory()">📦 คลังสินค้า</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#inventory" type="button" onclick="viewInventoryHistory()">📦 คลังสินค้า</button></li>
         <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#customers" type="button" onclick="renderCustomerTable()">👥 จัดการลูกค้า</button></li>
     </ul>
 
@@ -138,7 +137,6 @@
         <!-- ================= แท็บ 1: หน้าคิดเงิน (POS) ================= -->
         <div class="tab-pane fade show active" id="sales" role="tabpanel">
             
-            <!-- กล่องเลือกรอบกะ (แสดงเฉพาะหน้าคิดเงิน) -->
             <div class="card mb-4 border-0 shadow-sm border-start border-5 border-primary d-print-none" style="background-color: #eef5ff;">
                 <div class="card-body d-flex flex-wrap align-items-center justify-content-between p-4">
                     <div class="mb-3 mb-md-0">
@@ -156,7 +154,6 @@
             </div>
 
             <div class="row g-4 d-print-none">
-                <!-- ฝั่งซ้าย: สแกนและตะกร้า -->
                 <div class="col-lg-7">
                     <div class="card mb-4">
                         <div class="card-body">
@@ -208,7 +205,6 @@
                     </div>
                 </div>
 
-                <!-- ฝั่งขวา: จอคิดเงิน -->
                 <div class="col-lg-5">
                     <div class="pos-panel h-100 d-flex flex-column">
                         <div class="pos-display mb-4">
@@ -333,19 +329,19 @@
                 </div>
                 <div class="col-6 col-md-3">
                     <div class="card h-100 p-3 bg-light border-0">
-                        <span class="form-label text-success d-block mb-1">เงินที่ต้องนับได้ในกระเป๋า</span>
+                        <span class="form-label text-success d-block mb-1">เงินสดในกระเป๋า</span>
                         <span class="fw-bold fs-3 text-success" id="sumPaid">0</span>
                     </div>
                 </div>
                 <div class="col-6 col-md-3">
                     <div class="card h-100 p-3 bg-light border-0">
-                        <span class="form-label text-danger d-block mb-1">ลูกค้าค้างหนี้เพิ่มรอบนี้</span>
+                        <span class="form-label text-danger d-block mb-1">ลูกค้าค้างหนี้เพิ่ม</span>
                         <span class="fw-bold fs-3 text-danger" id="sumDebt">0</span>
                     </div>
                 </div>
                 <div class="col-6 col-md-3">
                     <div class="card h-100 p-3 bg-light border-0">
-                        <span class="form-label text-primary d-block mb-1">เงินเกิน/ฝากไว้เพิ่มรอบนี้</span>
+                        <span class="form-label text-primary d-block mb-1">เงินเกิน/ฝากไว้เพิ่ม</span>
                         <span class="fw-bold fs-3 text-primary" id="sumOverpaid">0</span>
                     </div>
                 </div>
@@ -457,8 +453,8 @@
             </div>
         </div>
 
-        <!-- ================= แท็บ 4: คลังสินค้า ================= -->
-        <div class="tab-pane fade d-print-none" id="inventory" role="tabpanel">
+        <!-- ================= แท็บ 4: คลังสินค้า (ตรวจสอบย้อนหลังได้) ================= -->
+        <div class="tab-pane fade" id="inventory" role="tabpanel">
             
             <div class="d-none d-print-block text-center mb-4">
                 <h2 class="fw-bold">รายงานสต็อกสินค้าคงเหลือ</h2>
@@ -466,7 +462,22 @@
                 <hr>
             </div>
 
-            <div class="card mb-4 d-print-none">
+            <!-- กล่องเลือกวันที่ดูสต็อก -->
+            <div class="card mb-4 shadow-sm border-0 bg-white d-print-none">
+                <div class="card-body p-4">
+                    <div class="row align-items-center g-3">
+                        <div class="col-md-auto"><h5 class="fw-bold text-primary mb-0">📅 เลือกวันที่ดูสต็อก:</h5></div>
+                        <div class="col-md-4">
+                            <input type="date" id="inventoryHistoryDate" class="form-control form-control-lg fs-5 fw-bold text-primary border-primary" onchange="viewInventoryHistory()">
+                        </div>
+                        <div class="col-md-auto ms-auto">
+                            <button class="btn btn-outline-success fw-bold px-4" onclick="window.print()">🖨️ พิมพ์รายงานสต็อก</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-4 d-print-none" id="inventoryAddBox">
                 <div class="card-header bg-transparent border-bottom-0 pt-4 pb-0">
                     <h5 class="fw-bold mb-0">➕ เพิ่มสินค้าใหม่</h5>
                 </div>
@@ -508,10 +519,9 @@
             </div>
             
             <div class="d-flex justify-content-between align-items-end mb-3 mt-4 d-print-none">
-                <h5 class="fw-bold mb-0">📦 รายการสินค้าทั้งหมด</h5>
+                <h5 class="fw-bold mb-0" id="inventoryListTitle">📦 รายการสินค้าคงเหลือปัจจุบัน</h5>
                 <div>
-                    <button class="btn btn-sm btn-outline-danger me-2" onclick="manualClearDailyStock()">🧹 เคลียร์สต็อกรายวัน</button>
-                    <button class="btn btn-sm btn-success fw-bold shadow-sm px-3" onclick="window.print()">🖨️ พิมพ์รายงานสต็อก</button>
+                    <button class="btn btn-sm btn-outline-danger" id="manualClearDailyBtn" onclick="manualClearDailyStock()">🧹 เคลียร์สต็อกรายวัน</button>
                 </div>
             </div>
             
@@ -524,7 +534,7 @@
                             <th>ชื่อสินค้า</th>
                             <th class="text-center">ราคา (฿)</th>
                             <th class="text-center">คงเหลือ</th>
-                            <th class="text-center d-print-none">จัดการ</th>
+                            <th class="text-center d-print-none" id="inventoryActionCol">จัดการ</th>
                         </tr>
                     </thead>
                     <tbody id="inventoryTableBody"></tbody>
@@ -578,7 +588,7 @@
                             <th>เบอร์โทร</th>
                             <th>ที่อยู่</th>
                             <th class="text-end">หนี้ค้าง</th>
-                            <th class="text-end">มีเงินฝาก</th>
+                            <th class="text-end">เงินฝาก</th>
                             <th class="text-center">จัดการ</th>
                         </tr>
                     </thead>
@@ -678,6 +688,18 @@
     let customers = JSON.parse(localStorage.getItem('myApp_customers')) || [];
     let cart = [];
 
+    // ================= ระบบบันทึกประวัติสต็อกรายวันอัตโนมัติ =================
+    function saveInventoryData() {
+        // บันทึกสต็อกปัจจุบัน
+        localStorage.setItem('myApp_inventory', JSON.stringify(inventory));
+        
+        // ถ่ายรูปสต็อกเก็บไว้เป็นของวันนี้ (อัปเดตเรียลไทม์)
+        let today = new Date().toLocaleDateString('en-CA');
+        let history = JSON.parse(localStorage.getItem('myApp_inventory_history')) || {};
+        history[today] = JSON.parse(JSON.stringify(inventory)); // คัดลอกข้อมูลทั้งหมดเก็บไว้
+        localStorage.setItem('myApp_inventory_history', JSON.stringify(history));
+    }
+
     inventory = inventory.map(p => { 
         if(!p.barcode) p.barcode = p.id.toString(); 
         if(p.isDaily === undefined) p.isDaily = false;
@@ -696,7 +718,7 @@
 
     if (inventory.length === 0) {
         inventory = [{ id: 1, barcode: "1111", category: "น้ำแข็ง", name: "น้ำแข็งหลอด (สอบ)", price: 50, stock: 100, isDaily: true }];
-        localStorage.setItem('myApp_inventory', JSON.stringify(inventory));
+        saveInventoryData();
     }
     if (customers.length === 0) {
         customers = [
@@ -716,7 +738,7 @@
                 return p;
             });
             if (hasDaily) {
-                localStorage.setItem('myApp_inventory', JSON.stringify(inventory));
+                saveInventoryData();
                 setTimeout(() => { alert("🌅 อัปเดตสต็อกสินค้ารายวันเป็น 0 อัตโนมัติแล้ว"); }, 500);
             }
         }
@@ -726,8 +748,8 @@
     function manualClearDailyStock() {
         if(confirm("ล้างสต็อก 'สินค้ารายวัน' ให้เหลือ 0 ทั้งหมด ใช่หรือไม่?")) {
             inventory = inventory.map(p => { if (p.isDaily) p.stock = 0; return p; });
-            localStorage.setItem('myApp_inventory', JSON.stringify(inventory));
-            renderInventory();
+            saveInventoryData();
+            viewInventoryHistory(); // อัปเดตหน้าจอ
             updateDropdownHtml();
         }
     }
@@ -1140,7 +1162,7 @@
         if (isNaN(paid)) { alert("❌ กรุณาใส่ยอดเงินที่รับมา (ถ้าไม่จ่ายให้ใส่ 0)"); return; }
 
         let barcode = cusSelect.value;
-        let customerName = cusSelect.options[cusSelect.selectedIndex].text.replace(/\[.*?\] /, '');
+        let customerName = cusSelect.options[cusSelect.selectedIndex].text.replace(/รหัส \[.*?\] - /, '');
         
         let itemDescArr = [];
         for (let item of cart) {
@@ -1153,7 +1175,8 @@
                 itemDescArr.push(`${prod.name} (x${item.qty})`);
             }
         }
-        localStorage.setItem('myApp_inventory', JSON.stringify(inventory));
+        
+        saveInventoryData(); // บันทึกและดึง Snapshot ทันทีหลังขายของ
 
         let now = new Date();
         let dateTime = now.toLocaleDateString('th-TH') + " " + now.toLocaleTimeString('th-TH', {hour: '2-digit', minute:'2-digit'});
@@ -1184,6 +1207,7 @@
         document.getElementById('scanCustomerBarcode').value = "";
         initPOS();
         renderCustomerTable();
+        alert("✅ บันทึกยอดขายและตัดสต็อกเรียบร้อยแล้ว!");
     }
 
     function renderTable() {
@@ -1353,30 +1377,75 @@
         }
     }
 
-    // ================= โซนคลังสินค้า =================
-    function renderInventory() {
+    // ================= โซนคลังสินค้า (แก้ไขให้ดูอดีตได้) =================
+    function viewInventoryHistory() {
+        let selectedDate = document.getElementById('inventoryHistoryDate').value;
+        let today = new Date().toLocaleDateString('en-CA');
+
+        if (selectedDate === today || !selectedDate) {
+            // ดูของวันนี้ (ปัจจุบัน) -> แก้ไขได้ ลบได้
+            document.getElementById('inventoryAddBox').classList.remove('d-none');
+            document.getElementById('manualClearDailyBtn').classList.remove('d-none');
+            document.getElementById('inventoryListTitle').innerText = "📦 รายการสินค้าคงเหลือปัจจุบัน";
+            document.getElementById('inventoryActionCol').style.display = 'table-cell';
+            renderInventory(null, today); 
+        } else {
+            // ดูอดีต -> อ่านได้อย่างเดียว
+            document.getElementById('inventoryAddBox').classList.add('d-none');
+            document.getElementById('manualClearDailyBtn').classList.add('d-none');
+            document.getElementById('inventoryActionCol').style.display = 'none';
+            
+            let dateObj = new Date(selectedDate);
+            let thaiDate = dateObj.toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
+            document.getElementById('inventoryListTitle').innerHTML = `📦 สต็อกย้อนหลัง <span class="text-danger">(ข้อมูลเก่าวันที่: ${thaiDate})</span>`;
+            
+            let history = JSON.parse(localStorage.getItem('myApp_inventory_history')) || {};
+            let pastInventory = history[selectedDate] || [];
+            renderInventory(pastInventory, selectedDate);
+        }
+    }
+
+    function renderInventory(pastData = null, targetDateStr = null) {
         let tbody = document.getElementById('inventoryTableBody');
         tbody.innerHTML = "";
         
-        let now = new Date();
-        document.getElementById('printInventoryDate').innerText = `ข้อมูล ณ วันที่: ${now.toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })} เวลา ${now.toLocaleTimeString('th-TH', {hour: '2-digit', minute:'2-digit'})} น.`;
+        let isHistory = pastData !== null;
+        let dataToRender = isHistory ? pastData : inventory;
 
-        if (inventory.length === 0) { tbody.innerHTML = "<tr><td colspan='6' class='text-center text-muted py-4'>ยังไม่ได้เพิ่มสินค้า</td></tr>"; return; }
-        let sortedInventory = [...inventory].sort((a, b) => a.category.localeCompare(b.category));
+        if (isHistory) {
+            let dateObj = new Date(targetDateStr);
+            let thaiDate = dateObj.toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
+            document.getElementById('printInventoryDate').innerText = `รายงานสต็อกย้อนหลัง ประจำวันที่: ${thaiDate}`;
+        } else {
+            let now = new Date();
+            document.getElementById('printInventoryDate').innerText = `ข้อมูล ณ วันที่: ${now.toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })} เวลา ${now.toLocaleTimeString('th-TH', {hour: '2-digit', minute:'2-digit'})} น.`;
+        }
+
+        if (!dataToRender || dataToRender.length === 0) { 
+            tbody.innerHTML = `<tr><td colspan='6' class='text-center text-muted py-5'>${isHistory ? 'ไม่มีข้อมูลประวัติสต็อกในวันดังกล่าว' : 'ยังไม่ได้เพิ่มสินค้า'}</td></tr>`; 
+            return; 
+        }
+
+        let sortedInventory = [...dataToRender].sort((a, b) => a.category.localeCompare(b.category));
         sortedInventory.forEach(p => {
             let stockColor = p.stock <= 5 ? "text-danger fw-bold" : "text-success fw-bold";
             let dailyBadge = p.isDaily ? `<span class="badge bg-danger ms-1" style="font-size:10px;">รายวัน</span>` : "";
+            
+            let actionHtml = isHistory ? `` : `
+                <td class="text-center d-print-none">
+                    <button class="btn btn-sm btn-light text-primary" onclick="openEditModal(${p.id})">แก้</button> 
+                    <button class="btn btn-sm btn-light text-danger" onclick="deleteProduct(${p.id})">ลบ</button>
+                </td>
+            `;
+
             tbody.innerHTML += `
             <tr>
                 <td class="text-primary fw-bold">${p.barcode}</td>
                 <td class="text-muted">${p.category}</td>
                 <td class="fw-bold">${p.name} ${dailyBadge}</td>
                 <td class="text-center fw-bold">${p.price}</td>
-                <td class="text-center ${stockColor}">${p.stock}</td>
-                <td class="text-center d-print-none">
-                    <button class="btn btn-sm btn-light text-primary" onclick="openEditModal(${p.id})">แก้</button> 
-                    <button class="btn btn-sm btn-light text-danger" onclick="deleteProduct(${p.id})">ลบ</button>
-                </td>
+                <td class="text-center fs-5 ${stockColor}">${p.stock}</td>
+                ${actionHtml}
             </tr>`;
         });
     }
@@ -1394,9 +1463,9 @@
             stock: parseFloat(document.getElementById('newProdStock').value) || 0,
             isDaily: document.getElementById('newProdIsDaily').checked
         });
-        localStorage.setItem('myApp_inventory', JSON.stringify(inventory));
+        saveInventoryData();
         document.getElementById('addProductForm').reset();
-        renderInventory();
+        viewInventoryHistory(); // อัปเดตหน้าจอ
         updateDropdownHtml();
     }
 
@@ -1424,8 +1493,9 @@
             p.price = parseFloat(document.getElementById('editProdPrice').value) || 0;
             p.stock = parseFloat(document.getElementById('editProdStock').value) || 0;
             p.isDaily = document.getElementById('editProdIsDaily').checked;
-            localStorage.setItem('myApp_inventory', JSON.stringify(inventory));
-            renderInventory();
+            
+            saveInventoryData();
+            viewInventoryHistory();
             updateDropdownHtml();
             editModal.hide();
         }
@@ -1434,8 +1504,8 @@
     function deleteProduct(id) {
         if(confirm("ลบสินค้านี้ใช่ไหม?")) {
             inventory = inventory.filter(x => x.id !== id);
-            localStorage.setItem('myApp_inventory', JSON.stringify(inventory));
-            renderInventory();
+            saveInventoryData();
+            viewInventoryHistory();
             updateDropdownHtml();
         }
     }
@@ -1535,13 +1605,18 @@
 
     // เริ่มทำงาน
     $(document).ready(function() {
+        // เซ็ตวันที่ช่องค้นหาประวัติสต็อกเป็นวันนี้ทันที
+        document.getElementById('inventoryHistoryDate').value = new Date().toLocaleDateString('en-CA');
+        
+        saveInventoryData(); // สร้างประวัติเริ่มต้นให้เลยถ้ายังไม่มี
         checkDailyStockReset(); 
+        
         $('#saleCustomer').on('change', function() { syncCustomerFromSelect(); });
         $('#productSelect').on('change', function() { addSelectedProductToCart(); });
         $('#viewCustomerSelect').on('change', function() { syncViewBarcode(); renderSpecificCustomerView(); });
 
         initPOS();
-        renderInventory();
+        viewInventoryHistory();
         renderCustomerTable();
     });
 </script>
