@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบร้านค้า (Modern POS)</title>
+    <title>ระบบร้านค้า (เพิ่มปริ้นรายงานสต็อก)</title>
     
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -60,18 +60,10 @@
         }
 
         .form-label { font-weight: 600; color: #495057; font-size: 15px; margin-bottom: 6px; }
-        
-        /* แก้ปัญหาตัวอักษรซ้อนทับด้วยการแยก Padding */
-        .form-control { 
+        .form-control, .form-select { 
             border-radius: 8px; 
             border: 1px solid #ced4da; 
             padding: 10px 14px;
-            font-size: 16px;
-        }
-        .form-select { 
-            border-radius: 8px; 
-            border: 1px solid #ced4da; 
-            padding: 10px 36px 10px 14px; /* เว้นที่ให้ลูกศร 36px */
             font-size: 16px;
         }
         .form-control:focus, .form-select:focus { 
@@ -109,7 +101,7 @@
             .table-responsive { border: none !important; }
             .table th, .table td { border: 1px solid #ddd !important; padding: 6px !important; }
             .badge { border: 1px solid #ccc !important; color: #000 !important; padding: 2px 5px !important; }
-            .col-lg-4, .col-lg-8 { width: 100% !important; margin-bottom: 20px; }
+            .col-lg-4, .col-lg-8 { width: 100% !important; margin-bottom: 20px; } 
         }
     </style>
 </head>
@@ -143,6 +135,7 @@
         <div class="tab-pane fade show active" id="sales" role="tabpanel">
             <div class="row g-4 d-print-none">
                 
+                <!-- ฝั่งซ้าย: สแกนและตะกร้า -->
                 <div class="col-lg-7">
                     <div class="card mb-4">
                         <div class="card-body">
@@ -194,8 +187,10 @@
                     </div>
                 </div>
 
+                <!-- ฝั่งขวา: จอคิดเงิน -->
                 <div class="col-lg-5">
                     <div class="pos-panel h-100 d-flex flex-column">
+                        
                         <div class="pos-display mb-4">
                             <div class="text-start text-muted mb-2" style="font-size: 14px; color: #64748b !important;">ยอดที่ต้องชำระ (Total)</div>
                             <div class="total-text" id="posGrandTotal">0</div>
@@ -242,6 +237,7 @@
                 </div>
             </div>
 
+            <!-- ประวัติการขาย -->
             <div class="d-flex justify-content-between align-items-center mt-5 mb-3 d-print-none">
                 <h5 class="fw-bold mb-0 text-dark">🕒 ประวัติการขายล่าสุด</h5>
             </div>
@@ -302,7 +298,7 @@
                             </select>
                         </div>
                         <div class="col-md-auto ms-auto">
-                            <button class="btn btn-outline-success" onclick="window.print()">🖨️ พิมพ์รายงาน</button>
+                            <button class="btn btn-outline-success fw-bold px-4" onclick="window.print()">🖨️ พิมพ์รายงาน</button>
                         </div>
                     </div>
                 </div>
@@ -443,8 +439,17 @@
         </div>
 
         <!-- ================= แท็บ 4: คลังสินค้า ================= -->
-        <div class="tab-pane fade d-print-none" id="inventory" role="tabpanel">
-            <div class="card mb-4">
+        <div class="tab-pane fade" id="inventory" role="tabpanel">
+            
+            <!-- หัวข้อตอนปริ้นสต็อก -->
+            <div class="d-none d-print-block text-center mb-4">
+                <h2 class="fw-bold">รายงานสต็อกสินค้าคงเหลือ</h2>
+                <h5 id="printInventoryDate" class="text-muted"></h5>
+                <hr>
+            </div>
+
+            <!-- ฟอร์มเพิ่มสินค้า (ซ่อนตอนปริ้น) -->
+            <div class="card mb-4 d-print-none">
                 <div class="card-header bg-transparent border-bottom-0 pt-4 pb-0">
                     <h5 class="fw-bold mb-0">➕ เพิ่มสินค้าใหม่</h5>
                 </div>
@@ -485,16 +490,41 @@
                 </div>
             </div>
             
-            <div class="d-flex justify-content-between align-items-end mb-3 mt-4">
+            <div class="d-flex justify-content-between align-items-end mb-3 mt-4 d-print-none">
                 <h5 class="fw-bold mb-0">📦 รายการสินค้าทั้งหมด</h5>
-                <button class="btn btn-sm btn-outline-danger" onclick="manualClearDailyStock()">🧹 เคลียร์สต็อกสินค้ารายวัน</button>
+                <div>
+                    <button class="btn btn-sm btn-outline-danger me-2" onclick="manualClearDailyStock()">🧹 เคลียร์สต็อกรายวัน</button>
+                    <button class="btn btn-sm btn-success fw-bold shadow-sm px-3" onclick="window.print()">🖨️ พิมพ์รายงานสต็อก</button>
+                </div>
             </div>
             
+            <!-- ตารางคลังสินค้า -->
             <div class="table-responsive bg-white">
                 <table class="table table-hover align-middle mb-0">
-                    <thead><tr><th>บาร์โค้ด</th><th>หมวดหมู่</th><th>ชื่อสินค้า</th><th class="text-center">ราคา (฿)</th><th class="text-center">คงเหลือ</th><th class="text-center">จัดการ</th></tr></thead>
+                    <thead class="table-light">
+                        <tr>
+                            <th>บาร์โค้ด</th>
+                            <th>หมวดหมู่</th>
+                            <th>ชื่อสินค้า</th>
+                            <th class="text-center">ราคา (฿)</th>
+                            <th class="text-center">คงเหลือ</th>
+                            <th class="text-center d-print-none">จัดการ</th>
+                        </tr>
+                    </thead>
                     <tbody id="inventoryTableBody"></tbody>
                 </table>
+            </div>
+
+            <!-- ลายเซ็นต์คนปริ้น (แสดงเฉพาะตอนปริ้น) -->
+            <div class="d-none d-print-block mt-5 pt-5">
+                <div class="row text-center mt-5">
+                    <div class="col-6">
+                        <p>ผู้ตรวจนับสต็อก</p><br><p>.......................................................</p>
+                    </div>
+                    <div class="col-6">
+                        <p>ผู้จัดการร้าน</p><br><p>.......................................................</p>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -628,7 +658,6 @@
         return result;
     }
 
-    // ข้อมูล
     let inventory = JSON.parse(localStorage.getItem('myApp_inventory')) || [];
     let transactions = JSON.parse(localStorage.getItem('myApp_transactions')) || [];
     let customers = JSON.parse(localStorage.getItem('myApp_customers')) || [];
@@ -723,7 +752,6 @@
         $('#saleCustomer, #productSelect, #viewCustomerSelect').select2({ theme: 'bootstrap-5', width: '100%' });
     }
 
-    // ================= ระบบสรุปยอดขาย =================
     function initSummary() {
         let today = new Date();
         document.getElementById('summaryDate').value = today.toLocaleDateString('en-CA');
@@ -895,7 +923,6 @@
         document.getElementById('summaryTitleText').innerText = `📊 สรุป${viewTypeText} ${shiftNameText}`;
     }
 
-    // ================= ระบบหน้าคิดเงิน (POS) =================
     function initPOS() {
         updateDropdownHtml();
         renderCart();
@@ -1072,6 +1099,7 @@
         let change = paid - grandTotal;
         let remainingDebt = grandTotal - paid;
 
+        let statusLabel = document.getElementById('posStatusLabel');
         if (change >= 0) {
             document.getElementById('posChangeAmount').innerText = change.toLocaleString();
             document.getElementById('posDebtAmount').innerText = "0";
@@ -1150,7 +1178,6 @@
             tbody.innerHTML = "<tr><td colspan='8' class='text-center text-muted py-4'>ยังไม่มีประวัติการขายวันนี้</td></tr>";
             return;
         }
-        // แสดงแค่ 50 รายการล่าสุดในหน้าหลักเพื่อความเร็ว
         transactions.slice(0, 50).forEach(t => {
             let billDebt = t.total - t.paid;
             let debtClass = billDebt > 0 ? "text-danger fw-bold" : (billDebt < 0 ? "text-success fw-bold" : "text-muted");
@@ -1315,6 +1342,10 @@
     function renderInventory() {
         let tbody = document.getElementById('inventoryTableBody');
         tbody.innerHTML = "";
+        
+        let now = new Date();
+        document.getElementById('printInventoryDate').innerText = `ข้อมูล ณ วันที่: ${now.toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })} เวลา ${now.toLocaleTimeString('th-TH', {hour: '2-digit', minute:'2-digit'})} น.`;
+
         if (inventory.length === 0) { tbody.innerHTML = "<tr><td colspan='6' class='text-center text-muted py-4'>ยังไม่ได้เพิ่มสินค้า</td></tr>"; return; }
         let sortedInventory = [...inventory].sort((a, b) => a.category.localeCompare(b.category));
         sortedInventory.forEach(p => {
@@ -1327,7 +1358,7 @@
                 <td class="fw-bold">${p.name} ${dailyBadge}</td>
                 <td class="text-center fw-bold">${p.price}</td>
                 <td class="text-center ${stockColor}">${p.stock}</td>
-                <td class="text-center">
+                <td class="text-center d-print-none">
                     <button class="btn btn-sm btn-light text-primary" onclick="openEditModal(${p.id})">แก้</button> 
                     <button class="btn btn-sm btn-light text-danger" onclick="deleteProduct(${p.id})">ลบ</button>
                 </td>
