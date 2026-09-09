@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบร้านค้า (เพิ่ม/แก้ไขลูกค้าในแอป + Excel)</title>
+    <title>ระบบร้านค้า (แก้ไขคอลัมน์ตารางลูกค้า)</title>
     
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -96,6 +96,7 @@
         .table th { background-color: #f8f9fa; color: #495057; font-weight: 600; font-size: 15px; border-bottom: 2px solid #eef2f5; padding: 14px 16px; }
         .table td { vertical-align: middle; font-size: 16px; padding: 12px 16px; border-bottom: 1px solid #eef2f5; }
 
+        /* กล่องราคาในตะกร้า */
         .cart-price-input { padding: 4px 8px; font-size: 16px; width: 85px; margin: 0 auto; border: 1px solid transparent; background: transparent; transition: 0.2s; }
         .cart-price-input:hover, .cart-price-input:focus { border: 1px solid #86b7fe; background: #fff; border-radius: 6px; }
 
@@ -237,9 +238,9 @@
                             </div>
                         </div>
 
-                        <!-- เพิ่มปุ่มลัดสำหรับ จ่ายชำระหนี้ (ไม่ซื้อของ) -->
+                        <!-- ปุ่มลัดรับเงินชำระหนี้ -->
                         <button type="button" class="btn btn-warning w-100 mb-3 shadow-sm fw-bold border-0 text-dark py-2" onclick="openPayDebtModal()" style="font-size: 18px;">
-                            💰 ลูกค้านำเงินมาจ่ายหนี้ (ไม่ซื้อของ)
+                            💰 ลูกค้านำเงินมาจ่ายหนี้ / ฝากเงิน (ไม่ซื้อของ)
                         </button>
 
                         <div class="row g-2 mb-3">
@@ -252,8 +253,8 @@
                                 <input type="text" id="posRemark" class="form-control" placeholder="เช่น ลูกค้า VIP">
                             </div>
                             <div class="col-12 mt-2">
-                                <label class="form-label text-danger mb-1" style="font-size: 14px;">📦 ค้างภาชนะ (อัปเดตสถานะให้ลูกค้า)</label>
-                                <input type="text" id="posPendingItem" class="form-control border-danger border-2 text-danger fw-bold" placeholder="เช่น ค้างถังแก๊ส 1 ถัง (ถ้าคืนแล้วให้ลบออก)">
+                                <label class="form-label text-danger mb-1" style="font-size: 14px;">📦 ค้างภาชนะ (พิมพ์เพื่ออัปเดตสถานะ)</label>
+                                <input type="text" id="posPendingItem" class="form-control border-danger border-2 text-danger fw-bold" placeholder="เช่น ค้างถัง 1 ใบ (ถ้าคืนแล้วให้ลบออก)">
                             </div>
                         </div>
 
@@ -361,19 +362,19 @@
                 </div>
                 <div class="col-6 col-md-3">
                     <div class="card h-100 p-3 bg-light border-0">
-                        <span class="form-label text-success d-block mb-1">เงินที่ต้องนับได้ในกระเป๋า</span>
+                        <span class="form-label text-success d-block mb-1">เงินสดในกระเป๋า</span>
                         <span class="fw-bold fs-3 text-success" id="sumPaid">0</span>
                     </div>
                 </div>
                 <div class="col-6 col-md-3">
                     <div class="card h-100 p-3 bg-light border-0">
-                        <span class="form-label text-danger d-block mb-1">ลูกค้าค้างหนี้เพิ่มรอบนี้</span>
+                        <span class="form-label text-danger d-block mb-1">ลูกค้าค้างหนี้เพิ่ม</span>
                         <span class="fw-bold fs-3 text-danger" id="sumDebt">0</span>
                     </div>
                 </div>
                 <div class="col-6 col-md-3">
                     <div class="card h-100 p-3 bg-light border-0">
-                        <span class="form-label text-primary d-block mb-1">เงินเกิน/ฝากไว้เพิ่มรอบนี้</span>
+                        <span class="form-label text-primary d-block mb-1">เงินเกิน/ฝากไว้เพิ่ม</span>
                         <span class="fw-bold fs-3 text-primary" id="sumOverpaid">0</span>
                     </div>
                 </div>
@@ -603,7 +604,7 @@
                 <div class="col-lg-7">
                     <div class="card h-100">
                         <div class="card-header bg-transparent border-bottom-0 pt-4 pb-0">
-                            <h5 class="fw-bold mb-0">➕ เพิ่มลูกค้าใหม่ทีละคน</h5>
+                            <h5 class="fw-bold mb-0">➕ เพิ่มลูกค้าใหม่</h5>
                         </div>
                         <div class="card-body p-4">
                             <form id="addCustomerForm" onsubmit="saveCustomer(event)">
@@ -625,7 +626,7 @@
                                         <input type="text" id="newCusAddress" class="form-control">
                                     </div>
                                     <div class="col-12 mt-4 text-end">
-                                        <button type="submit" class="btn btn-primary px-5 fw-bold">💾 บันทึกลูกค้า</button>
+                                        <button type="submit" class="btn btn-primary px-5 fw-bold">💾 บันทึก</button>
                                     </div>
                                 </div>
                             </form>
@@ -673,7 +674,7 @@
                             <th>ชื่อลูกค้า</th>
                             <th>เบอร์โทร</th>
                             <th>ที่อยู่</th>
-                            <th class="text-danger">ค้างภาชนะ</th>
+                            <th class="text-center text-danger">ค้างภาชนะ</th>
                             <th class="text-end">หนี้ค้าง</th>
                             <th class="text-end">เงินฝาก</th>
                             <th class="text-center">จัดการ</th>
@@ -688,7 +689,6 @@
 
 <!-- ================= Modals ================= -->
 
-<!-- Modal สำหรับรับเงินจ่ายหนี้ (ไม่ซื้อของ) -->
 <div class="modal fade d-print-none" id="payDebtModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content border-0 shadow">
@@ -1791,7 +1791,7 @@
         }
     }
 
-    // ================= โซนจัดการลูกค้า (นำเข้า/ส่งออก Excel + ฟอร์มในแอป) =================
+    // ================= โซนจัดการลูกค้า (แก้ไขคอลัมน์แล้ว) =================
     function renderCustomerTable() {
         let searchInput = document.getElementById('searchCustomerTable');
         let searchTerm = searchInput ? searchInput.value.trim().toLowerCase() : '';
@@ -1816,11 +1816,14 @@
         filteredCustomers.forEach(c => {
             let bal = getCustomerBalance(c.barcode);
             let pendingHtml = c.pendingItem ? `<span class="badge bg-danger">${c.pendingItem}</span>` : "-";
+            
+            // สร้างทีละ td ให้ตรงกับ Thead ด้านบนสุดเป๊ะๆ
             tbody.innerHTML += `
                 <tr>
                     <td class="text-primary fw-bold">${c.barcode}</td>
                     <td class="fw-bold">${c.name}</td>
-                    <td class="text-muted" style="font-size:14px;">${c.phone || "-"}<br>${c.address || "-"}</td>
+                    <td class="text-muted">${c.phone || "-"}</td>
+                    <td class="text-muted" style="font-size:14px;">${c.address || "-"}</td>
                     <td class="text-center">${pendingHtml}</td>
                     <td class="text-end fw-bold ${bal.debt > 0 ? 'text-danger' : 'text-muted'}">${bal.debt > 0 ? bal.debt.toLocaleString() : '-'}</td>
                     <td class="text-end fw-bold ${bal.credit > 0 ? 'text-success' : 'text-muted'}">${bal.credit > 0 ? bal.credit.toLocaleString() : '-'}</td>
