@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบร้านค้า (ระบบติดตามภาชนะค้างรับ)</title>
+    <title>ระบบร้านค้า (จัดการลูกค้าด้วย Excel)</title>
     
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -13,6 +13,9 @@
     <!-- Select2 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+
+    <!-- SheetJS สำหรับจัดการไฟล์ Excel -->
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 
     <style>
         body { 
@@ -93,7 +96,6 @@
         .table th { background-color: #f8f9fa; color: #495057; font-weight: 600; font-size: 15px; border-bottom: 2px solid #eef2f5; padding: 14px 16px; }
         .table td { vertical-align: middle; font-size: 16px; padding: 12px 16px; border-bottom: 1px solid #eef2f5; }
 
-        /* กล่องราคาในตะกร้า ซ่อนขอบให้ดูเนียน */
         .cart-price-input { padding: 4px 8px; font-size: 16px; width: 85px; margin: 0 auto; border: 1px solid transparent; background: transparent; transition: 0.2s; }
         .cart-price-input:hover, .cart-price-input:focus { border: 1px solid #86b7fe; background: #fff; border-radius: 6px; }
 
@@ -134,7 +136,7 @@
         <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#summary" type="button" onclick="initSummary()">📊 สรุปยอดขาย</button></li>
         <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#customerView" type="button" onclick="initCustomerView()">👤 ข้อมูลลูกค้า</button></li>
         <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#inventory" type="button" onclick="viewInventoryHistory()">📦 คลังสินค้า</button></li>
-        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#customers" type="button" onclick="renderCustomerTable()">👥 จัดการลูกค้า</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#customers" type="button" onclick="renderCustomerTable()">👥 จัดการลูกค้า (Excel)</button></li>
     </ul>
 
     <div class="tab-content">
@@ -158,7 +160,6 @@
             </div>
 
             <div class="row g-4 d-print-none">
-                <!-- ฝั่งซ้าย: สแกนและตะกร้า -->
                 <div class="col-lg-7">
                     <div class="card mb-4">
                         <div class="card-body">
@@ -172,7 +173,6 @@
                                     <select id="saleCustomer" class="form-select" required></select>
                                 </div>
                             </div>
-                            <!-- กล่องแจ้งเตือนค้างหนี้ / ค้างภาชนะ -->
                             <div id="currentCustomerDebtInfo" class="mt-2 py-2 px-3 rounded" style="display:none; font-size: 15px;"></div>
                             <div id="currentCustomerPendingInfo" class="mt-2 py-2 px-3 rounded text-danger fw-bold bg-danger bg-opacity-10 border border-danger" style="display:none; font-size: 16px;"></div>
                         </div>
@@ -212,7 +212,6 @@
                     </div>
                 </div>
 
-                <!-- ฝั่งขวา: จอคิดเงิน -->
                 <div class="col-lg-5">
                     <div class="pos-panel h-100 d-flex flex-column">
                         <div class="pos-display mb-4">
@@ -236,7 +235,6 @@
                             </div>
                         </div>
 
-                        <!-- หมายเหตุ, ส่วนลด และ ค้างภาชนะ -->
                         <div class="row g-2 mb-3">
                             <div class="col-5">
                                 <label class="form-label text-dark mb-1" style="font-size: 14px;">🎁 ส่วนลด (฿)</label>
@@ -248,7 +246,7 @@
                             </div>
                             <div class="col-12 mt-2">
                                 <label class="form-label text-danger mb-1" style="font-size: 14px;">📦 ค้างภาชนะ (อัปเดตสถานะให้ลูกค้า)</label>
-                                <input type="text" id="posPendingItem" class="form-control border-danger border-2 text-danger fw-bold" placeholder="เช่น ค้างถังแก๊ส 1 ถัง (ถ้าเอามาคืนแล้วให้ลบข้อความออก)">
+                                <input type="text" id="posPendingItem" class="form-control border-danger border-2 text-danger fw-bold" placeholder="เช่น ค้างถังแก๊ส 1 ถัง (ถ้าคืนแล้วให้ลบออก)">
                             </div>
                         </div>
 
@@ -446,7 +444,7 @@
                         <div class="col-md-4 mb-3 mb-md-0">
                             <span class="form-label text-muted d-block">ข้อมูลลูกค้า</span>
                             <h4 class="fw-bold text-dark mb-1" id="infoCusName">-</h4>
-                            <span class="text-secondary" id="infoCusPhone">-</span><br>
+                            <span class="text-secondary" id="infoCusPhone">-</span> | 
                             <span class="text-secondary" id="infoCusAddress">-</span>
                         </div>
                         <div class="col-md-3 text-center border-start">
@@ -454,12 +452,12 @@
                             <h5 class="fw-bold text-danger mb-0 mt-2" id="viewCustomerPending">-</h5>
                         </div>
                         <div class="col-md-2 text-center border-start">
-                            <span class="form-label text-danger d-block">หนี้ค้างรวม</span>
-                            <h4 class="fw-bold text-danger mb-0 mt-2" id="viewCustomerDebt">0 ฿</h4>
+                            <span class="form-label text-danger d-block">หนี้ค้างชำระรวม</span>
+                            <h3 class="fw-bold text-danger mb-0 mt-2" id="viewCustomerDebt">0 ฿</h3>
                         </div>
                         <div class="col-md-3 text-center border-start">
                             <span class="form-label text-success d-block">เงินฝากล่วงหน้า</span>
-                            <h4 class="fw-bold text-success mb-0 mt-2" id="viewCustomerCredit">0 ฿</h4>
+                            <h3 class="fw-bold text-success mb-0 mt-2" id="viewCustomerCredit">0 ฿</h3>
                         </div>
                     </div>
                 </div>
@@ -590,26 +588,32 @@
             </div>
         </div>
 
-        <!-- ================= แท็บ 5: จัดการรายชื่อลูกค้า ================= -->
+        <!-- ================= แท็บ 5: จัดการรายชื่อลูกค้า (นำเข้า/ส่งออก Excel) ================= -->
         <div class="tab-pane fade d-print-none" id="customers" role="tabpanel">
-            <div class="card mb-4">
-                <div class="card-header bg-transparent border-bottom-0 pt-4 pb-0">
-                    <h5 class="fw-bold mb-0">➕ เพิ่มลูกค้าใหม่</h5>
-                </div>
-                <div class="card-body p-4">
-                    <form id="addCustomerForm" onsubmit="saveCustomer(event)">
-                        <div class="row g-3">
-                            <div class="col-md-3"><label class="form-label">รหัสลูกค้า</label><input type="text" id="newCusBarcode" class="form-control" oninput="this.value = convertThaiToEng(this.value)" required></div>
-                            <div class="col-md-5"><label class="form-label">ชื่อ-นามสกุล / ร้าน</label><input type="text" id="newCusName" class="form-control" required></div>
-                            <div class="col-md-4"><label class="form-label">เบอร์โทรศัพท์</label><input type="text" id="newCusPhone" class="form-control"></div>
-                            <div class="col-md-10"><label class="form-label">ที่อยู่</label><input type="text" id="newCusAddress" class="form-control"></div>
-                            <div class="col-md-2 d-flex align-items-end"><button type="submit" class="btn btn-primary w-100">💾 บันทึก</button></div>
-                        </div>
-                    </form>
+            
+            <!-- กล่องควบคุมการจัดการ Excel แทนหน้าฟอร์มเดิม -->
+            <div class="card mb-4 border-0 shadow-sm" style="background-color: #f0fdf4; border-left: 5px solid #198754 !important;">
+                <div class="card-body p-4 text-center">
+                    <h4 class="fw-bold text-success mb-3">📗 จัดการลูกค้ารวดเร็วผ่านตาราง Excel</h4>
+                    <p class="text-muted" style="font-size: 16px;">โหลดไฟล์ออกไปแก้ไข เพิ่ม/ลบรายชื่อใน Excel แล้วบันทึก จากนั้นนำกลับมาอัปโหลดที่นี่ได้เลยครับ</p>
+                    
+                    <div class="d-flex flex-wrap justify-content-center gap-3 mt-4">
+                        <button class="btn btn-outline-success btn-lg fw-bold px-4" onclick="exportCustomersToExcel()">
+                            📤 1. โหลดรายชื่อไปแก้ (Export)
+                        </button>
+                        
+                        <label class="btn btn-success btn-lg fw-bold px-4 mb-0" style="cursor: pointer;">
+                            📥 2. อัปโหลดไฟล์ที่แก้เสร็จแล้ว (Import)
+                            <input type="file" id="importExcel" accept=".xlsx, .xls" style="display: none;" onchange="importCustomersFromExcel(event)">
+                        </label>
+                    </div>
                 </div>
             </div>
             
-            <h5 class="fw-bold mb-3 mt-4">👥 รายชื่อลูกค้า</h5>
+            <div class="d-flex justify-content-between align-items-end mb-3 mt-5">
+                <h5 class="fw-bold mb-0">👥 รายชื่อลูกค้าทั้งหมด</h5>
+            </div>
+
             <div class="row mb-3">
                 <div class="col-md-5">
                     <input type="text" id="searchCustomerTable" class="form-control bg-white" placeholder="🔍 ค้นหา ชื่อ หรือ รหัส..." oninput="renderCustomerTable()" onkeydown="if(event.key==='Enter') { this.value = convertThaiToEng(this.value); renderCustomerTable(); }">
@@ -618,11 +622,12 @@
 
             <div class="table-responsive bg-white">
                 <table class="table table-hover align-middle mb-0">
-                    <thead>
+                    <thead class="table-light">
                         <tr>
                             <th>รหัส</th>
                             <th>ชื่อลูกค้า</th>
-                            <th>เบอร์โทร/ที่อยู่</th>
+                            <th>เบอร์โทร</th>
+                            <th>ที่อยู่</th>
                             <th class="text-danger">ค้างภาชนะ</th>
                             <th class="text-end">หนี้ค้าง</th>
                             <th class="text-end">เงินฝาก</th>
@@ -632,6 +637,7 @@
                     <tbody id="customerTableBody"></tbody>
                 </table>
             </div>
+            <div class="text-muted mt-2" style="font-size: 14px;">* หมายเหตุ: สามารถลบลูกค้าเก่าได้ที่นี่ แต่ถ้าต้องการแก้ไขข้อมูลให้ใช้การ Export ไปทำใน Excel แทนครับ</div>
         </div>
     </div>
 </div>
@@ -659,29 +665,8 @@
               <input class="form-check-input" type="checkbox" id="editProdIsDaily">
               <label class="form-check-label text-danger" for="editProdIsDaily">📅 สินค้ารายวัน (เคลียร์สต็อก 0 ทุกวัน)</label>
           </div>
-
         </div>
         <div class="modal-footer"><button type="button" class="btn btn-light" data-bs-dismiss="modal">ยกเลิก</button><button type="button" class="btn btn-primary" onclick="updateProduct()">บันทึก</button></div>
-      </div>
-    </div>
-</div>
-
-<div class="modal fade d-print-none" id="editCustomerModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content">
-        <div class="modal-header"><h5 class="modal-title fw-bold">✏️ แก้ไขลูกค้า</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-        <div class="modal-body p-4">
-          <input type="hidden" id="editCusOriginalBarcode">
-          <div class="mb-3"><label class="form-label">รหัสลูกค้า</label><input type="text" id="editCusBarcode" class="form-control" oninput="this.value = convertThaiToEng(this.value)"></div>
-          <div class="mb-3"><label class="form-label">ชื่อลูกค้า</label><input type="text" id="editCusName" class="form-control"></div>
-          <div class="mb-3"><label class="form-label">เบอร์โทร</label><input type="text" id="editCusPhone" class="form-control"></div>
-          <div class="mb-3"><label class="form-label">ที่อยู่</label><input type="text" id="editCusAddress" class="form-control"></div>
-          <div class="mb-3">
-              <label class="form-label text-danger">📦 ค้างภาชนะ (อัปเดตสถานะให้ลูกค้า)</label>
-              <input type="text" id="editCusPendingItem" class="form-control border-danger" placeholder="เช่น ค้างถัง 1 ใบ">
-          </div>
-        </div>
-        <div class="modal-footer"><button type="button" class="btn btn-light" data-bs-dismiss="modal">ยกเลิก</button><button type="button" class="btn btn-primary" onclick="updateCustomerData()">บันทึก</button></div>
       </div>
     </div>
 </div>
@@ -751,7 +736,6 @@
         return p; 
     });
     
-    // โครงสร้างลูกค้าใหม่ เพิ่มตัวแปรเก็บภาชนะค้าง (pendingItem)
     customers = customers.map(c => ({ 
         barcode: c.barcode, 
         name: c.name, 
@@ -829,7 +813,7 @@
 
         let cusOptions = '<option value="">-- พิมพ์ชื่อลูกค้า --</option>';
         customers.forEach(c => { 
-            let alertPin = c.pendingItem ? ' ⚠️ (มีค้างของ)' : '';
+            let alertPin = c.pendingItem ? ' ⚠️ (ค้างของ)' : '';
             cusOptions += `<option value="${c.barcode}">[${c.barcode}] ${c.name}${alertPin}</option>`; 
         });
         cusSelect.html(cusOptions);
@@ -1037,7 +1021,6 @@
             let barcode = cusSelect.value;
             let cus = customers.find(x => x.barcode === barcode);
             
-            // นำค้างภาชนะมาใส่ในช่องพิมพ์
             pendingInput.value = cus && cus.pendingItem ? cus.pendingItem : "";
 
             if (cus && cus.pendingItem) {
@@ -1291,7 +1274,6 @@
         
         saveInventoryData(); 
         
-        // อัปเดตค้างภาชนะให้ลูกค้าคนนี้
         let cusIndex = customers.findIndex(c => c.barcode === barcode);
         if (cusIndex > -1) {
             customers[cusIndex].pendingItem = pendingItemStr;
@@ -1652,7 +1634,7 @@
         }
     }
 
-    // ================= โซนจัดการลูกค้า =================
+    // ================= โซนจัดการลูกค้า (นำเข้า/ส่งออก Excel) =================
     function renderCustomerTable() {
         let searchInput = document.getElementById('searchCustomerTable');
         let searchTerm = searchInput ? searchInput.value.trim().toLowerCase() : '';
@@ -1686,7 +1668,6 @@
                     <td class="text-end fw-bold ${bal.debt > 0 ? 'text-danger' : 'text-muted'}">${bal.debt > 0 ? bal.debt.toLocaleString() : '-'}</td>
                     <td class="text-end fw-bold ${bal.credit > 0 ? 'text-success' : 'text-muted'}">${bal.credit > 0 ? bal.credit.toLocaleString() : '-'}</td>
                     <td class="text-center d-print-none">
-                        <button class="btn btn-sm btn-light text-primary" onclick="openEditCustomerModal('${c.barcode}')">แก้</button>
                         <button class="btn btn-sm btn-light text-danger" onclick="deleteCustomer('${c.barcode}')">ลบ</button>
                     </td>
                 </tr>
@@ -1694,50 +1675,51 @@
         });
     }
 
-    function saveCustomer(e) {
-        e.preventDefault();
-        let barcode = document.getElementById('newCusBarcode').value.trim();
-        if (customers.find(c => c.barcode === barcode)) { alert("❌ รหัสลูกค้าซ้ำกัน"); return; }
-        customers.push({
-            barcode: barcode,
-            name: document.getElementById('newCusName').value.trim(),
-            phone: document.getElementById('newCusPhone').value.trim() || "-",
-            address: document.getElementById('newCusAddress').value.trim() || "-",
-            pendingItem: ""
-        });
-        localStorage.setItem('myApp_customers', JSON.stringify(customers));
-        document.getElementById('addCustomerForm').reset();
-        renderCustomerTable();
-        updateDropdownHtml();
+    function exportCustomersToExcel() {
+        let data = customers.map(c => ({
+            "รหัสลูกค้า": c.barcode,
+            "ชื่อลูกค้า": c.name,
+            "เบอร์โทร": c.phone,
+            "ที่อยู่": c.address,
+            "ค้างภาชนะ": c.pendingItem || ""
+        }));
+        let ws = XLSX.utils.json_to_sheet(data);
+        let wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Customers");
+        XLSX.writeFile(wb, "รายชื่อลูกค้า.xlsx");
     }
 
-    const editCustomerModal = new bootstrap.Modal(document.getElementById('editCustomerModal'));
-    function openEditCustomerModal(barcode) {
-        let c = customers.find(x => x.barcode === barcode);
-        if(!c) return;
-        document.getElementById('editCusOriginalBarcode').value = c.barcode;
-        document.getElementById('editCusBarcode').value = c.barcode;
-        document.getElementById('editCusName').value = c.name;
-        document.getElementById('editCusPhone').value = c.phone;
-        document.getElementById('editCusAddress').value = c.address;
-        document.getElementById('editCusPendingItem').value = c.pendingItem || "";
-        editCustomerModal.show();
-    }
+    function importCustomersFromExcel(e) {
+        let file = e.target.files[0];
+        if (!file) return;
+        let reader = new FileReader();
+        reader.onload = function(event) {
+            let data = new Uint8Array(event.target.result);
+            let workbook = XLSX.read(data, {type: 'array'});
+            let firstSheetName = workbook.SheetNames[0];
+            let worksheet = workbook.Sheets[firstSheetName];
+            let json = XLSX.utils.sheet_to_json(worksheet);
 
-    function updateCustomerData() {
-        let originalBarcode = document.getElementById('editCusOriginalBarcode').value;
-        let c = customers.find(x => x.barcode === originalBarcode);
-        if(c) {
-            c.barcode = document.getElementById('editCusBarcode').value.trim();
-            c.name = document.getElementById('editCusName').value.trim();
-            c.phone = document.getElementById('editCusPhone').value.trim() || "-";
-            c.address = document.getElementById('editCusAddress').value.trim() || "-";
-            c.pendingItem = document.getElementById('editCusPendingItem').value.trim();
-            localStorage.setItem('myApp_customers', JSON.stringify(customers));
-            renderCustomerTable();
-            updateDropdownHtml();
-            editCustomerModal.hide();
-        }
+            let newCustomers = json.map(row => ({
+                barcode: String(row["รหัสลูกค้า"] || ""),
+                name: String(row["ชื่อลูกค้า"] || ""),
+                phone: String(row["เบอร์โทร"] || "-"),
+                address: String(row["ที่อยู่"] || "-"),
+                pendingItem: String(row["ค้างภาชนะ"] || "")
+            })).filter(c => c.barcode && c.name); 
+
+            if (newCustomers.length > 0) {
+                customers = newCustomers;
+                localStorage.setItem('myApp_customers', JSON.stringify(customers));
+                renderCustomerTable();
+                updateDropdownHtml();
+                alert("✅ อัปเดตรายชื่อลูกค้าจาก Excel เรียบร้อยแล้ว!");
+            } else {
+                alert("❌ ไม่พบข้อมูล หรือรูปแบบไฟล์ Excel ไม่ถูกต้อง");
+            }
+            document.getElementById('importExcel').value = ""; 
+        };
+        reader.readAsArrayBuffer(file);
     }
 
     function deleteCustomer(barcode) {
