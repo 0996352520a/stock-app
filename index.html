@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบร้านค้า (แก้ไขคอลัมน์ตารางลูกค้า)</title>
+    <title>ระบบร้านค้า (แยกยอดบิลปัจจุบัน)</title>
     
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -96,7 +96,7 @@
         .table th { background-color: #f8f9fa; color: #495057; font-weight: 600; font-size: 15px; border-bottom: 2px solid #eef2f5; padding: 14px 16px; }
         .table td { vertical-align: middle; font-size: 16px; padding: 12px 16px; border-bottom: 1px solid #eef2f5; }
 
-        /* กล่องราคาในตะกร้า */
+        /* กล่องราคาในตะกร้า ซ่อนขอบให้ดูเนียน */
         .cart-price-input { padding: 4px 8px; font-size: 16px; width: 85px; margin: 0 auto; border: 1px solid transparent; background: transparent; transition: 0.2s; }
         .cart-price-input:hover, .cart-price-input:focus { border: 1px solid #86b7fe; background: #fff; border-radius: 6px; }
 
@@ -137,7 +137,7 @@
         <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#summary" type="button" onclick="initSummary()">📊 สรุปยอดขาย</button></li>
         <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#customerView" type="button" onclick="initCustomerView()">👤 ข้อมูลลูกค้า</button></li>
         <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#inventory" type="button" onclick="viewInventoryHistory()">📦 คลังสินค้า</button></li>
-        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#customers" type="button" onclick="renderCustomerTable()">👥 จัดการลูกค้า</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#customers" type="button" onclick="renderCustomerTable()">👥 จัดการลูกค้า (Excel)</button></li>
     </ul>
 
     <div class="tab-content">
@@ -175,6 +175,7 @@
                                     <select id="saleCustomer" class="form-select" required></select>
                                 </div>
                             </div>
+                            <!-- แจ้งเตือนหนี้และค้างภาชนะ -->
                             <div id="currentCustomerDebtInfo" class="mt-2 py-2 px-3 rounded" style="display:none; font-size: 15px;"></div>
                             <div id="currentCustomerPendingInfo" class="mt-2 py-2 px-3 rounded text-danger fw-bold bg-danger bg-opacity-10 border border-danger" style="display:none; font-size: 16px;"></div>
                         </div>
@@ -218,7 +219,8 @@
                 <div class="col-lg-5">
                     <div class="pos-panel h-100 d-flex flex-column">
                         <div class="pos-display mb-4">
-                            <div class="text-start text-muted mb-2" style="font-size: 14px; color: #64748b !important;">ยอดที่ต้องชำระ (Total)</div>
+                            <!-- แจ้งให้ชัดเจนว่าเป็นยอดเฉพาะบิลนี้ -->
+                            <div class="text-start text-muted mb-2" style="font-size: 14px; color: #64748b !important;">ยอดชำระเฉพาะบิลนี้ (This Bill)</div>
                             <div class="total-text" id="posGrandTotal">0</div>
                             <div class="text-end mt-1 text-muted" style="color: #64748b !important;">บาท (THB)</div>
                         </div>
@@ -230,11 +232,12 @@
                             <div class="summary-row text-danger" id="discountRow" style="display:none;">
                                 <span>หักส่วนลด:</span><span class="fw-bold" id="posDiscountVal">0 ฿</span>
                             </div>
+                            <!-- ยอดหนี้เก่าโชว์ไว้ให้รู้เฉยๆ แต่ไม่เอาไปรวมในหน้าจอใหญ่ -->
                             <div class="summary-row" id="oldDebtRow">
-                                <span>ยอดหนี้ค้างเก่า:</span><span class="fw-bold text-danger" id="posOldDebtTotal">0 ฿</span>
+                                <span>ยอดหนี้ค้างเก่าทั้งหมด:</span><span class="fw-bold text-danger" id="posOldDebtTotal">0 ฿</span>
                             </div>
                             <div class="summary-row" id="creditRow" style="display:none;">
-                                <span>เครดิตเงินฝาก:</span><span class="fw-bold text-success" id="posCreditTotal">0 ฿</span>
+                                <span>เครดิตเงินฝากทั้งหมด:</span><span class="fw-bold text-success" id="posCreditTotal">0 ฿</span>
                             </div>
                         </div>
 
@@ -253,14 +256,15 @@
                                 <input type="text" id="posRemark" class="form-control" placeholder="เช่น ลูกค้า VIP">
                             </div>
                             <div class="col-12 mt-2">
-                                <label class="form-label text-danger mb-1" style="font-size: 14px;">📦 ค้างภาชนะ (พิมพ์เพื่ออัปเดตสถานะ)</label>
-                                <input type="text" id="posPendingItem" class="form-control border-danger border-2 text-danger fw-bold" placeholder="เช่น ค้างถัง 1 ใบ (ถ้าคืนแล้วให้ลบออก)">
+                                <label class="form-label text-danger mb-1" style="font-size: 14px;">📦 ค้างภาชนะ (อัปเดตสถานะให้ลูกค้า)</label>
+                                <input type="text" id="posPendingItem" class="form-control border-danger border-2 text-danger fw-bold" placeholder="เช่น ค้างถังแก๊ส 1 ถัง (ถ้าคืนแล้วให้ลบออก)">
                             </div>
                         </div>
 
                         <div class="mb-4">
                             <label class="form-label text-dark mb-2">💵 รับเงินสด (บาท)</label>
                             <input type="number" id="posPaidAmount" class="form-control money-input" placeholder="0" oninput="calculateChange()" min="0">
+                            <div id="overpayNote" class="text-muted mt-1" style="font-size:13px; display:none;">*(จ่ายเกิน ยอดทอนจะถูกนำไปหักหนี้เก่าอัตโนมัติ)*</div>
                         </div>
 
                         <div class="row g-3 mb-4">
@@ -297,8 +301,8 @@
                             <th>กะ</th>
                             <th>ลูกค้า</th>
                             <th>รายการสินค้า/หมายเหตุ</th>
-                            <th class="text-end">ยอดสุทธิ</th>
-                            <th class="text-end text-success">จ่ายแล้ว</th>
+                            <th class="text-end">ยอดสุทธิบิลนี้</th>
+                            <th class="text-end text-success">จ่ายมา</th>
                             <th class="text-end">หนี้ค้าง(บิลนี้)</th>
                             <th class="text-center">จัดการ</th>
                         </tr>
@@ -362,19 +366,19 @@
                 </div>
                 <div class="col-6 col-md-3">
                     <div class="card h-100 p-3 bg-light border-0">
-                        <span class="form-label text-success d-block mb-1">เงินสดในกระเป๋า</span>
+                        <span class="form-label text-success d-block mb-1">เงินที่ต้องนับได้ในกระเป๋า</span>
                         <span class="fw-bold fs-3 text-success" id="sumPaid">0</span>
                     </div>
                 </div>
                 <div class="col-6 col-md-3">
                     <div class="card h-100 p-3 bg-light border-0">
-                        <span class="form-label text-danger d-block mb-1">ลูกค้าค้างหนี้เพิ่ม</span>
+                        <span class="form-label text-danger d-block mb-1">ลูกค้าค้างหนี้เพิ่มรอบนี้</span>
                         <span class="fw-bold fs-3 text-danger" id="sumDebt">0</span>
                     </div>
                 </div>
                 <div class="col-6 col-md-3">
                     <div class="card h-100 p-3 bg-light border-0">
-                        <span class="form-label text-primary d-block mb-1">เงินเกิน/ฝากไว้เพิ่ม</span>
+                        <span class="form-label text-primary d-block mb-1">เงินเกิน/ฝากไว้เพิ่มรอบนี้</span>
                         <span class="fw-bold fs-3 text-primary" id="sumOverpaid">0</span>
                     </div>
                 </div>
@@ -600,11 +604,10 @@
         <div class="tab-pane fade d-print-none" id="customers" role="tabpanel">
             
             <div class="row g-4 mb-4">
-                <!-- ฝั่งซ้าย: ฟอร์มเพิ่มลูกค้าแบบในแอป -->
                 <div class="col-lg-7">
                     <div class="card h-100">
                         <div class="card-header bg-transparent border-bottom-0 pt-4 pb-0">
-                            <h5 class="fw-bold mb-0">➕ เพิ่มลูกค้าใหม่</h5>
+                            <h5 class="fw-bold mb-0">➕ เพิ่มลูกค้าใหม่ทีละคน</h5>
                         </div>
                         <div class="card-body p-4">
                             <form id="addCustomerForm" onsubmit="saveCustomer(event)">
@@ -626,7 +629,7 @@
                                         <input type="text" id="newCusAddress" class="form-control">
                                     </div>
                                     <div class="col-12 mt-4 text-end">
-                                        <button type="submit" class="btn btn-primary px-5 fw-bold">💾 บันทึก</button>
+                                        <button type="submit" class="btn btn-primary px-5 fw-bold">💾 บันทึกลูกค้า</button>
                                     </div>
                                 </div>
                             </form>
@@ -634,7 +637,6 @@
                     </div>
                 </div>
 
-                <!-- ฝั่งขวา: จัดการผ่าน Excel -->
                 <div class="col-lg-5">
                     <div class="card h-100 border-0 shadow-sm" style="background-color: #f0fdf4; border-left: 5px solid #198754 !important;">
                         <div class="card-body p-4 text-center d-flex flex-column justify-content-center">
@@ -689,6 +691,7 @@
 
 <!-- ================= Modals ================= -->
 
+<!-- Modal สำหรับรับเงินจ่ายหนี้ (ไม่ซื้อของ) -->
 <div class="modal fade d-print-none" id="payDebtModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content border-0 shadow">
@@ -780,7 +783,7 @@
           <div class="mb-3"><label class="form-label">รายการสินค้า</label><input type="text" id="editTxItem" class="form-control"></div>
           <div class="mb-3"><label class="form-label">หมายเหตุ</label><input type="text" id="editTxRemark" class="form-control" placeholder="แก้ไขหมายเหตุที่นี่..."></div>
           <div class="row mb-3">
-              <div class="col-6"><label class="form-label text-primary">ยอดสุทธิ (฿)</label><input type="number" id="editTxTotal" class="form-control text-end" min="0" oninput="calculateEditTxDebt()"></div>
+              <div class="col-6"><label class="form-label text-primary">ยอดสุทธิบิลนี้ (฿)</label><input type="number" id="editTxTotal" class="form-control text-end" min="0" oninput="calculateEditTxDebt()"></div>
               <div class="col-6"><label class="form-label text-success">จ่ายจริง (฿)</label><input type="number" id="editTxPaid" class="form-control text-end" min="0" oninput="calculateEditTxDebt()"></div>
           </div>
           <div class="mb-2 p-2 bg-light border rounded text-center">
@@ -1247,6 +1250,7 @@
         document.getElementById('posDiscount').value = '';
         document.getElementById('posRemark').value = '';
         document.getElementById('posPendingItem').value = '';
+        document.getElementById('overpayNote').style.display = 'none';
         renderCart();
     }
 
@@ -1294,12 +1298,13 @@
         if(netTotal < 0) netTotal = 0;
 
         let bal = getCustomerBalance(document.getElementById('saleCustomer').value);
-        let grandTotal = netTotal + bal.debt - bal.credit;
-        if (grandTotal < 0) grandTotal = 0;
+        
+        // **ใช้เฉพาะยอดบิลปัจจุบันในการคำนวณเงินทอน**
+        let grandTotal = netTotal;
 
         let paid = parseFloat(document.getElementById('posPaidAmount').value) || 0;
         let change = paid - grandTotal;
-        let remainingDebt = grandTotal - paid;
+        let remainingDebt = grandTotal - paid; // หนี้บิลนี้
 
         let discountRow = document.getElementById('discountRow');
         if (discount > 0) {
@@ -1320,12 +1325,23 @@
 
         document.getElementById('posGrandTotal').innerText = grandTotal.toLocaleString();
 
-        if (change >= 0) {
+        if (change > 0) {
             document.getElementById('posChangeAmount').innerText = change.toLocaleString();
             document.getElementById('posDebtAmount').innerText = "0";
+            if (bal.debt > 0) {
+                // ถ้ามีหนี้เก่า แล้วจ่ายเกิน แจ้งเตือนว่าเงินทอนจะไปหักหนี้
+                document.getElementById('overpayNote').style.display = 'block';
+            } else {
+                document.getElementById('overpayNote').style.display = 'none';
+            }
+        } else if (change === 0) {
+            document.getElementById('posChangeAmount').innerText = "0";
+            document.getElementById('posDebtAmount').innerText = "0";
+            document.getElementById('overpayNote').style.display = 'none';
         } else {
             document.getElementById('posChangeAmount').innerText = "0";
             document.getElementById('posDebtAmount').innerText = Math.abs(remainingDebt).toLocaleString();
+            document.getElementById('overpayNote').style.display = 'none';
         }
     }
 
@@ -1400,11 +1416,7 @@
         let netTotal = cartTotal - discount;
         if(netTotal < 0) netTotal = 0;
 
-        let bal = getCustomerBalance(cusSelect.value);
-        let grandTotal = netTotal + bal.debt - bal.credit;
-        if (grandTotal < 0) grandTotal = 0;
-
-        if (cart.length === 0 && bal.debt === 0) { alert("❌ ไม่มีสินค้าในตะกร้า"); return; }
+        if (cart.length === 0) { alert("❌ ไม่มีสินค้าในตะกร้า\n(หากต้องการจ่ายหนี้ ให้กดปุ่มสีเหลือง 'ลูกค้านำเงินมาจ่ายหนี้')"); return; }
 
         let paid = parseFloat(document.getElementById('posPaidAmount').value);
         if (isNaN(paid)) { alert("❌ กรุณาใส่ยอดเงินที่รับมา (ถ้าไม่จ่ายให้ใส่ 0)"); return; }
@@ -1441,7 +1453,9 @@
         let dateTime = now.toLocaleDateString('th-TH') + " " + now.toLocaleTimeString('th-TH', {hour: '2-digit', minute:'2-digit'});
         let dateOnly = now.toLocaleDateString('en-CA');
 
-        let itemDesc = itemDescArr.length > 0 ? itemDescArr.join(', ') : "💰 นำเงินมาเคลียร์หนี้เก่า";
+        let itemDesc = itemDescArr.length > 0 ? itemDescArr.join(', ') : "ไม่มีรายการสินค้า";
+        
+        // หนี้เฉพาะบิลนี้ (ไม่เอาของเก่ามาเกี่ยว)
         let txDebt = netTotal - paid; 
 
         let newRecord = {
@@ -1467,6 +1481,7 @@
         document.getElementById('posDiscount').value = "";
         document.getElementById('posRemark').value = "";
         document.getElementById('posPendingItem').value = "";
+        document.getElementById('overpayNote').style.display = 'none';
         $('#saleCustomer').val('').trigger('change.select2');
         document.getElementById('scanCustomerBarcode').value = "";
         initPOS();
@@ -1791,7 +1806,7 @@
         }
     }
 
-    // ================= โซนจัดการลูกค้า (แก้ไขคอลัมน์แล้ว) =================
+    // ================= โซนจัดการลูกค้า =================
     function renderCustomerTable() {
         let searchInput = document.getElementById('searchCustomerTable');
         let searchTerm = searchInput ? searchInput.value.trim().toLowerCase() : '';
@@ -1816,14 +1831,11 @@
         filteredCustomers.forEach(c => {
             let bal = getCustomerBalance(c.barcode);
             let pendingHtml = c.pendingItem ? `<span class="badge bg-danger">${c.pendingItem}</span>` : "-";
-            
-            // สร้างทีละ td ให้ตรงกับ Thead ด้านบนสุดเป๊ะๆ
             tbody.innerHTML += `
                 <tr>
                     <td class="text-primary fw-bold">${c.barcode}</td>
                     <td class="fw-bold">${c.name}</td>
-                    <td class="text-muted">${c.phone || "-"}</td>
-                    <td class="text-muted" style="font-size:14px;">${c.address || "-"}</td>
+                    <td class="text-muted" style="font-size:14px;">${c.phone || "-"}<br>${c.address || "-"}</td>
                     <td class="text-center">${pendingHtml}</td>
                     <td class="text-end fw-bold ${bal.debt > 0 ? 'text-danger' : 'text-muted'}">${bal.debt > 0 ? bal.debt.toLocaleString() : '-'}</td>
                     <td class="text-end fw-bold ${bal.credit > 0 ? 'text-success' : 'text-muted'}">${bal.credit > 0 ? bal.credit.toLocaleString() : '-'}</td>
