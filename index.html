@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบร้านค้า (แยกระบุชื่อและจำนวนภาชนะค้าง)</title>
+    <title>ระบบร้านค้า (Cloud Sync เรียลไทม์)</title>
     
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -16,6 +16,10 @@
 
     <!-- SheetJS สำหรับจัดการไฟล์ Excel -->
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+
+    <!-- ☁️ Firebase SDK (เวอร์ชัน 8 ที่เหมาะกับ Vanilla JS ที่สุด) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
     <style>
         body { 
@@ -91,7 +95,6 @@
         .shift-toggle .btn-check:checked + .btn-outline-warning { background-color: #ffc107; color: #000 !important; border-color: #ffc107; box-shadow: inset 0 3px 5px rgba(0,0,0,0.125); }
         .shift-toggle .btn-check:checked + .btn-outline-info { background-color: #0dcaf0; color: #000 !important; border-color: #0dcaf0; box-shadow: inset 0 3px 5px rgba(0,0,0,0.125); }
 
-        /* ================= ธีมสีแยกกะเช้า-เย็น ================= */
         .theme-morning { 
             background: #fffdf2 !important; 
             border: 4px solid #ffc107 !important; 
@@ -122,8 +125,6 @@
         }
         .shift-card-evening h4 { color: #087990 !important; }
 
-        /* ============================================================= */
-
         .table-responsive { border-radius: 10px; border: 1px solid #eef2f5; overflow: hidden; }
         .table { margin-bottom: 0; }
         .table th { background-color: #f8f9fa; color: #495057; font-weight: 600; font-size: 15px; border-bottom: 2px solid #eef2f5; padding: 14px 16px; }
@@ -148,7 +149,11 @@
         .result-box span.title { display: block; font-size: 14px; color: #6c757d; margin-bottom: 5px; }
         .result-box span.val { display: block; font-size: 24px; font-weight: 700; }
 
-        /* ================= CSS สำหรับการปริ้น ================= */
+        /* Status Indicator */
+        .status-dot { height: 12px; width: 12px; border-radius: 50%; display: inline-block; margin-right: 5px; }
+        .status-online { background-color: #10b981; box-shadow: 0 0 8px #10b981; }
+        .status-offline { background-color: #f59e0b; box-shadow: 0 0 8px #f59e0b; }
+
         @media print {
             body { background-color: white !important; font-size: 14px !important; }
             .app-container { box-shadow: none !important; margin: 0 !important; padding: 0 !important; width: 100% !important; }
@@ -167,7 +172,10 @@
     <div class="d-flex justify-content-between align-items-center mb-4 d-print-none flex-wrap gap-3">
         <div class="d-flex align-items-center gap-3">
             <h3 class="text-primary fw-bold mb-0">🏬 โปรแกรมร้านค้า</h3>
-            <span class="badge bg-success fs-6 px-3 py-2 rounded-pill">ระบบพร้อมใช้งาน</span>
+            <!-- ☁️ ตัวแสดงสถานะออนไลน์/ออฟไลน์ -->
+            <div id="cloudStatus" class="badge bg-white text-dark border shadow-sm fs-6 px-3 py-2 rounded-pill d-flex align-items-center">
+                <span class="status-dot status-offline" id="cloudDot"></span> <span id="cloudText">กำลังเชื่อมต่อ...</span>
+            </div>
         </div>
         
         <div class="d-flex align-items-center bg-white px-3 py-2 rounded-pill shadow-sm border border-2 border-primary">
@@ -306,7 +314,6 @@
                                         <input type="number" id="posPendingItemQty" class="form-control border-0 text-center text-danger fw-bold border-start" placeholder="0" min="0" style="max-width: 80px;">
                                         <span class="input-group-text bg-transparent border-0 text-danger px-2">ชิ้น</span>
                                     </div>
-                                    <div class="text-muted mt-1" style="font-size: 12px;">*หากไม่มีค้าง หรือนำมาคืนแล้ว ให้เคลียร์จำนวนเป็น 0</div>
                                 </div>
                             </div>
 
@@ -472,7 +479,7 @@
             </div>
         </div>
 
-        <!-- ================= แท็บ 3: ข้อมูลลูกค้า (โชว์ลิสต์ทุกคน + ดูประวัติ) ================= -->
+        <!-- ================= แท็บ 3: ข้อมูลลูกค้า ================= -->
         <div class="tab-pane fade d-print-none" id="customerView" role="tabpanel">
             
             <div id="customerListView">
@@ -734,8 +741,13 @@
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <div>
                     <h4 class="fw-bold mb-1 text-secondary">⚙️ ประวัติระบบ (Activity Logs)</h4>
-                    <span class="text-muted" style="font-size: 14px;">กล้องวงจรปิดหลังร้าน บันทึกทุกการเคลื่อนไหว (ไม่สามารถลบได้)</span>
+                    <span class="text-muted" style="font-size: 14px;">กล้องวงจรปิดหลังร้าน ซิงค์ออนไลน์ 100%</span>
                 </div>
+                
+                <!-- 🚀 ปุ่มพิเศษสำหรับย้ายข้อมูลเครื่องเก่าขึ้นระบบ Cloud (โชว์เฉพาะถ้ายังมีข้อมูลเก่าค้างอยู่) -->
+                <button id="btnMigrateData" class="btn btn-success fw-bold px-4 shadow" style="display: none;" onclick="migrateOldDataToCloud()">
+                    ⬆️ อัปโหลดข้อมูลเดิมในเครื่องนี้ ขึ้นระบบออนไลน์
+                </button>
             </div>
             
             <div class="table-responsive bg-white shadow-sm border-0">
@@ -797,7 +809,7 @@
 <div class="modal fade d-print-none" id="editProductModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content">
-        <div class="modal-header"><h5 class="modal-title fw-bold">✏️ แก้ไขสินค้า</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-header"><h5 class="modal-title fw-bold">✏️️ แก้ไขสินค้า</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
         <div class="modal-body p-4">
           <input type="hidden" id="editProdId">
           <div class="mb-3"><label class="form-label">บาร์โค้ด</label><input type="text" id="editProdBarcode" class="form-control" oninput="this.value = convertThaiToEng(this.value)"></div>
@@ -825,7 +837,7 @@
 <div class="modal fade d-print-none" id="editCustomerModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content">
-        <div class="modal-header"><h5 class="modal-title fw-bold">✏️️ แก้ไขลูกค้า</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-header"><h5 class="modal-title fw-bold">✏️ แก้ไขลูกค้า</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
         <div class="modal-body p-4">
           <input type="hidden" id="editCusOriginalBarcode">
           <div class="mb-3"><label class="form-label">รหัสลูกค้า</label><input type="text" id="editCusBarcode" class="form-control" oninput="this.value = convertThaiToEng(this.value)"></div>
@@ -850,7 +862,7 @@
 <div class="modal fade d-print-none" id="editTransactionModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content">
-        <div class="modal-header"><h5 class="modal-title fw-bold">✏️️ แก้ไขบิล</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-header"><h5 class="modal-title fw-bold">✏️ แก้ไขบิล</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
         <div class="modal-body p-4">
           <input type="hidden" id="editTxId">
           <div class="mb-3"><label class="form-label">ลูกค้า</label><input type="text" id="editTxCustomer" class="form-control bg-light" readonly></div>
@@ -885,36 +897,176 @@
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
 <script>
-    const thToEnMap = {
-        'ๅ':'1', '/':'2', '-':'3', 'ภ':'4', 'ถ':'5', 'ุ':'6', 'ึ':'7', 'ค':'8', 'ต':'9', 'จ':'0', 'ข':'-', 'ช':'=',
-        'ๆ':'q', 'ไ':'w', 'ำ':'e', 'พ':'r', 'ะ':'t', 'ั':'y', 'ี':'u', 'ร':'i', 'น':'o', 'ย':'p', 'บ':'[', 'ล':']',
-        'ฟ':'a', 'ห':'s', 'ก':'d', 'ด':'f', 'เ':'g', '้':'h', '่':'j', 'า':'k', 'ส':'l', 'ว':';', 'ง':'\'',
-        'ผ':'z', 'ป':'x', 'แ':'c', 'อ':'v', 'ิ':'b', 'ื':'n', 'ท':'m', 'ม':',', 'ใ':'.', 'ฝ':'/',
-        '+':'!', '๑':'@', '๒':'#', '๓':'$', '๔':'%', 'ู':'^', '฿':'&', '๕':'*', '๖':'(', '๗':')', '๘':'_', '๙':'+',
-        '๐':'Q', '"':'W', 'ฎ':'E', 'ฑ':'R', 'ธ':'T', 'ํ':'Y', '๊':'U', 'ณ':'I', 'ฯ':'O', 'ญ':'P', 'ฐ':'{', ',':'}'
+    // ==========================================
+    // ⚙️ 1. โค้ด Firebase ของคุณ
+    // ==========================================
+    const firebaseConfig = {
+      apiKey: "AIzaSyDGS_q9BobV-pz-GyO3ABDYC4tZBx4rIfE",
+      authDomain: "myshoppos-f7e93.firebaseapp.com",
+      projectId: "myshoppos-f7e93",
+      storageBucket: "myshoppos-f7e93.firebasestorage.app",
+      messagingSenderId: "692796140212",
+      appId: "1:692796140212:web:b7a46f5379779fb41d45e1"
     };
 
-    function convertThaiToEng(text) {
-        if(!text) return "";
-        let result = '';
-        for (let i = 0; i < text.length; i++) { result += thToEnMap[text[i]] || text[i]; }
-        return result;
+    // Initialize Firebase
+    if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
     }
+    const db = firebase.firestore();
 
-    let inventory = JSON.parse(localStorage.getItem('myApp_inventory')) || [];
-    let transactions = JSON.parse(localStorage.getItem('myApp_transactions')) || [];
-    let customers = JSON.parse(localStorage.getItem('myApp_customers')) || [];
-    let activityLogs = JSON.parse(localStorage.getItem('myApp_activityLogs')) || [];
+    // เปิดโหมด Offline (ใช้งานได้แม้เน็ตหลุด)
+    db.enablePersistence().catch(function(err) {
+        console.error("Offline persistence failed:", err.code);
+    });
+
+    // ตรวจสอบสถานะการเชื่อมต่อ
+    let isOnline = navigator.onLine;
+    window.addEventListener('online', updateConnectionStatus);
+    window.addEventListener('offline', updateConnectionStatus);
+
+    function updateConnectionStatus() {
+        isOnline = navigator.onLine;
+        const dot = document.getElementById('cloudDot');
+        const text = document.getElementById('cloudText');
+        if (isOnline) {
+            dot.className = 'status-dot status-online';
+            text.innerText = 'เชื่อมต่อ Cloud แล้ว';
+            text.className = 'text-success fw-bold';
+        } else {
+            dot.className = 'status-dot status-offline';
+            text.innerText = 'ออฟไลน์ (กำลังจำไว้ในเครื่อง)';
+            text.className = 'text-warning fw-bold';
+        }
+    }
+    updateConnectionStatus();
+
+    // ==========================================
+    // ⚙️ 2. ระบบดึงข้อมูลแบบ Realtime จาก Cloud
+    // ==========================================
+    let inventory = [];
+    let transactions = [];
+    let customers = [];
+    let activityLogs = [];
     let cart = [];
-    
     let currentViewedCustomerBarcode = null;
 
-    // --- ระบบบันทึกชื่อพนักงาน ---
-    function saveCurrentUser() {
-        localStorage.setItem('myApp_currentUser', document.getElementById('currentUser').value);
+    // โหลดสินค้า
+    db.collection("pos_products").onSnapshot((snapshot) => {
+        inventory = [];
+        snapshot.forEach((doc) => {
+            let data = doc.data(); data.id = doc.id; inventory.push(data);
+        });
+        updateDropdownHtml(); viewInventoryHistory();
+    });
+
+    // โหลดลูกค้า
+    db.collection("pos_customers").onSnapshot((snapshot) => {
+        customers = [];
+        snapshot.forEach((doc) => {
+            let data = doc.data(); data.id = doc.id; customers.push(data);
+        });
+        updateDropdownHtml(); renderCustomerTable();
+        if (currentViewedCustomerBarcode) viewCustomerDetail(currentViewedCustomerBarcode);
+    });
+
+    // โหลดประวัติบิล (ดึงเฉพาะ 500 บิลล่าสุด)
+    db.collection("pos_transactions").orderBy("timestamp", "desc").limit(500).onSnapshot((snapshot) => {
+        transactions = [];
+        snapshot.forEach((doc) => {
+            let data = doc.data(); data.id = doc.id; transactions.push(data);
+        });
+        renderTable();
+        if($('#summary').hasClass('active')) renderSummary();
+    });
+
+    // โหลด Log (กล้องวงจรปิด)
+    db.collection("pos_logs").orderBy("timestamp", "desc").limit(500).onSnapshot((snapshot) => {
+        activityLogs = [];
+        snapshot.forEach((doc) => {
+            let data = doc.data(); data.id = doc.id; activityLogs.push(data);
+        });
+        renderActivityLogs();
+    });
+
+    // ==========================================
+    // ⚙️ 3. ระบบช่วยเหลือ: ฟังก์ชันย้ายข้อมูลเดิมขึ้น Cloud
+    // ==========================================
+    function checkOldDataForMigration() {
+        let oldInv = JSON.parse(localStorage.getItem('myApp_inventory')) || [];
+        let oldCus = JSON.parse(localStorage.getItem('myApp_customers')) || [];
+        let oldTx = JSON.parse(localStorage.getItem('myApp_transactions')) || [];
+        
+        // ถ้ามีข้อมูลเก่าโชว์ปุ่มให้อัปโหลด
+        if(oldInv.length > 0 || oldCus.length > 0 || oldTx.length > 0) {
+            document.getElementById('btnMigrateData').style.display = 'inline-block';
+        }
     }
 
-    // --- ระบบ Log หลังบ้าน (กล้องวงจรปิด) ---
+    function migrateOldDataToCloud() {
+        if(!confirm("ระบบจะดึงข้อมูลเก่าจากในเครื่องขึ้นระบบออนไลน์ Cloud (ทำแค่ครั้งเดียว) ยืนยันหรือไม่?")) return;
+        
+        let oldInv = JSON.parse(localStorage.getItem('myApp_inventory')) || [];
+        let oldCus = JSON.parse(localStorage.getItem('myApp_customers')) || [];
+        let oldTx = JSON.parse(localStorage.getItem('myApp_transactions')) || [];
+        let oldLogs = JSON.parse(localStorage.getItem('myApp_activityLogs')) || [];
+
+        let batch = db.batch();
+        
+        // ส่งสินค้าขึ้น Cloud (ใช้ Date.now() เดิมเป็น ID เพื่อไม่ให้ภาพรวมเสีย)
+        oldInv.forEach(p => {
+            let pId = p.id ? p.id.toString() : Date.now().toString() + Math.random().toString(36).substr(2, 5);
+            let ref = db.collection("pos_products").doc(pId);
+            batch.set(ref, p);
+        });
+        
+        // ส่งลูกค้าขึ้น Cloud (ใช้บาร์โค้ดเป็น ID ป้องกันการซ้ำซ้อน)
+        oldCus.forEach(c => {
+            if(c.barcode) {
+                let ref = db.collection("pos_customers").doc(c.barcode.toString());
+                batch.set(ref, c);
+            }
+        });
+        
+        // ส่งบิลย้อนหลังขึ้น Cloud
+        oldTx.forEach(t => {
+            let tId = t.id ? t.id.toString() : Date.now().toString() + Math.random().toString(36).substr(2, 5);
+            // เพิ่ม timestamp สำหรับการ Sort ใน Firebase
+            if(!t.timestamp) t.timestamp = Date.now();
+            let ref = db.collection("pos_transactions").doc(tId);
+            batch.set(ref, t);
+        });
+        
+        // ส่ง Log ขึ้น Cloud
+        oldLogs.forEach(l => {
+            let lId = l.id ? l.id.toString() : Date.now().toString() + Math.random().toString(36).substr(2, 5);
+            if(!l.timestamp) l.timestamp = Date.now();
+            let ref = db.collection("pos_logs").doc(lId);
+            batch.set(ref, l);
+        });
+
+        // ส่งข้อมูลทีเดียวรวด
+        batch.commit().then(() => {
+            alert("✅ อัปโหลดข้อมูลเดิมขึ้นระบบ Cloud เรียบร้อยแล้ว!");
+            // เคลียร์ของเก่าในเครื่องทิ้ง เพื่อไม่ให้มันถามซ้ำ
+            localStorage.removeItem('myApp_inventory');
+            localStorage.removeItem('myApp_customers');
+            localStorage.removeItem('myApp_transactions');
+            localStorage.removeItem('myApp_activityLogs');
+            document.getElementById('btnMigrateData').style.display = 'none';
+        }).catch(err => {
+            alert("เกิดข้อผิดพลาดในการอัปโหลด: " + err.message);
+        });
+    }
+
+    // ==========================================
+    // ⚙️ 4. ฟังก์ชันการทำงานต่างๆ (เปลี่ยนให้ยิงขึ้น Firebase)
+    // ==========================================
+    const thToEnMap = { 'ๅ':'1', '/':'2', '-':'3', 'ภ':'4', 'ถ':'5', 'ุ':'6', 'ึ':'7', 'ค':'8', 'ต':'9', 'จ':'0', 'ข':'-', 'ช':'=', 'ๆ':'q', 'ไ':'w', 'ำ':'e', 'พ':'r', 'ะ':'t', 'ั':'y', 'ี':'u', 'ร':'i', 'น':'o', 'ย':'p', 'บ':'[', 'ล':']', 'ฟ':'a', 'ห':'s', 'ก':'d', 'ด':'f', 'เ':'g', '้':'h', '่':'j', 'า':'k', 'ส':'l', 'ว':';', 'ง':'\'', 'ผ':'z', 'ป':'x', 'แ':'c', 'อ':'v', 'ิ':'b', 'ื':'n', 'ท':'m', 'ม':',', 'ใ':'.', 'ฝ':'/', '+':'!', '๑':'@', '๒':'#', '๓':'$', '๔':'%', 'ู':'^', '฿':'&', '๕':'*', '๖':'(', '๗':')', '๘':'_', '๙':'+', '๐':'Q', '"':'W', 'ฎ':'E', 'ฑ':'R', 'ธ':'T', 'ํ':'Y', '๊':'U', 'ณ':'I', 'ฯ':'O', 'ญ':'P', 'ฐ':'{', ',':'}' };
+    function convertThaiToEng(text) { if(!text) return ""; let result = ''; for (let i = 0; i < text.length; i++) { result += thToEnMap[text[i]] || text[i]; } return result; }
+
+    function saveCurrentUser() { localStorage.setItem('myApp_currentUser', document.getElementById('currentUser').value); }
+
     function addLog(action, detail, locationStr) {
         let userName = document.getElementById('currentUser') ? document.getElementById('currentUser').value.trim() : "ระบบ";
         if(!userName) userName = "ไม่ระบุชื่อ";
@@ -923,17 +1075,14 @@
         let now = new Date();
         let dateTime = now.toLocaleDateString('th-TH') + " " + now.toLocaleTimeString('th-TH', {hour: '2-digit', minute:'2-digit', second:'2-digit'});
         
-        activityLogs.unshift({
-            id: Date.now(),
+        db.collection("pos_logs").add({
             time: dateTime,
             user: userName,
             location: locationStr,
             action: action,
-            detail: detail
+            detail: detail,
+            timestamp: Date.now() // เอาไว้เรียงลำดับ
         });
-        
-        if(activityLogs.length > 500) activityLogs.pop(); // เก็บย้อนหลัง 500 รายการ
-        localStorage.setItem('myApp_activityLogs', JSON.stringify(activityLogs));
     }
 
     function renderActivityLogs() {
@@ -962,73 +1111,26 @@
         });
     }
 
-    function saveInventoryData() {
-        localStorage.setItem('myApp_inventory', JSON.stringify(inventory));
-        let today = new Date().toLocaleDateString('en-CA');
-        let history = JSON.parse(localStorage.getItem('myApp_inventory_history')) || {};
-        history[today] = JSON.parse(JSON.stringify(inventory)); 
-        localStorage.setItem('myApp_inventory_history', JSON.stringify(history));
-    }
-
-    inventory = inventory.map(p => { 
-        if(!p.barcode) p.barcode = p.id.toString(); 
-        if(p.isDaily === undefined) p.isDaily = false;
-        if(p.isPriceLocked === undefined) p.isPriceLocked = false;
-        return p; 
-    });
-    
-    customers = customers.map(c => { 
-        let pName = c.pendingItemName || "";
-        let pQty = c.pendingItemQty || 0;
-        if (c.pendingItem && !c.pendingItemName) {
-            pName = c.pendingItem;
-            pQty = 1;
-        }
-        return { 
-            barcode: c.barcode, 
-            name: c.name, 
-            phone: c.phone || "-", 
-            address: c.address || "-",
-            pendingItemName: pName,
-            pendingItemQty: pQty
-        };
-    });
-
-    transactions = transactions.map(t => {
-        if(!t.dateStr && t.time) {
-            let parts = t.time.split(' ')[0].split('/');
-            if(parts.length === 3) t.dateStr = `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`;
-        }
-        if(!t.shift) t.shift = "รอบเช้า"; 
-        if(!t.discount) t.discount = 0;
-        if(!t.remark) t.remark = "";
-        return t;
-    });
-
-    if (inventory.length === 0) {
-        inventory = [{ id: 1, barcode: "1111", category: "น้ำแข็ง", name: "น้ำแข็งหลอด", price: 50, stock: 100, isDaily: true, isPriceLocked: true }];
-        saveInventoryData();
-    }
-    if (customers.length === 0) {
-        customers = [
-            { barcode: "001", name: "ลูกค้าทั่วไป", phone: "-", address: "-", pendingItemName: "", pendingItemQty: 0 }
-        ];
-        localStorage.setItem('myApp_customers', JSON.stringify(customers));
-    }
-
     function checkDailyStockReset() {
         let lastDate = localStorage.getItem('myApp_lastDate');
         let today = new Date().toLocaleDateString('en-CA');
         if (lastDate && lastDate !== today) {
             let hasDaily = false;
-            inventory = inventory.map(p => {
-                if (p.isDaily && p.stock > 0) { p.stock = 0; hasDaily = true; }
-                return p;
+            let batch = db.batch();
+            
+            inventory.forEach(p => {
+                if (p.isDaily && p.stock > 0) { 
+                    hasDaily = true;
+                    let ref = db.collection("pos_products").doc(p.id);
+                    batch.update(ref, { stock: 0 });
+                }
             });
+            
             if (hasDaily) {
-                saveInventoryData();
-                addLog('🧹 ล้างสต็อกอัตโนมัติ', 'ระบบล้างสต็อกสินค้ารายวันเมื่อเริ่มวันใหม่', 'ระบบหลังบ้าน');
-                setTimeout(() => { alert("🌅 อัปเดตสต็อกสินค้ารายวันเป็น 0 อัตโนมัติแล้ว"); }, 500);
+                batch.commit().then(() => {
+                    addLog('🧹 ล้างสต็อกอัตโนมัติ', 'ระบบล้างสต็อกสินค้ารายวันเมื่อเริ่มวันใหม่', 'ระบบหลังบ้าน');
+                    setTimeout(() => { alert("🌅 อัปเดตสต็อกสินค้ารายวันเป็น 0 อัตโนมัติแล้ว"); }, 500);
+                });
             }
         }
         localStorage.setItem('myApp_lastDate', today);
@@ -1036,11 +1138,16 @@
 
     function manualClearDailyStock() {
         if(confirm("ล้างสต็อก 'สินค้ารายวัน' ให้เหลือ 0 ทั้งหมด ใช่หรือไม่?")) {
-            inventory = inventory.map(p => { if (p.isDaily) p.stock = 0; return p; });
-            saveInventoryData();
-            addLog('🧹 ล้างสต็อกผู้ใช้กด', 'เคลียร์สต็อกสินค้ารายวันเป็น 0', 'หน้าคลังสินค้า');
-            viewInventoryHistory(); 
-            updateDropdownHtml();
+            let batch = db.batch();
+            inventory.forEach(p => {
+                if (p.isDaily) { 
+                    let ref = db.collection("pos_products").doc(p.id);
+                    batch.update(ref, { stock: 0 });
+                }
+            });
+            batch.commit().then(() => {
+                addLog('🧹 ล้างสต็อกผู้ใช้กด', 'เคลียร์สต็อกสินค้ารายวันเป็น 0', 'หน้าคลังสินค้า');
+            });
         }
     }
 
@@ -1072,7 +1179,7 @@
         let sortedInventory = [...inventory].sort((a, b) => a.category.localeCompare(b.category));
         sortedInventory.forEach(p => {
             let dailyText = p.isDaily ? " (รายวัน)" : "";
-            prodOptions += `<option value="${p.id}" data-barcode="${p.barcode}">[${p.barcode}]${p.name} ${dailyText} (${p.price}฿)</option>`;
+            prodOptions += `<option value="${p.id}" data-barcode="${p.barcode}">[${p.barcode}] ${p.name} ${dailyText} (${p.price}฿)</option>`;
         });
         prodSelect.html(prodOptions);
 
@@ -1101,9 +1208,7 @@
     function renderSummary() {
         let viewType = document.getElementById('summaryViewType').value;
         let filterShift = document.getElementById('summaryShiftFilter').value;
-        
-        let matchPrefix = "";
-        let displayTitle = "";
+        let matchPrefix = ""; let displayTitle = "";
 
         if (viewType === 'daily') {
             let filterDate = document.getElementById('summaryDate').value;
@@ -1133,30 +1238,20 @@
         });
 
         filteredTx.forEach(t => {
-            sumTotal += t.total;
-            sumPaid += t.paid;
+            sumTotal += t.total; sumPaid += t.paid;
             let diff = t.total - t.paid;
-            if (diff > 0) {
-                sumDebt += diff;
-            } else if (diff < 0) {
-                sumOverpaid += Math.abs(diff);
-            }
+            if (diff > 0) sumDebt += diff; else if (diff < 0) sumOverpaid += Math.abs(diff);
             
             if (t.item && !t.item.includes("จ่ายชำระหนี้") && !t.item.includes("นำเงินมาเคลียร์หนี้เก่า") && !t.item.includes("จ่ายเคลียร์หนี้")) {
                 let regex = /(.*?)\s*\(x(\d+)\)(?:\[.*?\]\s*)?(?:,\s*|$)/g;
-                let match;
-                let foundMatch = false;
+                let match; let foundMatch = false;
                 while ((match = regex.exec(t.item)) !== null) {
-                    foundMatch = true;
-                    let pName = match[1].trim();
-                    let pQty = parseInt(match[2], 10);
-                    if(productSummary[pName]) productSummary[pName] += pQty;
-                    else productSummary[pName] = pQty;
+                    foundMatch = true; let pName = match[1].trim(); let pQty = parseInt(match[2], 10);
+                    if(productSummary[pName]) productSummary[pName] += pQty; else productSummary[pName] = pQty;
                 }
                 if (!foundMatch && t.item.trim() !== "") {
                     let pName = t.item.trim();
-                    if(productSummary[pName]) productSummary[pName] += 1;
-                    else productSummary[pName] = 1;
+                    if(productSummary[pName]) productSummary[pName] += 1; else productSummary[pName] = 1;
                 }
             }
         });
@@ -1164,16 +1259,8 @@
         let groupedByCustomer = {};
         filteredTx.forEach(t => {
             if(!groupedByCustomer[t.barcode]) {
-                groupedByCustomer[t.barcode] = {
-                    barcode: t.barcode,
-                    customer: t.customer,
-                    shift: t.shift,
-                    items: [],
-                    total: 0,
-                    paid: 0
-                };
+                groupedByCustomer[t.barcode] = { barcode: t.barcode, customer: t.customer, shift: t.shift, items: [], total: 0, paid: 0 };
             }
-            
             let datePrefix = "";
             if (viewType === 'monthly') {
                 let shortDate = t.time.split(' ')[0].substring(0, 5); 
@@ -1182,7 +1269,6 @@
 
             let itemLabel = t.item;
             if (itemLabel === "💰 นำเงินมาเคลียร์หนี้เก่า") itemLabel = "💰 จ่ายเคลียร์หนี้";
-            
             if (t.discount > 0) itemLabel += ` <span class="badge bg-danger">ส่วนลด ${t.discount}฿</span>`;
             if (t.remark) itemLabel += ` <span class="badge bg-warning text-dark">📝 ${t.remark}</span>`;
             
@@ -1190,24 +1276,18 @@
             groupedByCustomer[t.barcode].total += t.total;
             groupedByCustomer[t.barcode].paid += t.paid;
             
-            if (groupedByCustomer[t.barcode].shift !== t.shift && groupedByCustomer[t.barcode].shift !== "เช้า+เย็น") {
-                groupedByCustomer[t.barcode].shift = "เช้า+เย็น";
-            }
+            if (groupedByCustomer[t.barcode].shift !== t.shift && groupedByCustomer[t.barcode].shift !== "เช้า+เย็น") groupedByCustomer[t.barcode].shift = "เช้า+เย็น";
         });
 
-        let tbody = document.getElementById('summaryTableBody');
-        tbody.innerHTML = "";
-
+        let tbody = document.getElementById('summaryTableBody'); tbody.innerHTML = "";
         if (Object.keys(groupedByCustomer).length === 0) {
             tbody.innerHTML = "<tr><td colspan='7' class='text-center text-muted py-4'>ไม่มีรายการขาย</td></tr>";
         } else {
             Object.values(groupedByCustomer).forEach(g => {
                 let bal = getCustomerBalance(g.barcode);
                 let currentDebt = bal.net;
-                
                 let showDebt = currentDebt > 0 ? currentDebt.toLocaleString() : "-";
                 let showCredit = currentDebt < 0 ? Math.abs(currentDebt).toLocaleString() : "-";
-                
                 let shiftBadge = g.shift === "รอบเช้า" ? "☀️ เช้า" : (g.shift === "รอบเย็น" ? "🌙 เย็น" : "เช้า+เย็น");
                 let joinChar = viewType === 'monthly' ? '<br>' : ' , ';
                 let itemsText = g.items.length > 0 ? g.items.reverse().join(joinChar) : "-";
@@ -1226,31 +1306,21 @@
             });
         }
 
-        let prodTbody = document.getElementById('summaryProductTableBody');
-        prodTbody.innerHTML = "";
+        let prodTbody = document.getElementById('summaryProductTableBody'); prodTbody.innerHTML = "";
         let sortedProducts = Object.entries(productSummary).sort((a, b) => b[1] - a[1]);
-        
         if (sortedProducts.length === 0) {
             prodTbody.innerHTML = "<tr><td colspan='2' class='text-center text-muted py-4'>ไม่มีรายการสินค้า</td></tr>";
         } else {
-            sortedProducts.forEach(([name, qty]) => {
-                prodTbody.innerHTML += `
-                    <tr>
-                        <td class="text-primary fw-bold">${name}</td>
-                        <td class="text-center fw-bold fs-5">${qty.toLocaleString()}</td>
-                    </tr>
-                `;
-            });
+            sortedProducts.forEach(([name, qty]) => { prodTbody.innerHTML += `<tr><td class="text-primary fw-bold">${name}</td><td class="text-center fw-bold fs-5">${qty.toLocaleString()}</td></tr>`; });
         }
 
         document.getElementById('sumTotal').innerText = sumTotal.toLocaleString();
         document.getElementById('sumPaid').innerText = sumPaid.toLocaleString();
         document.getElementById('sumDebt').innerText = sumDebt.toLocaleString();
         document.getElementById('sumOverpaid').innerText = sumOverpaid.toLocaleString();
-
         let shiftNameText = filterShift === 'all' ? "" : `(${filterShift})`;
         let viewTypeText = viewType === 'daily' ? "ยอดขายรายวัน" : "ยอดขายรายเดือน";
-        document.getElementById('summaryTitleText').innerText = `📊 สรุป${viewTypeText}${shiftNameText}`;
+        document.getElementById('summaryTitleText').innerText = `📊 สรุป${viewTypeText} ${shiftNameText}`;
     }
 
     function initPOS() {
@@ -1261,7 +1331,6 @@
         document.getElementById('scanCustomerBarcode').focus();
     }
     
-    // โค้ดสลับสีกะ
     $('input[name="shiftSelect"]').on('change', function() {
         if ($('#shiftMorning').is(':checked')) {
             $('#posWorkspace').removeClass('theme-evening').addClass('theme-morning');
@@ -1367,7 +1436,7 @@
     function addSelectedProductToCart() {
         let select = document.getElementById('productSelect');
         if (select.value !== "") {
-            let prodId = parseInt(select.value);
+            let prodId = select.value;
             addToCart(prodId);
             select.value = "";
             $('#productSelect').trigger('change.select2');
@@ -1407,9 +1476,7 @@
 
     function updateCartPrice(prodId, newPrice) {
         let item = cart.find(x => x.id === prodId);
-        if (item) {
-            item.price = parseFloat(newPrice) || 0;
-        }
+        if (item) { item.price = parseFloat(newPrice) || 0; }
         renderCart();
     }
 
@@ -1431,36 +1498,28 @@
 
     function renderCart() {
         let tbody = document.getElementById('cartTableBody');
-        tbody.innerHTML = "";
-        let cartTotal = 0;
-
+        tbody.innerHTML = ""; let cartTotal = 0;
         if (cart.length === 0) {
             tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-5">ยังไม่มีสินค้าในตะกร้า</td></tr>';
         } else {
             cart.forEach(item => {
-                let total = item.price * item.qty;
-                cartTotal += total;
-                
-                let priceHtml = item.isPriceLocked 
-                    ? `<span class="fw-bold text-dark">${item.price}</span> <span style="font-size:12px; color:#aaa;">🔒</span>`
-                    : `<input type="number" class="form-control text-center fw-bold text-primary cart-price-input" value="${item.price}" onchange="updateCartPrice(${item.id}, this.value)" onfocus="this.select()" min="0">`;
-
+                let total = item.price * item.qty; cartTotal += total;
+                let priceHtml = item.isPriceLocked ? `<span class="fw-bold text-dark">${item.price}</span> <span style="font-size:12px; color:#aaa;">🔒</span>` : `<input type="number" class="form-control text-center fw-bold text-primary cart-price-input" value="${item.price}" onchange="updateCartPrice('${item.id}', this.value)" onfocus="this.select()" min="0">`;
                 tbody.innerHTML += `
                     <tr>
                         <td class="ps-3 fw-bold text-primary">${item.name}</td>
                         <td class="text-center">${priceHtml}</td>
                         <td class="text-center text-nowrap">
-                            <button class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="updateCartQty(${item.id}, -1)">-</button>
-                            <input type="number" class="form-control fw-bold cart-qty-input" value="${item.qty}" onchange="setCartQty(${item.id}, this.value)" onfocus="this.select()" min="1">
-                            <button class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="updateCartQty(${item.id}, 1)">+</button>
+                            <button class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="updateCartQty('${item.id}', -1)">-</button>
+                            <input type="number" class="form-control fw-bold cart-qty-input" value="${item.qty}" onchange="setCartQty('${item.id}', this.value)" onfocus="this.select()" min="1">
+                            <button class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="updateCartQty('${item.id}', 1)">+</button>
                         </td>
                         <td class="text-end fw-bold">${total.toLocaleString()}</td>
-                        <td class="text-center"><button class="btn btn-sm btn-outline-danger" onclick="removeFromCart(${item.id})">ลบ</button></td>
+                        <td class="text-center"><button class="btn btn-sm btn-outline-danger" onclick="removeFromCart('${item.id}')">ลบ</button></td>
                     </tr>
                 `;
             });
         }
-
         document.getElementById('posCartTotal').innerText = cartTotal.toLocaleString() + " ฿";
         calculateChange();
     }
@@ -1468,9 +1527,7 @@
     function calculateChange() {
         let cartTotal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
         let discount = parseFloat(document.getElementById('posDiscount').value) || 0;
-        
-        let netTotal = cartTotal - discount;
-        if(netTotal < 0) netTotal = 0;
+        let netTotal = cartTotal - discount; if(netTotal < 0) netTotal = 0;
 
         let bal = getCustomerBalance(document.getElementById('saleCustomer').value);
         let grandTotal = netTotal; 
@@ -1483,29 +1540,21 @@
         if (discount > 0) {
             document.getElementById('posDiscountVal').innerText = "- " + discount.toLocaleString() + " ฿";
             discountRow.style.display = "flex";
-        } else {
-            document.getElementById('discountRow').style.display = "none";
-        }
+        } else { discountRow.style.display = "none"; }
 
         document.getElementById('posOldDebtTotal').innerText = bal.debt.toLocaleString() + " ฿";
         let creditRow = document.getElementById('creditRow');
         if (bal.credit > 0) {
             document.getElementById('posCreditTotal').innerText = bal.credit.toLocaleString() + " ฿";
             creditRow.style.display = "flex";
-        } else {
-            creditRow.style.display = "none";
-        }
+        } else { creditRow.style.display = "none"; }
 
         document.getElementById('posGrandTotal').innerText = grandTotal.toLocaleString();
 
         if (change > 0) {
             document.getElementById('posChangeAmount').innerText = change.toLocaleString();
             document.getElementById('posDebtAmount').innerText = "0";
-            if (bal.debt > 0) {
-                document.getElementById('overpayNote').style.display = 'block';
-            } else {
-                document.getElementById('overpayNote').style.display = 'none';
-            }
+            document.getElementById('overpayNote').style.display = bal.debt > 0 ? 'block' : 'none';
         } else if (change === 0) {
             document.getElementById('posChangeAmount').innerText = "0";
             document.getElementById('posDebtAmount').innerText = "0";
@@ -1550,7 +1599,6 @@
         let dateOnly = now.toLocaleDateString('en-CA');
         
         let newRecord = {
-            id: Date.now(),
             time: dateTime,
             dateStr: dateOnly,
             shift: shiftSelect,
@@ -1561,22 +1609,18 @@
             discount: 0,
             remark: remark,
             paid: paid,
-            debt: -paid
+            debt: -paid,
+            timestamp: Date.now()
         };
         
-        transactions.unshift(newRecord);
-        localStorage.setItem('myApp_transactions', JSON.stringify(transactions));
-        
-        addLog('💰 รับชำระหนี้', `ลูกค้า: ${customerName} \vert{} ยอด: ${paid}฿`, 'หน้าคิดเงิน');
-
-        payDebtModal.hide();
-        clearCart();
-        initPOS();
-        renderCustomerTable();
-        
-        if (currentViewedCustomerBarcode === barcode) { viewCustomerDetail(barcode); }
-        
-        alert("✅ บันทึกรับเงินชำระหนี้เรียบร้อยแล้ว!");
+        db.collection("pos_transactions").add(newRecord).then(() => {
+            addLog('💰 รับชำระหนี้', `ลูกค้า: ${customerName} | ยอด: ${paid}฿`, 'หน้าคิดเงิน');
+            payDebtModal.hide();
+            clearCart();
+            initPOS();
+            if (currentViewedCustomerBarcode === barcode) { viewCustomerDetail(barcode); }
+            alert("✅ บันทึกรับเงินชำระหนี้เรียบร้อยแล้ว!");
+        });
     }
 
     function checkoutOrder() {
@@ -1605,13 +1649,18 @@
         let customerName = cusSelect.options[cusSelect.selectedIndex].text.replace(/\[.*?\] /, '');
         
         let itemDescArr = [];
+        let batch = db.batch();
+
         for (let item of cart) {
             let prod = inventory.find(p => p.id === item.id);
             if (prod) {
                 if (prod.stock < item.qty) {
-                    if (!confirm(`⚠️️ "${prod.name}" เหลือสต็อก ${prod.stock} ชิ้น ยอมให้ติดลบไหม?`)) return;
+                    if (!confirm(`⚠️ "${prod.name}" เหลือสต็อก ${prod.stock} ชิ้น ยอมให้ติดลบไหม?`)) return;
                 }
-                prod.stock -= item.qty;
+                
+                // อัปเดตสต็อกในฐานข้อมูล
+                let pRef = db.collection("pos_products").doc(prod.id);
+                batch.update(pRef, { stock: Number((prod.stock - item.qty).toFixed(3)) });
                 
                 if(item.price !== prod.price) {
                     itemDescArr.push(`${prod.name} (x${item.qty}) [@${item.price}฿]`);
@@ -1621,14 +1670,14 @@
             }
         }
         
-        saveInventoryData(); 
-        
         let cusIndex = customers.findIndex(c => c.barcode === barcode);
         if (cusIndex > -1) {
             let pName = pendingNameStr === "" ? "ภาชนะ" : pendingNameStr;
-            customers[cusIndex].pendingItemName = pendingQtyVal > 0 ? pName : "";
-            customers[cusIndex].pendingItemQty = pendingQtyVal > 0 ? pendingQtyVal : 0;
-            localStorage.setItem('myApp_customers', JSON.stringify(customers));
+            let finalName = pendingQtyVal > 0 ? pName : "";
+            let finalQty = pendingQtyVal > 0 ? pendingQtyVal : 0;
+            
+            let cRef = db.collection("pos_customers").doc(barcode);
+            batch.update(cRef, { pendingItemName: finalName, pendingItemQty: finalQty });
         }
 
         let now = new Date();
@@ -1639,7 +1688,6 @@
         let txDebt = netTotal - paid; 
 
         let newRecord = {
-            id: Date.now(),
             time: dateTime,
             dateStr: dateOnly,
             shift: shiftSelect,
@@ -1650,30 +1698,34 @@
             discount: discount,
             remark: remark,
             paid: paid,
-            debt: txDebt
+            debt: txDebt,
+            timestamp: Date.now()
         };
 
-        transactions.unshift(newRecord);
-        localStorage.setItem('myApp_transactions', JSON.stringify(transactions));
+        // สร้าง Transaction
+        let tRef = db.collection("pos_transactions").doc();
+        batch.set(tRef, newRecord);
 
-        addLog('🛒 ขายสินค้า', `ลูกค้า: ${customerName} \vert{} ยอดสุทธิ: ${netTotal}฿`, 'หน้าคิดเงิน');
+        batch.commit().then(() => {
+            addLog('🛒 ขายสินค้า', `ลูกค้า: ${customerName} | ยอดสุทธิ: ${netTotal}฿`, 'หน้าคิดเงิน');
 
-        cart = [];
-        document.getElementById('posPaidAmount').value = "";
-        document.getElementById('posDiscount').value = "";
-        document.getElementById('posRemark').value = "";
-        document.getElementById('posPendingItemName').value = "";
-        document.getElementById('posPendingItemQty').value = "";
-        document.getElementById('overpayNote').style.display = 'none';
-        $('#saleCustomer').val('').trigger('change.select2');
-        document.getElementById('scanCustomerBarcode').value = "";
-        
-        initPOS();
-        renderCustomerTable();
-        
-        if (currentViewedCustomerBarcode === barcode) { viewCustomerDetail(barcode); }
-        
-        alert("✅ บันทึกยอดขายและอัปเดตข้อมูลเรียบร้อยแล้ว!");
+            cart = [];
+            document.getElementById('posPaidAmount').value = "";
+            document.getElementById('posDiscount').value = "";
+            document.getElementById('posRemark').value = "";
+            document.getElementById('posPendingItemName').value = "";
+            document.getElementById('posPendingItemQty').value = "";
+            document.getElementById('overpayNote').style.display = 'none';
+            $('#saleCustomer').val('').trigger('change.select2');
+            document.getElementById('scanCustomerBarcode').value = "";
+            
+            initPOS();
+            if (currentViewedCustomerBarcode === barcode) { viewCustomerDetail(barcode); }
+            
+            alert("✅ บันทึกยอดขายและอัปเดตข้อมูลเรียบร้อยแล้ว!");
+        }).catch(err => {
+            alert("เกิดข้อผิดพลาด: " + err.message);
+        });
     }
 
     function renderTable() {
@@ -1683,7 +1735,7 @@
             tbody.innerHTML = "<tr><td colspan='8' class='text-center text-muted py-4'>ยังไม่มีประวัติการขายวันนี้</td></tr>";
             return;
         }
-        transactions.slice(0, 50).forEach(t => {
+        transactions.forEach(t => {
             let billDebt = t.total - t.paid;
             let debtClass = billDebt > 0 ? "text-danger fw-bold" : (billDebt < 0 ? "text-success fw-bold" : "text-muted");
             let shiftBadge = t.shift === "รอบเช้า" ? `☀️ เช้า` : `🌙 เย็น`;
@@ -1702,8 +1754,7 @@
                     <td class="text-end fw-bold text-success">${t.paid}</td>
                     <td class="text-end ${debtClass}">${billDebt}</td>
                     <td class="text-center d-print-none">
-                        <button class="btn btn-sm btn-light border text-primary" onclick="openEditTxModal(${t.id})">แก้</button>
-                        <button class="btn btn-sm btn-light border text-danger" onclick="secureDeleteTransaction(${t.id})">ลบ</button>
+                        <button class="btn btn-sm btn-light border text-primary" onclick="openEditTxModal('${t.id}')">แก้</button>
                     </td>
                 </tr>
             `;
@@ -1734,60 +1785,28 @@
     }
 
     function saveTransactionEdit() {
-        let id = parseInt(document.getElementById('editTxId').value);
+        let id = document.getElementById('editTxId').value;
         let tx = transactions.find(x => x.id === id);
         if(!tx) return;
 
-        tx.shift = document.getElementById('editTxShift').value;
-        tx.item = document.getElementById('editTxItem').value.trim();
-        tx.remark = document.getElementById('editTxRemark').value.trim();
-        tx.total = parseFloat(document.getElementById('editTxTotal').value) || 0;
-        tx.paid = parseFloat(document.getElementById('editTxPaid').value) || 0;
-        tx.debt = tx.total - tx.paid;
+        let total = parseFloat(document.getElementById('editTxTotal').value) || 0;
+        let paid = parseFloat(document.getElementById('editTxPaid').value) || 0;
 
-        localStorage.setItem('myApp_transactions', JSON.stringify(transactions));
-        
-        addLog('✏️ แก้ไขบิล', `ลูกค้า: ${tx.customer} \vert{} ยอดใหม่: ${tx.total}฿`, 'ประวัติการขาย');
-
-        renderTable();
-        renderCustomerTable();
-        
-        if(document.getElementById('summary').classList.contains('active')) renderSummary();
-        
-        if(document.getElementById('customerView').classList.contains('active') && currentViewedCustomerBarcode) {
-            viewCustomerDetail(currentViewedCustomerBarcode);
-        }
-        
-        editTxModal.hide();
+        db.collection("pos_transactions").doc(id).update({
+            shift: document.getElementById('editTxShift').value,
+            item: document.getElementById('editTxItem').value.trim(),
+            remark: document.getElementById('editTxRemark').value.trim(),
+            total: total,
+            paid: paid,
+            debt: total - paid
+        }).then(() => {
+            addLog('✏️ แก้ไขบิล', `ลูกค้า: ${tx.customer} | ยอดใหม่: ${total}฿`, 'หน้าประวัติการขาย');
+            editTxModal.hide();
+        });
     }
 
-    function secureDeleteTransaction(id) {
-        let tx = transactions.find(t => t.id === id);
-        if(!tx) return;
-        
-        let plainItemText = tx.item.replace(/<br\s*[\/]?>/gi, " | ").replace(/<[^>]*>?/gm, '');
-        let msg = `⚠️ ยืนยันการลบรายการนี้ใช่หรือไม่?\n\n👤 ลูกค้า: ${tx.customer}\n🛒 รายการ: ${plainItemText}\n💰 ยอดสุทธิ: ${tx.total} บาท\n\n*หากลบแล้วยอดหนี้และสรุปยอดขายจะถูกหักล้างและคำนวณใหม่ทันที`;
-        
-        if (confirm(msg)) {
-            transactions = transactions.filter(t => t.id !== id);
-            localStorage.setItem('myApp_transactions', JSON.stringify(transactions));
-            
-            addLog('🗑️ ลบบิล', `ลูกค้า: ${tx.customer} \vert{}${plainItemText}`, 'ประวัติการขาย');
-
-            renderTable();
-            renderCustomerTable();
-            
-            if(document.getElementById('summary').classList.contains('active')) renderSummary();
-            if(document.getElementById('customerView').classList.contains('active') && currentViewedCustomerBarcode) {
-                viewCustomerDetail(currentViewedCustomerBarcode);
-            }
-        }
-    }
-
-    // ================= โซนหน้าข้อมูลลูกค้า (แบบแสดงรายชื่อ) =================
-    function initCustomerView() {
-        showCustomerList();
-    }
+    // ================= โซนหน้าข้อมูลลูกค้า =================
+    function initCustomerView() { showCustomerList(); }
 
     function renderCustomerListView() {
         let searchInput = document.getElementById('searchCustomerHistoryInput');
@@ -1877,8 +1896,7 @@
                         <td class="text-end fw-bold text-success">${t.paid}</td>
                         <td class="text-end pe-3 ${debtClass}">${billDebt}</td>
                         <td class="text-center d-print-none">
-                            <button class="btn btn-sm btn-light text-primary border" onclick="openEditTxModal(${t.id})">แก้</button>
-                            <button class="btn btn-sm btn-light text-danger border" onclick="secureDeleteTransaction(${t.id})">ลบ</button>
+                            <button class="btn btn-sm btn-light text-primary border" onclick="openEditTxModal('${t.id}')">แก้</button>
                         </td>
                     </tr>
                 `;
@@ -1888,63 +1906,36 @@
 
     // ================= โซนคลังสินค้า =================
     function viewInventoryHistory() {
-        let selectedDate = document.getElementById('inventoryHistoryDate').value;
-        let today = new Date().toLocaleDateString('en-CA');
-
-        if (selectedDate === today || !selectedDate) {
-            document.getElementById('inventoryAddBox').classList.remove('d-none');
-            document.getElementById('manualClearDailyBtn').classList.remove('d-none');
-            document.getElementById('inventoryListTitle').innerText = "📦 รายการสินค้าคงเหลือปัจจุบัน";
-            document.getElementById('inventoryActionCol').classList.remove('d-none');
-            renderInventory(null, today); 
-        } else {
-            document.getElementById('inventoryAddBox').classList.add('d-none');
-            document.getElementById('manualClearDailyBtn').classList.add('d-none');
-            document.getElementById('inventoryActionCol').classList.add('d-none');
-            
-            let dateObj = new Date(selectedDate);
-            let thaiDate = dateObj.toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
-            document.getElementById('inventoryListTitle').innerHTML = `📦 สต็อกย้อนหลัง <span class="text-danger">(ข้อมูลเก่าวันที่: ${thaiDate})</span>`;
-            
-            let history = JSON.parse(localStorage.getItem('myApp_inventory_history')) || {};
-            let pastInventory = history[selectedDate] || [];
-            renderInventory(pastInventory, selectedDate);
-        }
+        document.getElementById('inventoryAddBox').classList.remove('d-none');
+        document.getElementById('manualClearDailyBtn').classList.remove('d-none');
+        document.getElementById('inventoryListTitle').innerText = "📦 รายการสินค้าคงเหลือปัจจุบัน";
+        document.getElementById('inventoryActionCol').classList.remove('d-none');
+        renderInventory(); 
     }
 
-    function renderInventory(pastData = null, targetDateStr = null) {
+    function renderInventory() {
         let tbody = document.getElementById('inventoryTableBody');
         tbody.innerHTML = "";
         
-        let isHistory = pastData !== null;
-        let dataToRender = isHistory ? pastData : inventory;
+        let now = new Date();
+        document.getElementById('printInventoryDate').innerText = `ข้อมูล ณ วันที่: ${now.toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })} เวลา ${now.toLocaleTimeString('th-TH', {hour: '2-digit', minute:'2-digit'})} น.`;
 
-        if (isHistory) {
-            let dateObj = new Date(targetDateStr);
-            let thaiDate = dateObj.toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
-            document.getElementById('printInventoryDate').innerText = `รายงานสต็อกย้อนหลัง ประจำวันที่: ${thaiDate}`;
-        } else {
-            let now = new Date();
-            document.getElementById('printInventoryDate').innerText = `ข้อมูล ณ วันที่: ${now.toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })} เวลา ${now.toLocaleTimeString('th-TH', {hour: '2-digit', minute:'2-digit'})} น.`;
-        }
-
-        if (!dataToRender || dataToRender.length === 0) { 
-            tbody.innerHTML = `<tr><td colspan='6' class='text-center text-muted py-5'>${isHistory ? 'ไม่มีข้อมูลประวัติสต็อกในวันดังกล่าว' : 'ยังไม่ได้เพิ่มสินค้า'}</td></tr>`; 
+        if (inventory.length === 0) { 
+            tbody.innerHTML = `<tr><td colspan='6' class='text-center text-muted py-5'>ยังไม่ได้เพิ่มสินค้า</td></tr>`; 
             return; 
         }
 
-        let sortedInventory = [...dataToRender].sort((a, b) => a.category.localeCompare(b.category));
+        let sortedInventory = [...inventory].sort((a, b) => a.category.localeCompare(b.category));
         sortedInventory.forEach(p => {
             let stockColor = p.stock <= 5 ? "text-danger fw-bold" : "text-success fw-bold";
-            
             let badges = "";
             if(p.isDaily) badges += `<span class="badge bg-danger ms-1" style="font-size:10px;">รายวัน</span>`;
             if(p.isPriceLocked) badges += `<span class="badge bg-primary ms-1" style="font-size:10px;">🔒</span>`;
 
-            let actionHtml = isHistory ? `` : `
+            let actionHtml = `
                 <td class="text-center d-print-none">
-                    <button class="btn btn-sm btn-light text-primary" onclick="openEditModal(${p.id})">แก้</button> 
-                    <button class="btn btn-sm btn-light text-danger" onclick="deleteProduct(${p.id})">ลบ</button>
+                    <button class="btn btn-sm btn-light text-primary" onclick="openEditModal('${p.id}')">แก้</button> 
+                    <button class="btn btn-sm btn-light text-danger" onclick="deleteProduct('${p.id}')">ลบ</button>
                 </td>
             `;
 
@@ -1965,8 +1956,8 @@
         let barcode = document.getElementById('newProdBarcode').value.trim();
         let name = document.getElementById('newProdName').value.trim();
         if (inventory.find(p => p.barcode === barcode)) { alert("❌ บาร์โค้ดสินค้านี้มีซ้ำกันครับ"); return; }
-        inventory.push({
-            id: Date.now(),
+        
+        db.collection("pos_products").add({
             barcode: barcode,
             category: document.getElementById('newCategory').value.trim(),
             name: name,
@@ -1974,12 +1965,10 @@
             stock: parseFloat(document.getElementById('newProdStock').value) || 0,
             isDaily: document.getElementById('newProdIsDaily').checked,
             isPriceLocked: document.getElementById('newProdIsPriceLocked').checked
+        }).then(() => {
+            addLog('📦 เพิ่มสินค้า', `[${barcode}] ${name}`, 'หน้าคลังสินค้า');
+            document.getElementById('addProductForm').reset();
         });
-        saveInventoryData();
-        addLog('📦 เพิ่มสินค้า', `[${barcode}] ${name}`, 'หน้าคลังสินค้า');
-        document.getElementById('addProductForm').reset();
-        viewInventoryHistory(); 
-        updateDropdownHtml();
     }
 
     const editModal = new bootstrap.Modal(document.getElementById('editProductModal'));
@@ -1998,33 +1987,31 @@
     }
 
     function updateProduct() {
-        let id = parseInt(document.getElementById('editProdId').value);
+        let id = document.getElementById('editProdId').value;
         let p = inventory.find(x => x.id === id);
         if(p) {
-            p.barcode = document.getElementById('editProdBarcode').value.trim();
-            p.category = document.getElementById('editCategory').value.trim();
-            p.name = document.getElementById('editProdName').value.trim();
-            p.price = parseFloat(document.getElementById('editProdPrice').value) || 0;
-            p.stock = parseFloat(document.getElementById('editProdStock').value) || 0;
-            p.isDaily = document.getElementById('editProdIsDaily').checked;
-            p.isPriceLocked = document.getElementById('editProdIsPriceLocked').checked;
-            
-            saveInventoryData();
-            addLog('✏️ แก้ไขสินค้า', `[${p.barcode}] ${p.name}`, 'หน้าคลังสินค้า');
-            viewInventoryHistory();
-            updateDropdownHtml();
-            editModal.hide();
+            let newName = document.getElementById('editProdName').value.trim();
+            db.collection("pos_products").doc(id).update({
+                barcode: document.getElementById('editProdBarcode').value.trim(),
+                category: document.getElementById('editCategory').value.trim(),
+                name: newName,
+                price: parseFloat(document.getElementById('editProdPrice').value) || 0,
+                stock: parseFloat(document.getElementById('editProdStock').value) || 0,
+                isDaily: document.getElementById('editProdIsDaily').checked,
+                isPriceLocked: document.getElementById('editProdIsPriceLocked').checked
+            }).then(() => {
+                addLog('✏️ แก้ไขสินค้า', `[${p.barcode}] ${newName}`, 'หน้าคลังสินค้า');
+                editModal.hide();
+            });
         }
     }
 
     function deleteProduct(id) {
         let p = inventory.find(x => x.id === id);
         if(p && confirm("ลบสินค้านี้ใช่ไหม?")) {
-            inventory = inventory.filter(x => x.id !== id);
-            saveInventoryData();
-            addLog('🗑️ ลบสินค้า', `[${p.barcode}] ${p.name}`, 'หน้าคลังสินค้า');
-            viewInventoryHistory();
-            updateDropdownHtml();
+            db.collection("pos_products").doc(id).delete().then(() => {
+                addLog('🗑️ ลบสินค้า', `[${p.barcode}] ${p.name}`, 'หน้าคลังสินค้า');
+            });
         }
     }
 
@@ -2053,6 +2040,7 @@
         filteredCustomers.forEach(c => {
             let bal = getCustomerBalance(c.barcode);
             let pendingHtml = (c.pendingItemName && c.pendingItemQty > 0) ? `<span class="badge bg-danger">${c.pendingItemName} (${c.pendingItemQty})</span>` : "-";
+            
             tbody.innerHTML += `
                 <tr>
                     <td class="text-primary fw-bold" style="width: 10%;">${c.barcode}</td>
@@ -2070,80 +2058,23 @@
         });
     }
 
-    function exportCustomersToExcel() {
-        let data = customers.map(c => ({
-            "รหัสลูกค้า": c.barcode,
-            "ชื่อลูกค้า": c.name,
-            "เบอร์โทร": c.phone,
-            "ที่อยู่": c.address,
-            "ค้างภาชนะ": c.pendingItemName || "",
-            "จำนวนค้าง": c.pendingItemQty || 0
-        }));
-        let ws = XLSX.utils.json_to_sheet(data);
-        let wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Customers");
-        XLSX.writeFile(wb, "รายชื่อลูกค้า.xlsx");
-        addLog('📤 ส่งออก Excel', `ดาวน์โหลดรายชื่อลูกค้า`, 'หน้าจัดการลูกค้า');
-    }
-
-    function importCustomersFromExcel(e) {
-        let file = e.target.files[0];
-        if (!file) return;
-        let reader = new FileReader();
-        reader.onload = function(event) {
-            let data = new Uint8Array(event.target.result);
-            let workbook = XLSX.read(data, {type: 'array'});
-            let firstSheetName = workbook.SheetNames[0];
-            let worksheet = workbook.Sheets[firstSheetName];
-            let json = XLSX.utils.sheet_to_json(worksheet);
-
-            let newCustomers = json.map(row => ({
-                barcode: String(row["รหัสลูกค้า"] || ""),
-                name: String(row["ชื่อลูกค้า"] || ""),
-                phone: String(row["เบอร์โทร"] || "-"),
-                address: String(row["ที่อยู่"] || "-"),
-                pendingItemName: String(row["ค้างภาชนะ"] || ""),
-                pendingItemQty: parseInt(row["จำนวนค้าง"]) || 0
-            })).filter(c => c.barcode && c.name); 
-
-            if (newCustomers.length > 0) {
-                customers = newCustomers;
-                localStorage.setItem('myApp_customers', JSON.stringify(customers));
-                addLog('📗 นำเข้า Excel', `อัปเดตข้อมูลลูกค้า ${newCustomers.length} คน`, 'หน้าจัดการลูกค้า');
-                renderCustomerTable();
-                updateDropdownHtml();
-                
-                if(document.getElementById('customerView').classList.contains('active')) {
-                    showCustomerList();
-                }
-
-                alert("✅ อัปเดตรายชื่อลูกค้าจาก Excel เรียบร้อยแล้ว!");
-            } else {
-                alert("❌ ไม่พบข้อมูล หรือรูปแบบไฟล์ Excel ไม่ถูกต้อง");
-            }
-            document.getElementById('importExcel').value = ""; 
-        };
-        reader.readAsArrayBuffer(file);
-    }
-
     function saveCustomer(e) {
         e.preventDefault();
         let barcode = document.getElementById('newCusBarcode').value.trim();
         let name = document.getElementById('newCusName').value.trim();
         if (customers.find(c => c.barcode === barcode)) { alert("❌ รหัสลูกค้าซ้ำกัน"); return; }
-        customers.push({
+        
+        db.collection("pos_customers").doc(barcode).set({
             barcode: barcode,
             name: name,
             phone: document.getElementById('newCusPhone').value.trim() || "-",
             address: document.getElementById('newCusAddress').value.trim() || "-",
             pendingItemName: "",
             pendingItemQty: 0
+        }).then(() => {
+            addLog('👥 เพิ่มลูกค้า', `[${barcode}] ${name}`, 'หน้าจัดการลูกค้า');
+            document.getElementById('addCustomerForm').reset();
         });
-        localStorage.setItem('myApp_customers', JSON.stringify(customers));
-        addLog('👥 เพิ่มลูกค้า', `[${barcode}] ${name}`, 'หน้าจัดการลูกค้า');
-        document.getElementById('addCustomerForm').reset();
-        renderCustomerTable();
-        updateDropdownHtml();
     }
 
     const editCustomerModal = new bootstrap.Modal(document.getElementById('editCustomerModal'));
@@ -2155,10 +2086,8 @@
         document.getElementById('editCusName').value = c.name;
         document.getElementById('editCusPhone').value = c.phone;
         document.getElementById('editCusAddress').value = c.address;
-        
         document.getElementById('editCusPendingItemName').value = c.pendingItemName || "";
         document.getElementById('editCusPendingItemQty').value = c.pendingItemQty > 0 ? c.pendingItemQty : "";
-        
         editCustomerModal.show();
     }
 
@@ -2166,53 +2095,60 @@
         let originalBarcode = document.getElementById('editCusOriginalBarcode').value;
         let c = customers.find(x => x.barcode === originalBarcode);
         if(c) {
-            c.barcode = document.getElementById('editCusBarcode').value.trim();
-            c.name = document.getElementById('editCusName').value.trim();
-            c.phone = document.getElementById('editCusPhone').value.trim() || "-";
-            c.address = document.getElementById('editCusAddress').value.trim() || "-";
-            
+            let newBarcode = document.getElementById('editCusBarcode').value.trim();
+            let newName = document.getElementById('editCusName').value.trim();
             let qty = parseInt(document.getElementById('editCusPendingItemQty').value) || 0;
-            let name = document.getElementById('editCusPendingItemName').value.trim();
-            c.pendingItemName = qty > 0 ? name : "";
-            c.pendingItemQty = qty > 0 ? qty : 0;
+            let pName = document.getElementById('editCusPendingItemName').value.trim();
             
-            localStorage.setItem('myApp_customers', JSON.stringify(customers));
-            addLog('✏️ แก้ไขลูกค้า', `[${c.barcode}] ${c.name}`, 'หน้าจัดการลูกค้า');
-            renderCustomerTable();
-            updateDropdownHtml();
-            editCustomerModal.hide();
+            let dataObj = {
+                barcode: newBarcode,
+                name: newName,
+                phone: document.getElementById('editCusPhone').value.trim() || "-",
+                address: document.getElementById('editCusAddress').value.trim() || "-",
+                pendingItemName: qty > 0 ? pName : "",
+                pendingItemQty: qty > 0 ? qty : 0
+            };
+
+            if(newBarcode !== originalBarcode) {
+                // รหัสเปลี่ยน ต้องสร้าง doc ใหม่แล้วลบของเก่า
+                db.collection("pos_customers").doc(newBarcode).set(dataObj).then(() => {
+                    db.collection("pos_customers").doc(originalBarcode).delete();
+                    addLog('✏️ แก้ไขลูกค้า', `เปลี่ยนรหัสเป็น [${newBarcode}] ${newName}`, 'หน้าจัดการลูกค้า');
+                    editCustomerModal.hide();
+                });
+            } else {
+                db.collection("pos_customers").doc(newBarcode).update(dataObj).then(() => {
+                    addLog('✏️ แก้ไขลูกค้า', `[${newBarcode}] ${newName}`, 'หน้าจัดการลูกค้า');
+                    editCustomerModal.hide();
+                });
+            }
         }
     }
 
     function deleteCustomer(barcode) {
         let c = customers.find(x => x.barcode === barcode);
         if(c && confirm("ลบลูกค้ารายนี้ใช่ไหม?")) {
-            customers = customers.filter(x => x.barcode !== barcode);
-            localStorage.setItem('myApp_customers', JSON.stringify(customers));
-            addLog('🗑️ ลบลูกค้า', `[${c.barcode}] ${c.name}`, 'หน้าจัดการลูกค้า');
-            renderCustomerTable();
-            updateDropdownHtml();
+            db.collection("pos_customers").doc(barcode).delete().then(() => {
+                addLog('🗑️ ลบลูกค้า', `[${c.barcode}] ${c.name}`, 'หน้าจัดการลูกค้า');
+            });
         }
     }
 
     // เริ่มทำงาน
     $(document).ready(function() {
-        // โหลดชื่อพนักงาน
         let savedUser = localStorage.getItem('myApp_currentUser') || "";
         document.getElementById('currentUser').value = savedUser;
 
         document.getElementById('inventoryHistoryDate').value = new Date().toLocaleDateString('en-CA');
-        saveInventoryData(); 
-        checkDailyStockReset(); 
+        
+        // เช็คว่ามีข้อมูลเก่าในเครื่องไหม ถ้ามีให้แสดงปุ่มโอนย้าย
+        checkOldDataForMigration();
         
         $('#saleCustomer').on('change', function() { syncCustomerFromSelect(); });
         $('#productSelect').on('change', function() { addSelectedProductToCart(); });
 
         initPOS();
-        viewInventoryHistory();
-        renderCustomerTable();
         initCustomerView();
-        renderActivityLogs(); // แสดง log เริ่มต้น
     });
 </script>
 
