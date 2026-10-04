@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบร้านค้า (Log รู้ใครทำ ทำที่ไหน เวลาไหน)</title>
+    <title>ระบบร้านค้า (แยกระบุชื่อและจำนวนภาชนะค้าง)</title>
     
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -170,7 +170,6 @@
             <span class="badge bg-success fs-6 px-3 py-2 rounded-pill">ระบบพร้อมใช้งาน</span>
         </div>
         
-        <!-- ช่องใส่ชื่อพนักงาน เพื่อให้ Log บันทึกได้ว่าใครเป็นคนทำรายการ -->
         <div class="d-flex align-items-center bg-white px-3 py-2 rounded-pill shadow-sm border border-2 border-primary">
             <span class="fw-bold text-primary me-2">👤 พนักงาน:</span>
             <input type="text" id="currentUser" class="form-control form-control-sm border-0 fw-bold text-dark fs-6 p-0" style="width: 130px; background: transparent; box-shadow: none;" placeholder="พิมพ์ชื่อพนักงาน..." oninput="saveCurrentUser()">
@@ -207,10 +206,8 @@
                 </div>
             </div>
 
-            <!-- กล่อง Workspace ที่จะเปลี่ยนสีตามกะ -->
             <div id="posWorkspace" class="theme-morning d-print-none">
                 <div class="row g-4">
-                    <!-- ฝั่งซ้าย: สแกนและตะกร้า -->
                     <div class="col-lg-7">
                         <div class="card mb-4 border-0 shadow-sm">
                             <div class="card-body">
@@ -263,7 +260,6 @@
                         </div>
                     </div>
 
-                    <!-- ฝั่งขวา: จอคิดเงิน -->
                     <div class="col-lg-5">
                         <div class="pos-panel h-100 d-flex flex-column shadow-sm border-0" style="background: white;">
                             <div class="pos-display mb-4 shadow-sm">
@@ -304,7 +300,13 @@
                                 </div>
                                 <div class="col-12 mt-2">
                                     <label class="form-label text-danger mb-1" style="font-size: 14px;">📦 ค้างภาชนะ (อัปเดตสถานะให้ลูกค้า)</label>
-                                    <input type="text" id="posPendingItem" class="form-control border-danger border-2 text-danger fw-bold" placeholder="เช่น ค้างถังแก๊ส 1 ถัง (ถ้าคืนแล้วให้ลบออก)">
+                                    <div class="input-group input-group-sm border border-danger border-2 rounded">
+                                        <input type="text" id="posPendingItemName" class="form-control border-0 text-danger fw-bold" placeholder="ชื่อภาชนะ (เช่น ถังแก๊ส)">
+                                        <span class="input-group-text bg-transparent border-0 text-danger px-2">จำนวน</span>
+                                        <input type="number" id="posPendingItemQty" class="form-control border-0 text-center text-danger fw-bold border-start" placeholder="0" min="0" style="max-width: 80px;">
+                                        <span class="input-group-text bg-transparent border-0 text-danger px-2">ชิ้น</span>
+                                    </div>
+                                    <div class="text-muted mt-1" style="font-size: 12px;">*หากไม่มีค้าง หรือนำมาคืนแล้ว ให้เคลียร์จำนวนเป็น 0</div>
                                 </div>
                             </div>
 
@@ -468,23 +470,11 @@
                     </div>
                 </div>
             </div>
-            
-            <div class="d-none d-print-block mt-5 pt-5">
-                <div class="row text-center mt-5">
-                    <div class="col-6">
-                        <p>ผู้ทำรายการ</p><br><p>.......................................................</p>
-                    </div>
-                    <div class="col-6">
-                        <p>ผู้ตรวจสอบ</p><br><p>.......................................................</p>
-                    </div>
-                </div>
-            </div>
         </div>
 
         <!-- ================= แท็บ 3: ข้อมูลลูกค้า (โชว์ลิสต์ทุกคน + ดูประวัติ) ================= -->
         <div class="tab-pane fade d-print-none" id="customerView" role="tabpanel">
             
-            <!-- หน้า 1: แสดงรายชื่อทั้งหมด -->
             <div id="customerListView">
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <h4 class="fw-bold mb-0 text-primary">👥 เลือกดูประวัติลูกค้า</h4>
@@ -510,7 +500,6 @@
                 </div>
             </div>
 
-            <!-- หน้า 2: เจาะจงประวัติลูกค้ารายคน (ซ่อนไว้ตอนแรก) -->
             <div id="customerDetailView" style="display: none;">
                 <button class="btn btn-outline-secondary mb-4 fw-bold px-4 shadow-sm" onclick="showCustomerList()">⬅️ ย้อนกลับไปหน้ารายชื่อ</button>
                 
@@ -652,17 +641,6 @@
                     <tbody id="inventoryTableBody"></tbody>
                 </table>
             </div>
-
-            <div class="d-none d-print-block mt-5 pt-5">
-                <div class="row text-center mt-5">
-                    <div class="col-6">
-                        <p>ผู้ตรวจนับสต็อก</p><br><p>.......................................................</p>
-                    </div>
-                    <div class="col-6">
-                        <p>ผู้จัดการร้าน</p><br><p>.......................................................</p>
-                    </div>
-                </div>
-            </div>
         </div>
 
         <!-- ================= แท็บ 5: จัดการรายชื่อลูกค้า ================= -->
@@ -751,7 +729,7 @@
             </div>
         </div>
 
-        <!-- ================= แท็บ 6: ประวัติระบบ (Log) เอาปุ่มล้างออก ================= -->
+        <!-- ================= แท็บ 6: ประวัติระบบ (Log) ================= -->
         <div class="tab-pane fade d-print-none" id="activityLog" role="tabpanel">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <div>
@@ -847,7 +825,7 @@
 <div class="modal fade d-print-none" id="editCustomerModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content">
-        <div class="modal-header"><h5 class="modal-title fw-bold">✏️ แก้ไขลูกค้า</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-header"><h5 class="modal-title fw-bold">✏️️ แก้ไขลูกค้า</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
         <div class="modal-body p-4">
           <input type="hidden" id="editCusOriginalBarcode">
           <div class="mb-3"><label class="form-label">รหัสลูกค้า</label><input type="text" id="editCusBarcode" class="form-control" oninput="this.value = convertThaiToEng(this.value)"></div>
@@ -856,7 +834,12 @@
           <div class="mb-3"><label class="form-label">ที่อยู่</label><input type="text" id="editCusAddress" class="form-control"></div>
           <div class="mb-3">
               <label class="form-label text-danger">📦 ค้างภาชนะ (อัปเดตสถานะให้ลูกค้า)</label>
-              <input type="text" id="editCusPendingItem" class="form-control border-danger" placeholder="เช่น ค้างถัง 1 ใบ">
+              <div class="input-group">
+                  <input type="text" id="editCusPendingItemName" class="form-control border-danger" placeholder="ชื่อภาชนะ (เช่น ถัง ปตท)">
+                  <span class="input-group-text bg-white border-danger text-danger px-2">จำนวน</span>
+                  <input type="number" id="editCusPendingItemQty" class="form-control border-danger text-center text-danger fw-bold" placeholder="0" min="0" style="max-width: 80px;">
+                  <span class="input-group-text bg-white border-danger text-danger px-2">ชิ้น</span>
+              </div>
           </div>
         </div>
         <div class="modal-footer"><button type="button" class="btn btn-light" data-bs-dismiss="modal">ยกเลิก</button><button type="button" class="btn btn-primary" onclick="updateCustomerData()">บันทึก</button></div>
@@ -867,7 +850,7 @@
 <div class="modal fade d-print-none" id="editTransactionModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content">
-        <div class="modal-header"><h5 class="modal-title fw-bold">✏️ แก้ไขบิล</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-header"><h5 class="modal-title fw-bold">✏️️ แก้ไขบิล</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
         <div class="modal-body p-4">
           <input type="hidden" id="editTxId">
           <div class="mb-3"><label class="form-label">ลูกค้า</label><input type="text" id="editTxCustomer" class="form-control bg-light" readonly></div>
@@ -994,13 +977,22 @@
         return p; 
     });
     
-    customers = customers.map(c => ({ 
-        barcode: c.barcode, 
-        name: c.name, 
-        phone: c.phone || "-", 
-        address: c.address || "-",
-        pendingItem: c.pendingItem || ""
-    }));
+    customers = customers.map(c => { 
+        let pName = c.pendingItemName || "";
+        let pQty = c.pendingItemQty || 0;
+        if (c.pendingItem && !c.pendingItemName) {
+            pName = c.pendingItem;
+            pQty = 1;
+        }
+        return { 
+            barcode: c.barcode, 
+            name: c.name, 
+            phone: c.phone || "-", 
+            address: c.address || "-",
+            pendingItemName: pName,
+            pendingItemQty: pQty
+        };
+    });
 
     transactions = transactions.map(t => {
         if(!t.dateStr && t.time) {
@@ -1019,7 +1011,7 @@
     }
     if (customers.length === 0) {
         customers = [
-            { barcode: "001", name: "ลูกค้าทั่วไป", phone: "-", address: "-", pendingItem: "" }
+            { barcode: "001", name: "ลูกค้าทั่วไป", phone: "-", address: "-", pendingItemName: "", pendingItemQty: 0 }
         ];
         localStorage.setItem('myApp_customers', JSON.stringify(customers));
     }
@@ -1071,7 +1063,7 @@
 
         let cusOptions = '<option value="">-- พิมพ์ชื่อลูกค้า --</option>';
         customers.forEach(c => { 
-            let alertPin = c.pendingItem ? ' ⚠️ (ค้างของ)' : '';
+            let alertPin = (c.pendingItemName && c.pendingItemQty > 0) ? ' ⚠️ (ค้างของ)' : '';
             cusOptions += `<option value="${c.barcode}">[${c.barcode}] ${c.name}${alertPin}</option>`; 
         });
         cusSelect.html(cusOptions);
@@ -1269,6 +1261,7 @@
         document.getElementById('scanCustomerBarcode').focus();
     }
     
+    // โค้ดสลับสีกะ
     $('input[name="shiftSelect"]').on('change', function() {
         if ($('#shiftMorning').is(':checked')) {
             $('#posWorkspace').removeClass('theme-evening').addClass('theme-morning');
@@ -1285,16 +1278,18 @@
         let cusSelect = document.getElementById('saleCustomer');
         let infoDiv = document.getElementById('currentCustomerDebtInfo');
         let pendingDiv = document.getElementById('currentCustomerPendingInfo');
-        let pendingInput = document.getElementById('posPendingItem');
+        let pendingNameInput = document.getElementById('posPendingItemName');
+        let pendingQtyInput = document.getElementById('posPendingItemQty');
         
         if (cusSelect.selectedIndex > 0) {
             let barcode = cusSelect.value;
             let cus = customers.find(x => x.barcode === barcode);
             
-            pendingInput.value = cus && cus.pendingItem ? cus.pendingItem : "";
+            pendingNameInput.value = cus && cus.pendingItemName ? cus.pendingItemName : "";
+            pendingQtyInput.value = cus && cus.pendingItemQty > 0 ? cus.pendingItemQty : "";
 
-            if (cus && cus.pendingItem) {
-                pendingDiv.innerText = `📦 แจ้งเตือน: ลูกค้าค้าง ${cus.pendingItem}`;
+            if (cus && cus.pendingItemName && cus.pendingItemQty > 0) {
+                pendingDiv.innerText = `📦 แจ้งเตือน: ลูกค้าค้าง ${cus.pendingItemName} จำนวน ${cus.pendingItemQty} ชิ้น`;
                 pendingDiv.style.display = "block";
             } else {
                 pendingDiv.style.display = "none";
@@ -1315,7 +1310,8 @@
         } else {
             infoDiv.style.display = "none";
             pendingDiv.style.display = "none";
-            pendingInput.value = "";
+            pendingNameInput.value = "";
+            pendingQtyInput.value = "";
         }
         renderCart();
     }
@@ -1427,7 +1423,8 @@
         document.getElementById('posPaidAmount').value = '';
         document.getElementById('posDiscount').value = '';
         document.getElementById('posRemark').value = '';
-        document.getElementById('posPendingItem').value = '';
+        document.getElementById('posPendingItemName').value = '';
+        document.getElementById('posPendingItemQty').value = '';
         document.getElementById('overpayNote').style.display = 'none';
         renderCart();
     }
@@ -1590,7 +1587,8 @@
         let cartTotal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
         let discount = parseFloat(document.getElementById('posDiscount').value) || 0;
         let remark = document.getElementById('posRemark').value.trim();
-        let pendingItemStr = document.getElementById('posPendingItem').value.trim();
+        let pendingNameStr = document.getElementById('posPendingItemName').value.trim();
+        let pendingQtyVal = parseInt(document.getElementById('posPendingItemQty').value) || 0;
 
         let netTotal = cartTotal - discount;
         if(netTotal < 0) netTotal = 0;
@@ -1611,7 +1609,7 @@
             let prod = inventory.find(p => p.id === item.id);
             if (prod) {
                 if (prod.stock < item.qty) {
-                    if (!confirm(`⚠️ "${prod.name}" เหลือสต็อก ${prod.stock} ชิ้น ยอมให้ติดลบไหม?`)) return;
+                    if (!confirm(`⚠️️ "${prod.name}" เหลือสต็อก ${prod.stock} ชิ้น ยอมให้ติดลบไหม?`)) return;
                 }
                 prod.stock -= item.qty;
                 
@@ -1627,7 +1625,9 @@
         
         let cusIndex = customers.findIndex(c => c.barcode === barcode);
         if (cusIndex > -1) {
-            customers[cusIndex].pendingItem = pendingItemStr;
+            let pName = pendingNameStr === "" ? "ภาชนะ" : pendingNameStr;
+            customers[cusIndex].pendingItemName = pendingQtyVal > 0 ? pName : "";
+            customers[cusIndex].pendingItemQty = pendingQtyVal > 0 ? pendingQtyVal : 0;
             localStorage.setItem('myApp_customers', JSON.stringify(customers));
         }
 
@@ -1662,7 +1662,8 @@
         document.getElementById('posPaidAmount').value = "";
         document.getElementById('posDiscount').value = "";
         document.getElementById('posRemark').value = "";
-        document.getElementById('posPendingItem').value = "";
+        document.getElementById('posPendingItemName').value = "";
+        document.getElementById('posPendingItemQty').value = "";
         document.getElementById('overpayNote').style.display = 'none';
         $('#saleCustomer').val('').trigger('change.select2');
         document.getElementById('scanCustomerBarcode').value = "";
@@ -1844,7 +1845,8 @@
         document.getElementById('infoCusName').innerText = `${cus.name} (รหัส: ${cus.barcode})`;
         document.getElementById('infoCusPhone').innerText = `📞 ${cus.phone || "-"}`;
         document.getElementById('infoCusAddress').innerText = `🏠 ${cus.address || "-"}`;
-        document.getElementById('viewCustomerPending').innerText = cus.pendingItem ? cus.pendingItem : "ไม่มีค้าง";
+        let pendingText = (cus.pendingItemName && cus.pendingItemQty > 0) ? `${cus.pendingItemName} (${cus.pendingItemQty} ชิ้น)` : "ไม่มีค้าง";
+        document.getElementById('viewCustomerPending').innerText = pendingText;
 
         let bal = getCustomerBalance(barcode);
         document.getElementById('viewCustomerDebt').innerText = bal.debt.toLocaleString() + " ฿";
@@ -2026,7 +2028,7 @@
         }
     }
 
-    // ================= โซนจัดการลูกค้า (นำเข้า/ส่งออก Excel) =================
+    // ================= โซนจัดการลูกค้า =================
     function renderCustomerTable() {
         let searchInput = document.getElementById('searchCustomerTable');
         let searchTerm = searchInput ? searchInput.value.trim().toLowerCase() : '';
@@ -2050,7 +2052,7 @@
 
         filteredCustomers.forEach(c => {
             let bal = getCustomerBalance(c.barcode);
-            let pendingHtml = c.pendingItem ? `<span class="badge bg-danger">${c.pendingItem}</span>` : "-";
+            let pendingHtml = (c.pendingItemName && c.pendingItemQty > 0) ? `<span class="badge bg-danger">${c.pendingItemName} (${c.pendingItemQty})</span>` : "-";
             tbody.innerHTML += `
                 <tr>
                     <td class="text-primary fw-bold" style="width: 10%;">${c.barcode}</td>
@@ -2074,13 +2076,14 @@
             "ชื่อลูกค้า": c.name,
             "เบอร์โทร": c.phone,
             "ที่อยู่": c.address,
-            "ค้างภาชนะ": c.pendingItem || ""
+            "ค้างภาชนะ": c.pendingItemName || "",
+            "จำนวนค้าง": c.pendingItemQty || 0
         }));
         let ws = XLSX.utils.json_to_sheet(data);
         let wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Customers");
         XLSX.writeFile(wb, "รายชื่อลูกค้า.xlsx");
-        addLog('📤 ส่งออก Excel', `ผู้ใช้ดาวน์โหลดรายชื่อลูกค้า`, 'หน้าจัดการลูกค้า');
+        addLog('📤 ส่งออก Excel', `ดาวน์โหลดรายชื่อลูกค้า`, 'หน้าจัดการลูกค้า');
     }
 
     function importCustomersFromExcel(e) {
@@ -2099,13 +2102,14 @@
                 name: String(row["ชื่อลูกค้า"] || ""),
                 phone: String(row["เบอร์โทร"] || "-"),
                 address: String(row["ที่อยู่"] || "-"),
-                pendingItem: String(row["ค้างภาชนะ"] || "")
+                pendingItemName: String(row["ค้างภาชนะ"] || ""),
+                pendingItemQty: parseInt(row["จำนวนค้าง"]) || 0
             })).filter(c => c.barcode && c.name); 
 
             if (newCustomers.length > 0) {
                 customers = newCustomers;
                 localStorage.setItem('myApp_customers', JSON.stringify(customers));
-                addLog('📗 นำเข้า Excel', `อัปเดตข้อมูลลูกค้าจำนวน ${newCustomers.length} รายการ`, 'หน้าจัดการลูกค้า');
+                addLog('📗 นำเข้า Excel', `อัปเดตข้อมูลลูกค้า ${newCustomers.length} คน`, 'หน้าจัดการลูกค้า');
                 renderCustomerTable();
                 updateDropdownHtml();
                 
@@ -2132,7 +2136,8 @@
             name: name,
             phone: document.getElementById('newCusPhone').value.trim() || "-",
             address: document.getElementById('newCusAddress').value.trim() || "-",
-            pendingItem: ""
+            pendingItemName: "",
+            pendingItemQty: 0
         });
         localStorage.setItem('myApp_customers', JSON.stringify(customers));
         addLog('👥 เพิ่มลูกค้า', `[${barcode}] ${name}`, 'หน้าจัดการลูกค้า');
@@ -2150,7 +2155,10 @@
         document.getElementById('editCusName').value = c.name;
         document.getElementById('editCusPhone').value = c.phone;
         document.getElementById('editCusAddress').value = c.address;
-        document.getElementById('editCusPendingItem').value = c.pendingItem || "";
+        
+        document.getElementById('editCusPendingItemName').value = c.pendingItemName || "";
+        document.getElementById('editCusPendingItemQty').value = c.pendingItemQty > 0 ? c.pendingItemQty : "";
+        
         editCustomerModal.show();
     }
 
@@ -2162,7 +2170,12 @@
             c.name = document.getElementById('editCusName').value.trim();
             c.phone = document.getElementById('editCusPhone').value.trim() || "-";
             c.address = document.getElementById('editCusAddress').value.trim() || "-";
-            c.pendingItem = document.getElementById('editCusPendingItem').value.trim();
+            
+            let qty = parseInt(document.getElementById('editCusPendingItemQty').value) || 0;
+            let name = document.getElementById('editCusPendingItemName').value.trim();
+            c.pendingItemName = qty > 0 ? name : "";
+            c.pendingItemQty = qty > 0 ? qty : 0;
+            
             localStorage.setItem('myApp_customers', JSON.stringify(customers));
             addLog('✏️ แก้ไขลูกค้า', `[${c.barcode}] ${c.name}`, 'หน้าจัดการลูกค้า');
             renderCustomerTable();
