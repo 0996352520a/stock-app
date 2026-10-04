@@ -2,9 +2,8 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <!-- 📱 ปรับ Viewport ให้รองรับมือถือและป้องกันการซูมหน้าจอเวลาทัช -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ระบบร้านค้า (Cloud Sync + รองรับมือถือ/แท็บเล็ต)</title>
+    <title>ระบบร้านค้า (Cloud Sync + ระบบกู้คืนข้อมูล)</title>
     
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -176,6 +175,18 @@
 <body>
 
 <div class="app-container">
+    
+    <!-- 🆘 กล่องเครื่องมือกู้ภัยฉุกเฉิน -->
+    <div id="recoveryBox" class="alert alert-danger d-flex flex-column flex-md-row justify-content-between align-items-center mb-4 d-print-none shadow-sm" style="display: none !important;">
+        <div class="mb-2 mb-md-0">
+            <h5 class="fw-bold mb-1 text-danger">⚠️ พบประวัติข้อมูลเก่าตกค้างในเครื่อง</h5>
+            <span class="fs-6">ระบบตรวจพบข้อมูลคลังสินค้าและลูกค้าที่อาจสูญหาย กรุณากดปุ่มเพื่อกู้ข้อมูลคืน</span>
+        </div>
+        <button class="btn btn-danger fw-bold shadow" onclick="emergencyRecoverData()">
+            🆘 กู้คืนข้อมูลฉุกเฉิน (คลังสินค้า & ลูกค้า)
+        </button>
+    </div>
+
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 d-print-none gap-3 header-controls">
         <div class="d-flex align-items-center gap-3">
             <h3 class="text-primary fw-bold mb-0">🏬 โปรแกรมร้านค้า</h3>
@@ -736,10 +747,6 @@
                     <h4 class="fw-bold mb-1 text-secondary">⚙️ ประวัติระบบ (Activity Logs)</h4>
                     <span class="text-muted fs-6">กล้องวงจรปิดหลังร้าน ซิงค์ออนไลน์ 100%</span>
                 </div>
-                
-                <button id="btnMigrateData" class="btn btn-success fw-bold px-4 shadow-sm w-100 w-md-auto" style="display: none;" onclick="migrateOldDataToCloud()">
-                    ⬆️ อัปโหลดข้อมูลเดิมในเครื่องนี้ ขึ้นระบบ
-                </button>
             </div>
             
             <div class="table-responsive bg-white shadow-sm border-0">
@@ -829,7 +836,7 @@
 <div class="modal fade d-print-none" id="editCustomerModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
       <div class="modal-content">
-        <div class="modal-header"><h5 class="modal-title fw-bold">✏️️ แก้ไขลูกค้า</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-header"><h5 class="modal-title fw-bold">✏️ แก้ไขลูกค้า</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
         <div class="modal-body p-4">
           <input type="hidden" id="editCusOriginalBarcode">
           <div class="mb-3"><label class="form-label">รหัสลูกค้า</label><input type="text" id="editCusBarcode" class="form-control" oninput="this.value = convertThaiToEng(this.value)"></div>
@@ -957,7 +964,6 @@
         if (currentViewedCustomerBarcode) viewCustomerDetail(currentViewedCustomerBarcode);
     });
 
-    // 🔴 แก้ไขการดึงข้อมูลบิล: เมื่อมีการลบหรือแก้ไข ให้รีเฟรชหน้าจอลูกค้าอัตโนมัติ
     db.collection("pos_transactions").orderBy("timestamp", "desc").limit(500).onSnapshot((snapshot) => {
         transactions = [];
         snapshot.forEach((doc) => {
@@ -965,8 +971,6 @@
         });
         renderTable();
         if($('#summary').hasClass('active')) renderSummary();
-        
-        // คำสั่งนี้ทำให้หน้าจอลูกค้าอัปเดตเรียลไทม์เมื่อมีการลบ/แก้/เพิ่มบิล
         renderCustomerTable();
         if (currentViewedCustomerBarcode) {
             viewCustomerDetail(currentViewedCustomerBarcode);
@@ -985,65 +989,121 @@
     });
 
     // ==========================================
-    // ⚙️ 3. ระบบช่วยเหลือ: ฟังก์ชันย้ายข้อมูลเดิมขึ้น Cloud
+    // ⚙️ 3. โปรแกรมกู้ภัยฉุกเฉิน (Emergency Recovery)
     // ==========================================
-    function checkOldDataForMigration() {
-        let oldInv = JSON.parse(localStorage.getItem('myApp_inventory')) || [];
-        let oldCus = JSON.parse(localStorage.getItem('myApp_customers')) || [];
-        let oldTx = JSON.parse(localStorage.getItem('myApp_transactions')) || [];
+    function checkEmergencyRecovery() {
+        let historyStr = localStorage.getItem('myApp_inventory_history');
+        let oldTxStr = localStorage.getItem('myApp_transactions');
         
-        if(oldInv.length > 0 || oldCus.length > 0 || oldTx.length > 0) {
-            document.getElementById('btnMigrateData').style.display = 'inline-block';
+        if(historyStr || oldTxStr) {
+            document.getElementById('recoveryBox').setAttribute('style', 'display: flex !important;');
         }
     }
 
-    function migrateOldDataToCloud() {
-        if(!confirm("ระบบจะดึงข้อมูลเก่าจากในเครื่องขึ้นระบบออนไลน์ Cloud (ทำแค่ครั้งเดียว) ยืนยันหรือไม่?")) return;
-        
-        let oldInv = JSON.parse(localStorage.getItem('myApp_inventory')) || [];
-        let oldCus = JSON.parse(localStorage.getItem('myApp_customers')) || [];
-        let oldTx = JSON.parse(localStorage.getItem('myApp_transactions')) || [];
-        let oldLogs = JSON.parse(localStorage.getItem('myApp_activityLogs')) || [];
+    function emergencyRecoverData() {
+        let recoveredInv = [];
+        let recoveredCusMap = {};
 
-        let batch = db.batch();
-        
-        oldInv.forEach(p => {
-            let pId = p.id ? p.id.toString() : Date.now().toString() + Math.random().toString(36).substr(2, 5);
-            let ref = db.collection("pos_products").doc(pId);
-            batch.set(ref, p);
-        });
-        
-        oldCus.forEach(c => {
-            if(c.barcode) {
-                let ref = db.collection("pos_customers").doc(c.barcode.toString());
-                batch.set(ref, c);
+        // กู้คลังสินค้า
+        let historyStr = localStorage.getItem('myApp_inventory_history');
+        if (historyStr) {
+            try {
+                let history = JSON.parse(historyStr);
+                let dates = Object.keys(history).sort().reverse(); 
+                for (let d of dates) {
+                    let invList = history[d];
+                    if (invList && Array.isArray(invList)) {
+                        // ป้องกันการกู้ข้อมูลน้ำแข็งหลอดปลอมๆ กลับมา
+                        let isJustDefault = (invList.length === 1 && invList[0].barcode === "1111" && invList[0].name === "น้ำแข็งหลอด");
+                        if (invList.length > 0 && !isJustDefault) {
+                            recoveredInv = invList;
+                            break; 
+                        }
+                    }
+                }
+            } catch(e) { console.error(e); }
+        }
+
+        // กู้ลูกค้า (จากบิลเก่าในเครื่อง + บิลบนออนไลน์)
+        let allTxForRecovery = [...transactions];
+        let oldTxStr = localStorage.getItem('myApp_transactions');
+        if (oldTxStr) {
+            try { allTxForRecovery = allTxForRecovery.concat(JSON.parse(oldTxStr)); } catch(e) {}
+        }
+        allTxForRecovery.forEach(t => {
+            if (t.barcode && t.customer && t.customer !== "ลูกค้าทั่วไป") {
+                recoveredCusMap[t.barcode] = {
+                    barcode: t.barcode,
+                    name: t.customer,
+                    phone: "-",
+                    address: "กู้คืนจากบิล",
+                    pendingItemName: "",
+                    pendingItemQty: 0
+                };
             }
         });
-        
-        oldTx.forEach(t => {
-            let tId = t.id ? t.id.toString() : Date.now().toString() + Math.random().toString(36).substr(2, 5);
-            if(!t.timestamp) t.timestamp = Date.now();
-            let ref = db.collection("pos_transactions").doc(tId);
-            batch.set(ref, t);
-        });
-        
-        oldLogs.forEach(l => {
-            let lId = l.id ? l.id.toString() : Date.now().toString() + Math.random().toString(36).substr(2, 5);
-            if(!l.timestamp) l.timestamp = Date.now();
-            let ref = db.collection("pos_logs").doc(lId);
-            batch.set(ref, l);
-        });
+        let recoveredCus = Object.values(recoveredCusMap);
 
-        batch.commit().then(() => {
-            alert("✅ อัปโหลดข้อมูลเดิมขึ้นระบบ Cloud เรียบร้อยแล้ว!");
-            localStorage.removeItem('myApp_inventory');
-            localStorage.removeItem('myApp_customers');
-            localStorage.removeItem('myApp_transactions');
-            localStorage.removeItem('myApp_activityLogs');
-            document.getElementById('btnMigrateData').style.display = 'none';
-        }).catch(err => {
-            alert("เกิดข้อผิดพลาดในการอัปโหลด: " + err.message);
-        });
+        let msg = `🔍 ผลการค้นหาข้อมูลเพื่อกู้คืน:\n`;
+        msg += `- พบรายการสินค้าในระบบสำรอง: ${recoveredInv.length} รายการ\n`;
+        msg += `- พบรายชื่อลูกค้าจากประวัติบิล: ${recoveredCus.length} รายการ\n\n`;
+        
+        if (recoveredInv.length === 0 && recoveredCus.length === 0) {
+            alert("ไม่พบข้อมูลเก่าในเครื่องที่สามารถกู้คืนได้ครับ");
+            return;
+        }
+
+        msg += `ต้องการกู้คืนข้อมูลเหล่านี้และส่งขึ้นระบบออนไลน์ (Cloud) เลยหรือไม่?`;
+
+        if (confirm(msg)) {
+            let batch = db.batch();
+            
+            recoveredInv.forEach(p => {
+                let pId = p.id ? p.id.toString() : Date.now().toString() + Math.random().toString(36).substr(2, 5);
+                let ref = db.collection("pos_products").doc(pId);
+                batch.set(ref, p);
+            });
+
+            recoveredCus.forEach(c => {
+                let ref = db.collection("pos_customers").doc(c.barcode.toString());
+                batch.set(ref, c);
+            });
+
+            // อัปโหลดบิลและ Log เก่าๆ ที่ยังค้างในเครื่องขึ้นไปด้วย (ถ้ามี)
+            if (oldTxStr) {
+                try {
+                    let oldTx = JSON.parse(oldTxStr);
+                    oldTx.forEach(t => {
+                        let tId = t.id ? t.id.toString() : Date.now().toString() + Math.random().toString(36).substr(2, 5);
+                        if(!t.timestamp) t.timestamp = Date.now();
+                        let ref = db.collection("pos_transactions").doc(tId);
+                        batch.set(ref, t);
+                    });
+                } catch(e) {}
+            }
+            
+            let oldLogsStr = localStorage.getItem('myApp_activityLogs');
+            if(oldLogsStr) {
+                try {
+                    let oldLogs = JSON.parse(oldLogsStr);
+                    oldLogs.forEach(l => {
+                        let lId = l.id ? l.id.toString() : Date.now().toString() + Math.random().toString(36).substr(2, 5);
+                        if(!l.timestamp) l.timestamp = Date.now();
+                        let ref = db.collection("pos_logs").doc(lId);
+                        batch.set(ref, l);
+                    });
+                } catch(e) {}
+            }
+
+            batch.commit().then(() => {
+                alert("🎉 กู้คืนข้อมูลสำเร็จ! ข้อมูลคลังสินค้าและลูกค้ากลับมาแล้วครับ");
+                // ล้างข้อมูลในเครื่องทิ้งเพื่อไม่ให้มันกวนอีก
+                localStorage.removeItem('myApp_inventory_history');
+                localStorage.removeItem('myApp_transactions');
+                localStorage.removeItem('myApp_activityLogs');
+                document.getElementById('recoveryBox').setAttribute('style', 'display: none !important;');
+            }).catch(err => alert("เกิดข้อผิดพลาดในการกู้ข้อมูล: " + err.message));
+        }
     }
 
     // ==========================================
@@ -1069,32 +1129,6 @@
             action: action,
             detail: detail,
             timestamp: Date.now()
-        });
-    }
-
-    function renderActivityLogs() {
-        let tbody = document.getElementById('activityLogTableBody');
-        tbody.innerHTML = "";
-        if (activityLogs.length === 0) {
-            tbody.innerHTML = "<tr><td colspan='5' class='text-center text-muted py-5'>ยังไม่มีประวัติการทำรายการในระบบ</td></tr>";
-            return;
-        }
-        activityLogs.forEach(log => {
-            let actionBadge = `<span class="badge bg-secondary">${log.action}</span>`;
-            if(log.action.includes('ขาย') || log.action.includes('รับชำระ')) actionBadge = `<span class="badge bg-success">${log.action}</span>`;
-            else if(log.action.includes('แก้ไข') || log.action.includes('อัปเดต')) actionBadge = `<span class="badge bg-warning text-dark">${log.action}</span>`;
-            else if(log.action.includes('ลบ') || log.action.includes('ล้าง')) actionBadge = `<span class="badge bg-danger">${log.action}</span>`;
-            else if(log.action.includes('เพิ่ม') || log.action.includes('นำเข้า') || log.action.includes('ส่งออก')) actionBadge = `<span class="badge bg-primary">${log.action}</span>`;
-            
-            tbody.innerHTML += `
-                <tr>
-                    <td class="text-muted" style="font-size:14px; white-space:nowrap;">${log.time}</td>
-                    <td class="fw-bold text-dark">👤 ${log.user || "-"}</td>
-                    <td class="text-secondary">📍 ${log.location || "-"}</td>
-                    <td>${actionBadge}</td>
-                    <td><div class="text-wrap" style="max-width:300px; font-size:14px;">${log.detail}</div></td>
-                </tr>
-            `;
         });
     }
 
@@ -1783,12 +1817,11 @@
             paid: paid,
             debt: total - paid
         }).then(() => {
-            addLog('✏️ แก้ไขบิล', `ลูกค้า: ${tx.customer} | ยอดใหม่: ${total}฿`, 'หน้าประวัติการขาย');
+            addLog('✏️️ แก้ไขบิล', `ลูกค้า: ${tx.customer} | ยอดใหม่: ${total}฿`, 'หน้าประวัติการขาย');
             editTxModal.hide();
         });
     }
 
-    // 🔴 ฟังก์ชันลบบิล (เชื่อมต่อกับ Cloud แล้ว)
     function secureDeleteTransaction(id) {
         let tx = transactions.find(t => t.id === id);
         if(!tx) return;
@@ -2111,7 +2144,6 @@
             };
 
             if(newBarcode !== originalBarcode) {
-                // รหัสเปลี่ยน ต้องสร้าง doc ใหม่แล้วลบของเก่า
                 db.collection("pos_customers").doc(newBarcode).set(dataObj).then(() => {
                     db.collection("pos_customers").doc(originalBarcode).delete();
                     addLog('✏ แก้ไขลูกค้า', `เปลี่ยนรหัสเป็น [${newBarcode}] ${newName}`, 'หน้าจัดการลูกค้า');
@@ -2142,8 +2174,7 @@
 
         document.getElementById('inventoryHistoryDate').value = new Date().toLocaleDateString('en-CA');
         
-        // เช็คว่ามีข้อมูลเก่าในเครื่องไหม ถ้ามีให้แสดงปุ่มโอนย้าย
-        checkOldDataForMigration();
+        checkEmergencyRecovery();
         
         $('#saleCustomer').on('change', function() { syncCustomerFromSelect(); });
         $('#productSelect').on('change', function() { addSelectedProductToCart(); });
