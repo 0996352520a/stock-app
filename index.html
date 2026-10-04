@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบร้านค้า (แก้ไขจำนวนสินค้าได้)</title>
+    <title>ระบบร้านค้า (แก้ไขตารางลูกค้าตรงกัน)</title>
     
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -100,9 +100,8 @@
         .cart-price-input { padding: 4px 8px; font-size: 16px; width: 85px; margin: 0 auto; border: 1px solid transparent; background: transparent; transition: 0.2s; }
         .cart-price-input:hover, .cart-price-input:focus { border: 1px solid #86b7fe; background: #fff; border-radius: 6px; }
         
-        .cart-qty-input { padding: 4px; font-size: 16px; width: 55px; display: inline-block; border: 1px solid transparent; background: transparent; transition: 0.2s; }
+        .cart-qty-input { padding: 4px; font-size: 16px; width: 55px; display: inline-block; border: 1px solid transparent; background: transparent; transition: 0.2s; text-align: center; }
         .cart-qty-input:hover, .cart-qty-input:focus { border: 1px solid #86b7fe; background: #fff; border-radius: 6px; }
-        /* ซ่อนลูกศรขึ้นลงของช่องกรอกตัวเลขจำนวน */
         .cart-qty-input::-webkit-outer-spin-button, .cart-qty-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
         .cart-qty-input[type=number] { -moz-appearance: textfield; }
 
@@ -143,7 +142,7 @@
         <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#summary" type="button" onclick="initSummary()">📊 สรุปยอดขาย</button></li>
         <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#customerView" type="button" onclick="initCustomerView()">👤 ข้อมูลลูกค้า</button></li>
         <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#inventory" type="button" onclick="viewInventoryHistory()">📦 คลังสินค้า</button></li>
-        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#customers" type="button" onclick="renderCustomerTable()">👥 จัดการลูกค้า (Excel)</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#customers" type="button" onclick="renderCustomerTable()">👥 จัดการลูกค้า</button></li>
     </ul>
 
     <div class="tab-content">
@@ -181,6 +180,7 @@
                                     <select id="saleCustomer" class="form-select" required></select>
                                 </div>
                             </div>
+                            <!-- แจ้งเตือนหนี้และค้างภาชนะ -->
                             <div id="currentCustomerDebtInfo" class="mt-2 py-2 px-3 rounded" style="display:none; font-size: 15px;"></div>
                             <div id="currentCustomerPendingInfo" class="mt-2 py-2 px-3 rounded text-danger fw-bold bg-danger bg-opacity-10 border border-danger" style="display:none; font-size: 16px;"></div>
                         </div>
@@ -244,7 +244,6 @@
                             </div>
                         </div>
 
-                        <!-- ปุ่มลัดรับเงินชำระหนี้ -->
                         <button type="button" class="btn btn-warning w-100 mb-3 shadow-sm fw-bold border-0 text-dark py-2" onclick="openPayDebtModal()" style="font-size: 18px;">
                             💰 ลูกค้านำเงินมาจ่ายหนี้ / ฝากเงิน (ไม่ซื้อของ)
                         </button>
@@ -674,15 +673,15 @@
             <div class="table-responsive bg-white">
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light">
+                        <!-- แก้ไขส่วนนี้ให้คอลัมน์ตรงกันเป๊ะ 100% -->
                         <tr>
-                            <th>รหัส</th>
-                            <th>ชื่อลูกค้า</th>
-                            <th>เบอร์โทร</th>
-                            <th>ที่อยู่</th>
-                            <th class="text-center text-danger">ค้างภาชนะ</th>
-                            <th class="text-end">หนี้ค้าง</th>
-                            <th class="text-end">เงินฝาก</th>
-                            <th class="text-center">จัดการ</th>
+                            <th style="width: 10%;">รหัส</th>
+                            <th style="width: 20%;">ชื่อลูกค้า</th>
+                            <th style="width: 25%;">เบอร์โทร / ที่อยู่</th>
+                            <th class="text-center text-danger" style="width: 15%;">ค้างภาชนะ</th>
+                            <th class="text-end" style="width: 10%;">หนี้ค้าง</th>
+                            <th class="text-end" style="width: 10%;">เงินฝาก</th>
+                            <th class="text-center" style="width: 10%;">จัดการ</th>
                         </tr>
                     </thead>
                     <tbody id="customerTableBody"></tbody>
@@ -936,7 +935,7 @@
         let sortedInventory = [...inventory].sort((a, b) => a.category.localeCompare(b.category));
         sortedInventory.forEach(p => {
             let dailyText = p.isDaily ? " (รายวัน)" : "";
-            prodOptions += `<option value="${p.id}" data-barcode="${p.barcode}">[${p.barcode}]${p.name} ${dailyText} (${p.price}฿)</option>`;
+            prodOptions += `<option value="${p.id}" data-barcode="${p.barcode}">[${p.barcode}] ${p.name} ${dailyText} (${p.price}฿)</option>`;
         });
         prodSelect.html(prodOptions);
 
@@ -1114,7 +1113,7 @@
 
         let shiftNameText = filterShift === 'all' ? "" : `(${filterShift})`;
         let viewTypeText = viewType === 'daily' ? "ยอดขายรายวัน" : "ยอดขายรายเดือน";
-        document.getElementById('summaryTitleText').innerText = `📊 สรุป${viewTypeText}${shiftNameText}`;
+        document.getElementById('summaryTitleText').innerText = `📊 สรุป${viewTypeText} ${shiftNameText}`;
     }
 
     function initPOS() {
@@ -1241,8 +1240,7 @@
         }
         renderCart();
     }
-
-    // ฟังก์ชันใหม่: พิมพ์อัปเดตจำนวนสินค้าโดยตรง
+    
     function setCartQty(prodId, newQty) {
         let item = cart.find(x => x.id === prodId);
         if (item) {
@@ -1830,7 +1828,7 @@
         }
     }
 
-    // ================= โซนจัดการลูกค้า (นำเข้า/ส่งออก Excel + ฟอร์มในแอป) =================
+    // ================= โซนจัดการลูกค้า =================
     function renderCustomerTable() {
         let searchInput = document.getElementById('searchCustomerTable');
         let searchTerm = searchInput ? searchInput.value.trim().toLowerCase() : '';
@@ -1855,15 +1853,16 @@
         filteredCustomers.forEach(c => {
             let bal = getCustomerBalance(c.barcode);
             let pendingHtml = c.pendingItem ? `<span class="badge bg-danger">${c.pendingItem}</span>` : "-";
+            
             tbody.innerHTML += `
                 <tr>
-                    <td class="text-primary fw-bold">${c.barcode}</td>
-                    <td class="fw-bold">${c.name}</td>
-                    <td class="text-muted" style="font-size:14px;">${c.phone || "-"}<br>${c.address || "-"}</td>
-                    <td class="text-center">${pendingHtml}</td>
-                    <td class="text-end fw-bold ${bal.debt > 0 ? 'text-danger' : 'text-muted'}">${bal.debt > 0 ? bal.debt.toLocaleString() : '-'}</td>
-                    <td class="text-end fw-bold ${bal.credit > 0 ? 'text-success' : 'text-muted'}">${bal.credit > 0 ? bal.credit.toLocaleString() : '-'}</td>
-                    <td class="text-center d-print-none">
+                    <td class="text-primary fw-bold" style="width: 10%;">${c.barcode}</td>
+                    <td class="fw-bold" style="width: 20%;">${c.name}</td>
+                    <td class="text-muted" style="font-size:14px; width: 25%;">${c.phone || "-"}<br>${c.address || "-"}</td>
+                    <td class="text-center" style="width: 15%;">${pendingHtml}</td>
+                    <td class="text-end fw-bold ${bal.debt > 0 ? 'text-danger' : 'text-muted'}" style="width: 10%;">${bal.debt > 0 ? bal.debt.toLocaleString() : '-'}</td>
+                    <td class="text-end fw-bold ${bal.credit > 0 ? 'text-success' : 'text-muted'}" style="width: 10%;">${bal.credit > 0 ? bal.credit.toLocaleString() : '-'}</td>
+                    <td class="text-center d-print-none" style="width: 10%;">
                         <button class="btn btn-sm btn-light text-primary" onclick="openEditCustomerModal('${c.barcode}')">แก้</button>
                         <button class="btn btn-sm btn-light text-danger" onclick="deleteCustomer('${c.barcode}')">ลบ</button>
                     </td>
