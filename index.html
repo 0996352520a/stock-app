@@ -63,13 +63,25 @@
             box-shadow: 0 2px 12px rgba(0,0,0,0.04); 
             background: #fff;
         }
+        .card-header { 
+            background-color: #fff; 
+            border-bottom: 1px solid #f0f0f0; 
+            border-radius: 12px 12px 0 0 !important; 
+        }
 
         .form-label { font-weight: 600; color: #495057; font-size: 15px; margin-bottom: 6px; }
-        .form-control, .form-select { 
+        
+        .form-control { 
             border-radius: 8px; 
             border: 1px solid #ced4da; 
             padding: 10px 14px;
-            font-size: 16px; /* บังคับ 16px เพื่อไม่ให้ iOS ซูมตอนพิมพ์ */
+            font-size: 16px;
+        }
+        .form-select { 
+            border-radius: 8px; 
+            border: 1px solid #ced4da; 
+            padding: 10px 36px 10px 14px; 
+            font-size: 16px;
         }
         .form-control:focus, .form-select:focus { 
             border-color: #86b7fe; 
@@ -117,7 +129,7 @@
         .status-online { background-color: #10b981; box-shadow: 0 0 8px #10b981; }
         .status-offline { background-color: #f59e0b; box-shadow: 0 0 8px #f59e0b; }
 
-        /* ================= 📱 CSS สำหรับมือถือและแท็บเล็ต (Responsive) ================= */
+        /* ================= 📱 CSS สำหรับมือถือและแท็บเล็ต ================= */
         @media (max-width: 992px) {
             .app-container { margin: 10px; padding: 15px; border-radius: 12px; }
             .theme-morning, .theme-evening { padding: 15px; border-width: 2px !important; }
@@ -140,17 +152,12 @@
             .money-input { font-size: 20px !important; }
             .result-box span.val { font-size: 20px; }
             
-            /* จัดตารางให้เลื่อนซ้ายขวาได้ในมือถือโดยที่ข้อความไม่บีบเละ */
             .table td { white-space: nowrap; font-size: 14px; padding: 10px; }
             .table-responsive { padding-bottom: 10px; }
 
-            /* ปรับกล่องสรุปยอดขาย 4 กล่องให้พอดีจอมือถือ */
             #summary .col-6 { width: 50%; }
-            
-            /* หน้าต่าง Modal ข้อมูลต่างๆ */
             .modal-body { padding: 15px; }
             
-            /* ปรับ Header ด้านบนให้เรียงซ้อนกันสวยงามในมือถือ */
             .header-controls { flex-direction: column; align-items: flex-start !important; gap: 10px; }
             .header-controls > div { width: 100%; justify-content: space-between; }
             .header-controls input { width: 100% !important; max-width: 100%; }
@@ -822,7 +829,7 @@
 <div class="modal fade d-print-none" id="editCustomerModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
       <div class="modal-content">
-        <div class="modal-header"><h5 class="modal-title fw-bold">✏️ แก้ไขลูกค้า</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-header"><h5 class="modal-title fw-bold">✏️️ แก้ไขลูกค้า</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
         <div class="modal-body p-4">
           <input type="hidden" id="editCusOriginalBarcode">
           <div class="mb-3"><label class="form-label">รหัสลูกค้า</label><input type="text" id="editCusBarcode" class="form-control" oninput="this.value = convertThaiToEng(this.value)"></div>
@@ -894,18 +901,15 @@
       appId: "1:692796140212:web:b7a46f5379779fb41d45e1"
     };
 
-    // Initialize Firebase
     if (!firebase.apps.length) {
         firebase.initializeApp(firebaseConfig);
     }
     const db = firebase.firestore();
 
-    // เปิดโหมด Offline (ใช้งานได้แม้เน็ตหลุด)
     db.enablePersistence().catch(function(err) {
         console.error("Offline persistence failed:", err.code);
     });
 
-    // ตรวจสอบสถานะการเชื่อมต่อ
     let isOnline = navigator.onLine;
     window.addEventListener('online', updateConnectionStatus);
     window.addEventListener('offline', updateConnectionStatus);
@@ -936,7 +940,6 @@
     let cart = [];
     let currentViewedCustomerBarcode = null;
 
-    // โหลดสินค้า
     db.collection("pos_products").onSnapshot((snapshot) => {
         inventory = [];
         snapshot.forEach((doc) => {
@@ -945,7 +948,6 @@
         updateDropdownHtml(); viewInventoryHistory();
     });
 
-    // โหลดลูกค้า
     db.collection("pos_customers").onSnapshot((snapshot) => {
         customers = [];
         snapshot.forEach((doc) => {
@@ -955,7 +957,7 @@
         if (currentViewedCustomerBarcode) viewCustomerDetail(currentViewedCustomerBarcode);
     });
 
-    // โหลดประวัติบิล (ดึงเฉพาะ 500 บิลล่าสุด)
+    // 🔴 แก้ไขการดึงข้อมูลบิล: เมื่อมีการลบหรือแก้ไข ให้รีเฟรชหน้าจอลูกค้าอัตโนมัติ
     db.collection("pos_transactions").orderBy("timestamp", "desc").limit(500).onSnapshot((snapshot) => {
         transactions = [];
         snapshot.forEach((doc) => {
@@ -963,9 +965,17 @@
         });
         renderTable();
         if($('#summary').hasClass('active')) renderSummary();
+        
+        // คำสั่งนี้ทำให้หน้าจอลูกค้าอัปเดตเรียลไทม์เมื่อมีการลบ/แก้/เพิ่มบิล
+        renderCustomerTable();
+        if (currentViewedCustomerBarcode) {
+            viewCustomerDetail(currentViewedCustomerBarcode);
+        }
+        if ($('#sales').hasClass('active')) {
+            showCustomerDebt();
+        }
     });
 
-    // โหลด Log (กล้องวงจรปิด)
     db.collection("pos_logs").orderBy("timestamp", "desc").limit(500).onSnapshot((snapshot) => {
         activityLogs = [];
         snapshot.forEach((doc) => {
@@ -1595,7 +1605,6 @@
             payDebtModal.hide();
             clearCart();
             initPOS();
-            if (currentViewedCustomerBarcode === barcode) { viewCustomerDetail(barcode); }
             alert("✅ บันทึกรับเงินชำระหนี้เรียบร้อยแล้ว!");
         });
     }
@@ -1695,8 +1704,6 @@
             document.getElementById('scanCustomerBarcode').value = "";
             
             initPOS();
-            if (currentViewedCustomerBarcode === barcode) { viewCustomerDetail(barcode); }
-            
             alert("✅ บันทึกยอดขายและอัปเดตข้อมูลเรียบร้อยแล้ว!");
         }).catch(err => {
             alert("เกิดข้อผิดพลาด: " + err.message);
@@ -1792,7 +1799,6 @@
         if (confirm(msg)) {
             db.collection("pos_transactions").doc(id).delete().then(() => {
                 addLog('🗑️ ลบบิล', `ลูกค้า: ${tx.customer} | ${plainItemText}`, 'ประวัติการขาย');
-                alert("ลบรายการบิลเรียบร้อยแล้ว");
             }).catch(err => {
                 alert("เกิดข้อผิดพลาดในการลบ: " + err.message);
             });
@@ -1875,7 +1881,7 @@
             custTrans.forEach(t => {
                 let billDebt = t.total - t.paid;
                 let debtClass = billDebt > 0 ? "text-danger fw-bold" : (billDebt < 0 ? "text-success fw-bold" : "text-muted");
-                let shiftBadge = t.shift === "รอบเช้า" ? `☀️` : `🌙`;
+                let shiftBadge = t.shift === "รอบเช้า" ? `☀️️` : `🌙`;
                 
                 let displayItem = t.item;
                 if (t.discount > 0) displayItem += `<br><span class="badge bg-danger mt-1">ส่วนลด ${t.discount}฿</span>`;
@@ -2005,7 +2011,7 @@
         let p = inventory.find(x => x.id === id);
         if(p && confirm("ลบสินค้านี้ใช่ไหม?")) {
             db.collection("pos_products").doc(id).delete().then(() => {
-                addLog('🗑️️ ลบสินค้า', `[${p.barcode}] ${p.name}`, 'หน้าคลังสินค้า');
+                addLog('🗑️ ลบสินค้า', `[${p.barcode}] ${p.name}`, 'หน้าคลังสินค้า');
             });
         }
     }
