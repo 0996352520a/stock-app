@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบร้านค้า (แยกสีกะเช้า-เย็น แบบชัดเจน 100%)</title>
+    <title>ระบบร้านค้า (ยืนยันก่อนลบบิลบอกรายละเอียด)</title>
     
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -93,7 +93,7 @@
 
         /* ================= ธีมสีแยกกะเช้า-เย็น แบบเห็นชัด 100% ================= */
         .theme-morning { 
-            background: #fffdf2 !important; /* สีเหลืองอ่อนมากๆ */
+            background: #fffdf2 !important; 
             border: 4px solid #ffc107 !important; 
             border-radius: 16px; 
             padding: 25px; 
@@ -108,7 +108,7 @@
         .shift-card-morning h4 { color: #d39e00 !important; }
 
         .theme-evening { 
-            background: #f0f8ff !important; /* สีฟ้าอ่อน AliceBlue */
+            background: #f0f8ff !important; 
             border: 4px solid #0dcaf0 !important; 
             border-radius: 16px; 
             padding: 25px; 
@@ -384,7 +384,7 @@
                         <div class="col-md-auto">
                             <select id="summaryShiftFilter" class="form-select" onchange="renderSummary()">
                                 <option value="all">รวมทั้งหมด</option>
-                                <option value="รอบเช้า">☀️ รอบเช้า</option>
+                                <option value="รอบเช้า">☀️️ รอบเช้า</option>
                                 <option value="รอบเย็น">🌙 รอบเย็น</option>
                             </select>
                         </div>
@@ -475,6 +475,7 @@
         <!-- ================= แท็บ 3: ข้อมูลลูกค้า (โชว์ลิสต์ทุกคน + ดูประวัติ) ================= -->
         <div class="tab-pane fade d-print-none" id="customerView" role="tabpanel">
             
+            <!-- หน้า 1: แสดงรายชื่อทั้งหมด -->
             <div id="customerListView">
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <h4 class="fw-bold mb-0 text-primary">👥 เลือกดูประวัติลูกค้า</h4>
@@ -500,6 +501,7 @@
                 </div>
             </div>
 
+            <!-- หน้า 2: เจาะจงประวัติลูกค้ารายคน (ซ่อนไว้ตอนแรก) -->
             <div id="customerDetailView" style="display: none;">
                 <button class="btn btn-outline-secondary mb-4 fw-bold px-4 shadow-sm" onclick="showCustomerList()">⬅️ ย้อนกลับไปหน้ารายชื่อ</button>
                 
@@ -565,7 +567,7 @@
                             <input type="date" id="inventoryHistoryDate" class="form-control form-control-lg fs-5 fw-bold text-primary border-primary" onchange="viewInventoryHistory()">
                         </div>
                         <div class="col-md-auto ms-auto">
-                            <button class="btn btn-outline-success fw-bold px-4" onclick="window.print()">🖨️️ พิมพ์รายงานสต็อก</button>
+                            <button class="btn btn-outline-success fw-bold px-4" onclick="window.print()">🖨️ พิมพ์รายงานสต็อก</button>
                         </div>
                     </div>
                 </div>
@@ -985,7 +987,7 @@
         let sortedInventory = [...inventory].sort((a, b) => a.category.localeCompare(b.category));
         sortedInventory.forEach(p => {
             let dailyText = p.isDaily ? " (รายวัน)" : "";
-            prodOptions += `<option value="${p.id}" data-barcode="${p.barcode}">[${p.barcode}] ${p.name} ${dailyText} (${p.price}฿)</option>`;
+            prodOptions += `<option value="${p.id}" data-barcode="${p.barcode}">[${p.barcode}]${p.name} ${dailyText} (${p.price}฿)</option>`;
         });
         prodSelect.html(prodOptions);
 
@@ -1163,7 +1165,7 @@
 
         let shiftNameText = filterShift === 'all' ? "" : `(${filterShift})`;
         let viewTypeText = viewType === 'daily' ? "ยอดขายรายวัน" : "ยอดขายรายเดือน";
-        document.getElementById('summaryTitleText').innerText = `📊 สรุป${viewTypeText} ${shiftNameText}`;
+        document.getElementById('summaryTitleText').innerText = `📊 สรุป${viewTypeText}${shiftNameText}`;
     }
 
     function initPOS() {
@@ -1174,7 +1176,6 @@
         document.getElementById('scanCustomerBarcode').focus();
     }
     
-    // โค้ดสลับสีกะ
     $('input[name="shiftSelect"]').on('change', function() {
         if ($('#shiftMorning').is(':checked')) {
             $('#posWorkspace').removeClass('theme-evening').addClass('theme-morning');
@@ -1660,23 +1661,25 @@
     }
 
     function secureDeleteTransaction(id) {
-        let pwd = prompt("🔒 ยืนยันสิทธิ์: กรุณาใส่รหัสผ่านเพื่อลบบิลนี้ (รหัส: 1234)");
-        if (pwd === "1234") {
-            if (confirm("ลบบิลนี้ทิ้งใช่ไหม? (เมื่อลบแล้ว ยอดหนี้ลูกค้าจะอัปเดตอัตโนมัติ)")) {
-                transactions = transactions.filter(t => t.id !== id);
-                localStorage.setItem('myApp_transactions', JSON.stringify(transactions));
-                
-                renderTable();
-                renderCustomerTable();
-                
-                if(document.getElementById('summary').classList.contains('active')) renderSummary();
-                if(document.getElementById('customerView').classList.contains('active') && currentViewedCustomerBarcode) {
-                    viewCustomerDetail(currentViewedCustomerBarcode);
-                }
-                alert("✅ ลบบิลและอัปเดตข้อมูลลูกค้าเรียบร้อยแล้ว");
+        let tx = transactions.find(t => t.id === id);
+        if(!tx) return;
+        
+        // เอา HTML tags ออกเพื่อให้แสดงในหน้าต่างยืนยันได้สวยงาม
+        let plainItemText = tx.item.replace(/<br\s*[\/]?>/gi, " | ").replace(/<[^>]*>?/gm, '');
+        
+        let msg = `⚠️ ยืนยันการลบรายการนี้ใช่หรือไม่?\n\n👤 ลูกค้า: ${tx.customer}\n🛒 รายการ: ${plainItemText}\n💰 ยอดสุทธิ: ${tx.total} บาท\n\n*หากลบแล้วยอดหนี้และสรุปยอดขายจะถูกหักล้างและคำนวณใหม่ทันที`;
+        
+        if (confirm(msg)) {
+            transactions = transactions.filter(t => t.id !== id);
+            localStorage.setItem('myApp_transactions', JSON.stringify(transactions));
+            
+            renderTable();
+            renderCustomerTable();
+            
+            if(document.getElementById('summary').classList.contains('active')) renderSummary();
+            if(document.getElementById('customerView').classList.contains('active') && currentViewedCustomerBarcode) {
+                viewCustomerDetail(currentViewedCustomerBarcode);
             }
-        } else if (pwd !== null) {
-            alert("❌ รหัสผ่านไม่ถูกต้อง");
         }
     }
 
