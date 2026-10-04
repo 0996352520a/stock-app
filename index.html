@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบร้านค้า (มีระบบ Log หลังบ้าน)</title>
+    <title>ระบบร้านค้า (Log รู้ใครทำ ทำที่ไหน เวลาไหน)</title>
     
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -164,9 +164,17 @@
 <body>
 
 <div class="app-container">
-    <div class="d-flex justify-content-between align-items-center mb-4 d-print-none">
-        <h3 class="text-primary fw-bold mb-0">🏬 โปรแกรมร้านค้า</h3>
-        <span class="badge bg-success fs-6 px-3 py-2 rounded-pill">ระบบพร้อมใช้งาน</span>
+    <div class="d-flex justify-content-between align-items-center mb-4 d-print-none flex-wrap gap-3">
+        <div class="d-flex align-items-center gap-3">
+            <h3 class="text-primary fw-bold mb-0">🏬 โปรแกรมร้านค้า</h3>
+            <span class="badge bg-success fs-6 px-3 py-2 rounded-pill">ระบบพร้อมใช้งาน</span>
+        </div>
+        
+        <!-- ช่องใส่ชื่อพนักงาน เพื่อให้ Log บันทึกได้ว่าใครเป็นคนทำรายการ -->
+        <div class="d-flex align-items-center bg-white px-3 py-2 rounded-pill shadow-sm border border-2 border-primary">
+            <span class="fw-bold text-primary me-2">👤 พนักงาน:</span>
+            <input type="text" id="currentUser" class="form-control form-control-sm border-0 fw-bold text-dark fs-6 p-0" style="width: 130px; background: transparent; box-shadow: none;" placeholder="พิมพ์ชื่อพนักงาน..." oninput="saveCurrentUser()">
+        </div>
     </div>
 
     <!-- เมนู Tabs -->
@@ -460,9 +468,20 @@
                     </div>
                 </div>
             </div>
+            
+            <div class="d-none d-print-block mt-5 pt-5">
+                <div class="row text-center mt-5">
+                    <div class="col-6">
+                        <p>ผู้ทำรายการ</p><br><p>.......................................................</p>
+                    </div>
+                    <div class="col-6">
+                        <p>ผู้ตรวจสอบ</p><br><p>.......................................................</p>
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <!-- ================= แท็บ 3: ข้อมูลลูกค้า ================= -->
+        <!-- ================= แท็บ 3: ข้อมูลลูกค้า (โชว์ลิสต์ทุกคน + ดูประวัติ) ================= -->
         <div class="tab-pane fade d-print-none" id="customerView" role="tabpanel">
             
             <!-- หน้า 1: แสดงรายชื่อทั้งหมด -->
@@ -491,7 +510,7 @@
                 </div>
             </div>
 
-            <!-- หน้า 2: เจาะจงประวัติลูกค้ารายคน -->
+            <!-- หน้า 2: เจาะจงประวัติลูกค้ารายคน (ซ่อนไว้ตอนแรก) -->
             <div id="customerDetailView" style="display: none;">
                 <button class="btn btn-outline-secondary mb-4 fw-bold px-4 shadow-sm" onclick="showCustomerList()">⬅️ ย้อนกลับไปหน้ารายชื่อ</button>
                 
@@ -633,6 +652,17 @@
                     <tbody id="inventoryTableBody"></tbody>
                 </table>
             </div>
+
+            <div class="d-none d-print-block mt-5 pt-5">
+                <div class="row text-center mt-5">
+                    <div class="col-6">
+                        <p>ผู้ตรวจนับสต็อก</p><br><p>.......................................................</p>
+                    </div>
+                    <div class="col-6">
+                        <p>ผู้จัดการร้าน</p><br><p>.......................................................</p>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- ================= แท็บ 5: จัดการรายชื่อลูกค้า ================= -->
@@ -721,11 +751,13 @@
             </div>
         </div>
 
-        <!-- ================= แท็บ 6: ประวัติระบบ (Log) ================= -->
+        <!-- ================= แท็บ 6: ประวัติระบบ (Log) เอาปุ่มล้างออก ================= -->
         <div class="tab-pane fade d-print-none" id="activityLog" role="tabpanel">
             <div class="d-flex justify-content-between align-items-center mb-4">
-                <h4 class="fw-bold mb-0 text-secondary">⚙️ ประวัติการทำรายการในระบบ (Activity Logs)</h4>
-                <button class="btn btn-outline-danger btn-sm" onclick="clearActivityLogs()">🗑️ ล้างประวัติระบบ</button>
+                <div>
+                    <h4 class="fw-bold mb-1 text-secondary">⚙️ ประวัติระบบ (Activity Logs)</h4>
+                    <span class="text-muted" style="font-size: 14px;">กล้องวงจรปิดหลังร้าน บันทึกทุกการเคลื่อนไหว (ไม่สามารถลบได้)</span>
+                </div>
             </div>
             
             <div class="table-responsive bg-white shadow-sm border-0">
@@ -733,12 +765,14 @@
                     <thead class="table-light">
                         <tr>
                             <th>วัน-เวลา</th>
-                            <th>ประเภทรายการ</th>
-                            <th>รายละเอียด</th>
+                            <th>พนักงาน (ใคร)</th>
+                            <th>เมนู (ที่ไหน)</th>
+                            <th style="width: 130px;">ประเภท</th>
+                            <th>รายละเอียดการกระทำ</th>
                         </tr>
                     </thead>
                     <tbody id="activityLogTableBody">
-                        <tr><td colspan='3' class='text-center text-muted py-5'>ยังไม่มีประวัติการทำรายการในระบบ</td></tr>
+                        <tr><td colspan='5' class='text-center text-muted py-5'>ยังไม่มีประวัติการทำรายการในระบบ</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -892,17 +926,30 @@
     
     let currentViewedCustomerBarcode = null;
 
-    // ระบบเพิ่ม Log หลังบ้าน
-    function addLog(action, detail) {
+    // --- ระบบบันทึกชื่อพนักงาน ---
+    function saveCurrentUser() {
+        localStorage.setItem('myApp_currentUser', document.getElementById('currentUser').value);
+    }
+
+    // --- ระบบ Log หลังบ้าน (กล้องวงจรปิด) ---
+    function addLog(action, detail, locationStr) {
+        let userName = document.getElementById('currentUser') ? document.getElementById('currentUser').value.trim() : "ระบบ";
+        if(!userName) userName = "ไม่ระบุชื่อ";
+        if(action === '🧹 ล้างสต็อกอัตโนมัติ') userName = "ระบบอัตโนมัติ";
+
         let now = new Date();
-        let dateTime = now.toLocaleDateString('th-TH') + " " + now.toLocaleTimeString('th-TH', {hour: '2-digit', minute:'2-digit'});
+        let dateTime = now.toLocaleDateString('th-TH') + " " + now.toLocaleTimeString('th-TH', {hour: '2-digit', minute:'2-digit', second:'2-digit'});
+        
         activityLogs.unshift({
             id: Date.now(),
             time: dateTime,
+            user: userName,
+            location: locationStr,
             action: action,
             detail: detail
         });
-        if(activityLogs.length > 500) activityLogs.pop(); // เก็บไว้ 500 รายการล่าสุด
+        
+        if(activityLogs.length > 500) activityLogs.pop(); // เก็บย้อนหลัง 500 รายการ
         localStorage.setItem('myApp_activityLogs', JSON.stringify(activityLogs));
     }
 
@@ -910,7 +957,7 @@
         let tbody = document.getElementById('activityLogTableBody');
         tbody.innerHTML = "";
         if (activityLogs.length === 0) {
-            tbody.innerHTML = "<tr><td colspan='3' class='text-center text-muted py-5'>ยังไม่มีประวัติการทำรายการในระบบ</td></tr>";
+            tbody.innerHTML = "<tr><td colspan='5' class='text-center text-muted py-5'>ยังไม่มีประวัติการทำรายการในระบบ</td></tr>";
             return;
         }
         activityLogs.forEach(log => {
@@ -918,24 +965,18 @@
             if(log.action.includes('ขาย') || log.action.includes('รับชำระ')) actionBadge = `<span class="badge bg-success">${log.action}</span>`;
             else if(log.action.includes('แก้ไข') || log.action.includes('อัปเดต')) actionBadge = `<span class="badge bg-warning text-dark">${log.action}</span>`;
             else if(log.action.includes('ลบ') || log.action.includes('ล้าง')) actionBadge = `<span class="badge bg-danger">${log.action}</span>`;
-            else if(log.action.includes('เพิ่ม') || log.action.includes('นำเข้า')) actionBadge = `<span class="badge bg-primary">${log.action}</span>`;
+            else if(log.action.includes('เพิ่ม') || log.action.includes('นำเข้า') || log.action.includes('ส่งออก')) actionBadge = `<span class="badge bg-primary">${log.action}</span>`;
             
             tbody.innerHTML += `
                 <tr>
-                    <td class="text-muted" style="width: 150px; font-size:14px;">${log.time}</td>
-                    <td style="width: 130px;">${actionBadge}</td>
-                    <td>${log.detail}</td>
+                    <td class="text-muted" style="font-size:14px; white-space:nowrap;">${log.time}</td>
+                    <td class="fw-bold text-dark">👤 ${log.user || "-"}</td>
+                    <td class="text-secondary">📍 ${log.location || "-"}</td>
+                    <td>${actionBadge}</td>
+                    <td><div class="text-wrap" style="max-width:300px; font-size:14px;">${log.detail}</div></td>
                 </tr>
             `;
         });
-    }
-
-    function clearActivityLogs() {
-        if(confirm("ยืนยันการล้างประวัติระบบ (Log) ทั้งหมดหรือไม่?")) {
-            activityLogs = [];
-            localStorage.setItem('myApp_activityLogs', JSON.stringify(activityLogs));
-            renderActivityLogs();
-        }
     }
 
     function saveInventoryData() {
@@ -994,7 +1035,7 @@
             });
             if (hasDaily) {
                 saveInventoryData();
-                addLog('🧹 ล้างสต็อกอัตโนมัติ', 'ระบบล้างสต็อกสินค้ารายวันเมื่อเริ่มวันใหม่');
+                addLog('🧹 ล้างสต็อกอัตโนมัติ', 'ระบบล้างสต็อกสินค้ารายวันเมื่อเริ่มวันใหม่', 'ระบบหลังบ้าน');
                 setTimeout(() => { alert("🌅 อัปเดตสต็อกสินค้ารายวันเป็น 0 อัตโนมัติแล้ว"); }, 500);
             }
         }
@@ -1005,7 +1046,7 @@
         if(confirm("ล้างสต็อก 'สินค้ารายวัน' ให้เหลือ 0 ทั้งหมด ใช่หรือไม่?")) {
             inventory = inventory.map(p => { if (p.isDaily) p.stock = 0; return p; });
             saveInventoryData();
-            addLog('🧹 ล้างสต็อกผู้ใช้กด', 'เคลียร์สต็อกสินค้ารายวันเป็น 0');
+            addLog('🧹 ล้างสต็อกผู้ใช้กด', 'เคลียร์สต็อกสินค้ารายวันเป็น 0', 'หน้าคลังสินค้า');
             viewInventoryHistory(); 
             updateDropdownHtml();
         }
@@ -1529,8 +1570,7 @@
         transactions.unshift(newRecord);
         localStorage.setItem('myApp_transactions', JSON.stringify(transactions));
         
-        // --- บันทึก Log ---
-        addLog('💰 รับชำระหนี้', `ลูกค้า: ${customerName} \vert{} ยอด: ${paid}฿`);
+        addLog('💰 รับชำระหนี้', `ลูกค้า: ${customerName} \vert{} ยอด: ${paid}฿`, 'หน้าคิดเงิน');
 
         payDebtModal.hide();
         clearCart();
@@ -1616,8 +1656,7 @@
         transactions.unshift(newRecord);
         localStorage.setItem('myApp_transactions', JSON.stringify(transactions));
 
-        // --- บันทึก Log ---
-        addLog('🛒 ขายสินค้า', `ลูกค้า: ${customerName} \vert{} ยอดสุทธิ: ${netTotal}฿`);
+        addLog('🛒 ขายสินค้า', `ลูกค้า: ${customerName} \vert{} ยอดสุทธิ: ${netTotal}฿`, 'หน้าคิดเงิน');
 
         cart = [];
         document.getElementById('posPaidAmount').value = "";
@@ -1707,8 +1746,7 @@
 
         localStorage.setItem('myApp_transactions', JSON.stringify(transactions));
         
-        // --- บันทึก Log ---
-        addLog('✏️ แก้ไขบิล', `ลูกค้า: ${tx.customer} \vert{} ยอดใหม่: ${tx.total}฿`);
+        addLog('✏️ แก้ไขบิล', `ลูกค้า: ${tx.customer} \vert{} ยอดใหม่: ${tx.total}฿`, 'ประวัติการขาย');
 
         renderTable();
         renderCustomerTable();
@@ -1733,8 +1771,7 @@
             transactions = transactions.filter(t => t.id !== id);
             localStorage.setItem('myApp_transactions', JSON.stringify(transactions));
             
-            // --- บันทึก Log ---
-            addLog('🗑️ ลบบิล', `ลูกค้า: ${tx.customer} \vert{}${plainItemText}`);
+            addLog('🗑️ ลบบิล', `ลูกค้า: ${tx.customer} \vert{}${plainItemText}`, 'ประวัติการขาย');
 
             renderTable();
             renderCustomerTable();
@@ -1937,7 +1974,7 @@
             isPriceLocked: document.getElementById('newProdIsPriceLocked').checked
         });
         saveInventoryData();
-        addLog('📦 เพิ่มสินค้า', `[${barcode}] ${name}`);
+        addLog('📦 เพิ่มสินค้า', `[${barcode}] ${name}`, 'หน้าคลังสินค้า');
         document.getElementById('addProductForm').reset();
         viewInventoryHistory(); 
         updateDropdownHtml();
@@ -1971,7 +2008,7 @@
             p.isPriceLocked = document.getElementById('editProdIsPriceLocked').checked;
             
             saveInventoryData();
-            addLog('✏️ แก้ไขสินค้า', `[${p.barcode}] ${p.name}`);
+            addLog('✏️ แก้ไขสินค้า', `[${p.barcode}] ${p.name}`, 'หน้าคลังสินค้า');
             viewInventoryHistory();
             updateDropdownHtml();
             editModal.hide();
@@ -1983,7 +2020,7 @@
         if(p && confirm("ลบสินค้านี้ใช่ไหม?")) {
             inventory = inventory.filter(x => x.id !== id);
             saveInventoryData();
-            addLog('🗑️ ลบสินค้า', `[${p.barcode}] ${p.name}`);
+            addLog('🗑️ ลบสินค้า', `[${p.barcode}] ${p.name}`, 'หน้าคลังสินค้า');
             viewInventoryHistory();
             updateDropdownHtml();
         }
@@ -2043,7 +2080,7 @@
         let wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Customers");
         XLSX.writeFile(wb, "รายชื่อลูกค้า.xlsx");
-        addLog('📤 ส่งออก Excel', `ผู้ใช้ดาวน์โหลดรายชื่อลูกค้า`);
+        addLog('📤 ส่งออก Excel', `ผู้ใช้ดาวน์โหลดรายชื่อลูกค้า`, 'หน้าจัดการลูกค้า');
     }
 
     function importCustomersFromExcel(e) {
@@ -2068,7 +2105,7 @@
             if (newCustomers.length > 0) {
                 customers = newCustomers;
                 localStorage.setItem('myApp_customers', JSON.stringify(customers));
-                addLog('📗 นำเข้า Excel', `อัปเดตข้อมูลลูกค้าจำนวน ${newCustomers.length} รายการ`);
+                addLog('📗 นำเข้า Excel', `อัปเดตข้อมูลลูกค้าจำนวน ${newCustomers.length} รายการ`, 'หน้าจัดการลูกค้า');
                 renderCustomerTable();
                 updateDropdownHtml();
                 
@@ -2098,7 +2135,7 @@
             pendingItem: ""
         });
         localStorage.setItem('myApp_customers', JSON.stringify(customers));
-        addLog('👥 เพิ่มลูกค้า', `[${barcode}] ${name}`);
+        addLog('👥 เพิ่มลูกค้า', `[${barcode}] ${name}`, 'หน้าจัดการลูกค้า');
         document.getElementById('addCustomerForm').reset();
         renderCustomerTable();
         updateDropdownHtml();
@@ -2127,7 +2164,7 @@
             c.address = document.getElementById('editCusAddress').value.trim() || "-";
             c.pendingItem = document.getElementById('editCusPendingItem').value.trim();
             localStorage.setItem('myApp_customers', JSON.stringify(customers));
-            addLog('✏️ แก้ไขลูกค้า', `[${c.barcode}] ${c.name}`);
+            addLog('✏️ แก้ไขลูกค้า', `[${c.barcode}] ${c.name}`, 'หน้าจัดการลูกค้า');
             renderCustomerTable();
             updateDropdownHtml();
             editCustomerModal.hide();
@@ -2139,7 +2176,7 @@
         if(c && confirm("ลบลูกค้ารายนี้ใช่ไหม?")) {
             customers = customers.filter(x => x.barcode !== barcode);
             localStorage.setItem('myApp_customers', JSON.stringify(customers));
-            addLog('🗑️ ลบลูกค้า', `[${c.barcode}] ${c.name}`);
+            addLog('🗑️ ลบลูกค้า', `[${c.barcode}] ${c.name}`, 'หน้าจัดการลูกค้า');
             renderCustomerTable();
             updateDropdownHtml();
         }
@@ -2147,6 +2184,10 @@
 
     // เริ่มทำงาน
     $(document).ready(function() {
+        // โหลดชื่อพนักงาน
+        let savedUser = localStorage.getItem('myApp_currentUser') || "";
+        document.getElementById('currentUser').value = savedUser;
+
         document.getElementById('inventoryHistoryDate').value = new Date().toLocaleDateString('en-CA');
         saveInventoryData(); 
         checkDailyStockReset(); 
@@ -2158,6 +2199,7 @@
         viewInventoryHistory();
         renderCustomerTable();
         initCustomerView();
+        renderActivityLogs(); // แสดง log เริ่มต้น
     });
 </script>
 
