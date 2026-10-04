@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบร้านค้า (ยืนยันก่อนลบบิลบอกรายละเอียด)</title>
+    <title>ระบบร้านค้า (มีระบบ Log หลังบ้าน)</title>
     
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -33,7 +33,7 @@
             box-shadow: 0 4px 25px rgba(0,0,0,0.06); 
         }
         
-        .nav-tabs { border-bottom: 2px solid #eef2f5; margin-bottom: 20px; }
+        .nav-tabs { border-bottom: 2px solid #eef2f5; margin-bottom: 20px; overflow-x: auto; white-space: nowrap; flex-wrap: nowrap; }
         .nav-tabs .nav-link { 
             color: #6c757d; 
             border: none;
@@ -91,7 +91,7 @@
         .shift-toggle .btn-check:checked + .btn-outline-warning { background-color: #ffc107; color: #000 !important; border-color: #ffc107; box-shadow: inset 0 3px 5px rgba(0,0,0,0.125); }
         .shift-toggle .btn-check:checked + .btn-outline-info { background-color: #0dcaf0; color: #000 !important; border-color: #0dcaf0; box-shadow: inset 0 3px 5px rgba(0,0,0,0.125); }
 
-        /* ================= ธีมสีแยกกะเช้า-เย็น แบบเห็นชัด 100% ================= */
+        /* ================= ธีมสีแยกกะเช้า-เย็น ================= */
         .theme-morning { 
             background: #fffdf2 !important; 
             border: 4px solid #ffc107 !important; 
@@ -176,6 +176,7 @@
         <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#customerView" type="button" onclick="initCustomerView()">👤 ข้อมูลลูกค้า</button></li>
         <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#inventory" type="button" onclick="viewInventoryHistory()">📦 คลังสินค้า</button></li>
         <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#customers" type="button" onclick="renderCustomerTable()">👥 จัดการลูกค้า</button></li>
+        <li class="nav-item"><button class="nav-link text-secondary" data-bs-toggle="tab" data-bs-target="#activityLog" type="button" onclick="renderActivityLogs()">⚙️ ประวัติระบบ</button></li>
     </ul>
 
     <div class="tab-content">
@@ -384,7 +385,7 @@
                         <div class="col-md-auto">
                             <select id="summaryShiftFilter" class="form-select" onchange="renderSummary()">
                                 <option value="all">รวมทั้งหมด</option>
-                                <option value="รอบเช้า">☀️️ รอบเช้า</option>
+                                <option value="รอบเช้า">☀️ รอบเช้า</option>
                                 <option value="รอบเย็น">🌙 รอบเย็น</option>
                             </select>
                         </div>
@@ -459,20 +460,9 @@
                     </div>
                 </div>
             </div>
-            
-            <div class="d-none d-print-block mt-5 pt-5">
-                <div class="row text-center mt-5">
-                    <div class="col-6">
-                        <p>ผู้ทำรายการ</p><br><p>.......................................................</p>
-                    </div>
-                    <div class="col-6">
-                        <p>ผู้ตรวจสอบ</p><br><p>.......................................................</p>
-                    </div>
-                </div>
-            </div>
         </div>
 
-        <!-- ================= แท็บ 3: ข้อมูลลูกค้า (โชว์ลิสต์ทุกคน + ดูประวัติ) ================= -->
+        <!-- ================= แท็บ 3: ข้อมูลลูกค้า ================= -->
         <div class="tab-pane fade d-print-none" id="customerView" role="tabpanel">
             
             <!-- หน้า 1: แสดงรายชื่อทั้งหมด -->
@@ -501,7 +491,7 @@
                 </div>
             </div>
 
-            <!-- หน้า 2: เจาะจงประวัติลูกค้ารายคน (ซ่อนไว้ตอนแรก) -->
+            <!-- หน้า 2: เจาะจงประวัติลูกค้ารายคน -->
             <div id="customerDetailView" style="display: none;">
                 <button class="btn btn-outline-secondary mb-4 fw-bold px-4 shadow-sm" onclick="showCustomerList()">⬅️ ย้อนกลับไปหน้ารายชื่อ</button>
                 
@@ -643,17 +633,6 @@
                     <tbody id="inventoryTableBody"></tbody>
                 </table>
             </div>
-
-            <div class="d-none d-print-block mt-5 pt-5">
-                <div class="row text-center mt-5">
-                    <div class="col-6">
-                        <p>ผู้ตรวจนับสต็อก</p><br><p>.......................................................</p>
-                    </div>
-                    <div class="col-6">
-                        <p>ผู้จัดการร้าน</p><br><p>.......................................................</p>
-                    </div>
-                </div>
-            </div>
         </div>
 
         <!-- ================= แท็บ 5: จัดการรายชื่อลูกค้า ================= -->
@@ -740,6 +719,30 @@
                     <tbody id="customerTableBody"></tbody>
                 </table>
             </div>
+        </div>
+
+        <!-- ================= แท็บ 6: ประวัติระบบ (Log) ================= -->
+        <div class="tab-pane fade d-print-none" id="activityLog" role="tabpanel">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h4 class="fw-bold mb-0 text-secondary">⚙️ ประวัติการทำรายการในระบบ (Activity Logs)</h4>
+                <button class="btn btn-outline-danger btn-sm" onclick="clearActivityLogs()">🗑️ ล้างประวัติระบบ</button>
+            </div>
+            
+            <div class="table-responsive bg-white shadow-sm border-0">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>วัน-เวลา</th>
+                            <th>ประเภทรายการ</th>
+                            <th>รายละเอียด</th>
+                        </tr>
+                    </thead>
+                    <tbody id="activityLogTableBody">
+                        <tr><td colspan='3' class='text-center text-muted py-5'>ยังไม่มีประวัติการทำรายการในระบบ</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="text-muted mt-2" style="font-size: 13px;">* ระบบจะบันทึกประวัติย้อนหลัง 500 รายการล่าสุดโดยอัตโนมัติ</div>
         </div>
     </div>
 </div>
@@ -884,9 +887,56 @@
     let inventory = JSON.parse(localStorage.getItem('myApp_inventory')) || [];
     let transactions = JSON.parse(localStorage.getItem('myApp_transactions')) || [];
     let customers = JSON.parse(localStorage.getItem('myApp_customers')) || [];
+    let activityLogs = JSON.parse(localStorage.getItem('myApp_activityLogs')) || [];
     let cart = [];
     
     let currentViewedCustomerBarcode = null;
+
+    // ระบบเพิ่ม Log หลังบ้าน
+    function addLog(action, detail) {
+        let now = new Date();
+        let dateTime = now.toLocaleDateString('th-TH') + " " + now.toLocaleTimeString('th-TH', {hour: '2-digit', minute:'2-digit'});
+        activityLogs.unshift({
+            id: Date.now(),
+            time: dateTime,
+            action: action,
+            detail: detail
+        });
+        if(activityLogs.length > 500) activityLogs.pop(); // เก็บไว้ 500 รายการล่าสุด
+        localStorage.setItem('myApp_activityLogs', JSON.stringify(activityLogs));
+    }
+
+    function renderActivityLogs() {
+        let tbody = document.getElementById('activityLogTableBody');
+        tbody.innerHTML = "";
+        if (activityLogs.length === 0) {
+            tbody.innerHTML = "<tr><td colspan='3' class='text-center text-muted py-5'>ยังไม่มีประวัติการทำรายการในระบบ</td></tr>";
+            return;
+        }
+        activityLogs.forEach(log => {
+            let actionBadge = `<span class="badge bg-secondary">${log.action}</span>`;
+            if(log.action.includes('ขาย') || log.action.includes('รับชำระ')) actionBadge = `<span class="badge bg-success">${log.action}</span>`;
+            else if(log.action.includes('แก้ไข') || log.action.includes('อัปเดต')) actionBadge = `<span class="badge bg-warning text-dark">${log.action}</span>`;
+            else if(log.action.includes('ลบ') || log.action.includes('ล้าง')) actionBadge = `<span class="badge bg-danger">${log.action}</span>`;
+            else if(log.action.includes('เพิ่ม') || log.action.includes('นำเข้า')) actionBadge = `<span class="badge bg-primary">${log.action}</span>`;
+            
+            tbody.innerHTML += `
+                <tr>
+                    <td class="text-muted" style="width: 150px; font-size:14px;">${log.time}</td>
+                    <td style="width: 130px;">${actionBadge}</td>
+                    <td>${log.detail}</td>
+                </tr>
+            `;
+        });
+    }
+
+    function clearActivityLogs() {
+        if(confirm("ยืนยันการล้างประวัติระบบ (Log) ทั้งหมดหรือไม่?")) {
+            activityLogs = [];
+            localStorage.setItem('myApp_activityLogs', JSON.stringify(activityLogs));
+            renderActivityLogs();
+        }
+    }
 
     function saveInventoryData() {
         localStorage.setItem('myApp_inventory', JSON.stringify(inventory));
@@ -944,6 +994,7 @@
             });
             if (hasDaily) {
                 saveInventoryData();
+                addLog('🧹 ล้างสต็อกอัตโนมัติ', 'ระบบล้างสต็อกสินค้ารายวันเมื่อเริ่มวันใหม่');
                 setTimeout(() => { alert("🌅 อัปเดตสต็อกสินค้ารายวันเป็น 0 อัตโนมัติแล้ว"); }, 500);
             }
         }
@@ -954,6 +1005,7 @@
         if(confirm("ล้างสต็อก 'สินค้ารายวัน' ให้เหลือ 0 ทั้งหมด ใช่หรือไม่?")) {
             inventory = inventory.map(p => { if (p.isDaily) p.stock = 0; return p; });
             saveInventoryData();
+            addLog('🧹 ล้างสต็อกผู้ใช้กด', 'เคลียร์สต็อกสินค้ารายวันเป็น 0');
             viewInventoryHistory(); 
             updateDropdownHtml();
         }
@@ -1477,6 +1529,9 @@
         transactions.unshift(newRecord);
         localStorage.setItem('myApp_transactions', JSON.stringify(transactions));
         
+        // --- บันทึก Log ---
+        addLog('💰 รับชำระหนี้', `ลูกค้า: ${customerName} \vert{} ยอด: ${paid}฿`);
+
         payDebtModal.hide();
         clearCart();
         initPOS();
@@ -1560,6 +1615,9 @@
 
         transactions.unshift(newRecord);
         localStorage.setItem('myApp_transactions', JSON.stringify(transactions));
+
+        // --- บันทึก Log ---
+        addLog('🛒 ขายสินค้า', `ลูกค้า: ${customerName} \vert{} ยอดสุทธิ: ${netTotal}฿`);
 
         cart = [];
         document.getElementById('posPaidAmount').value = "";
@@ -1648,6 +1706,10 @@
         tx.debt = tx.total - tx.paid;
 
         localStorage.setItem('myApp_transactions', JSON.stringify(transactions));
+        
+        // --- บันทึก Log ---
+        addLog('✏️ แก้ไขบิล', `ลูกค้า: ${tx.customer} \vert{} ยอดใหม่: ${tx.total}฿`);
+
         renderTable();
         renderCustomerTable();
         
@@ -1664,15 +1726,16 @@
         let tx = transactions.find(t => t.id === id);
         if(!tx) return;
         
-        // เอา HTML tags ออกเพื่อให้แสดงในหน้าต่างยืนยันได้สวยงาม
         let plainItemText = tx.item.replace(/<br\s*[\/]?>/gi, " | ").replace(/<[^>]*>?/gm, '');
-        
         let msg = `⚠️ ยืนยันการลบรายการนี้ใช่หรือไม่?\n\n👤 ลูกค้า: ${tx.customer}\n🛒 รายการ: ${plainItemText}\n💰 ยอดสุทธิ: ${tx.total} บาท\n\n*หากลบแล้วยอดหนี้และสรุปยอดขายจะถูกหักล้างและคำนวณใหม่ทันที`;
         
         if (confirm(msg)) {
             transactions = transactions.filter(t => t.id !== id);
             localStorage.setItem('myApp_transactions', JSON.stringify(transactions));
             
+            // --- บันทึก Log ---
+            addLog('🗑️ ลบบิล', `ลูกค้า: ${tx.customer} \vert{}${plainItemText}`);
+
             renderTable();
             renderCustomerTable();
             
@@ -1861,18 +1924,20 @@
     function saveProduct(e) {
         e.preventDefault();
         let barcode = document.getElementById('newProdBarcode').value.trim();
+        let name = document.getElementById('newProdName').value.trim();
         if (inventory.find(p => p.barcode === barcode)) { alert("❌ บาร์โค้ดสินค้านี้มีซ้ำกันครับ"); return; }
         inventory.push({
             id: Date.now(),
             barcode: barcode,
             category: document.getElementById('newCategory').value.trim(),
-            name: document.getElementById('newProdName').value.trim(),
+            name: name,
             price: parseFloat(document.getElementById('newProdPrice').value) || 0,
             stock: parseFloat(document.getElementById('newProdStock').value) || 0,
             isDaily: document.getElementById('newProdIsDaily').checked,
             isPriceLocked: document.getElementById('newProdIsPriceLocked').checked
         });
         saveInventoryData();
+        addLog('📦 เพิ่มสินค้า', `[${barcode}] ${name}`);
         document.getElementById('addProductForm').reset();
         viewInventoryHistory(); 
         updateDropdownHtml();
@@ -1906,6 +1971,7 @@
             p.isPriceLocked = document.getElementById('editProdIsPriceLocked').checked;
             
             saveInventoryData();
+            addLog('✏️ แก้ไขสินค้า', `[${p.barcode}] ${p.name}`);
             viewInventoryHistory();
             updateDropdownHtml();
             editModal.hide();
@@ -1913,15 +1979,17 @@
     }
 
     function deleteProduct(id) {
-        if(confirm("ลบสินค้านี้ใช่ไหม?")) {
+        let p = inventory.find(x => x.id === id);
+        if(p && confirm("ลบสินค้านี้ใช่ไหม?")) {
             inventory = inventory.filter(x => x.id !== id);
             saveInventoryData();
+            addLog('🗑️ ลบสินค้า', `[${p.barcode}] ${p.name}`);
             viewInventoryHistory();
             updateDropdownHtml();
         }
     }
 
-    // ================= โซนจัดการลูกค้า =================
+    // ================= โซนจัดการลูกค้า (นำเข้า/ส่งออก Excel) =================
     function renderCustomerTable() {
         let searchInput = document.getElementById('searchCustomerTable');
         let searchTerm = searchInput ? searchInput.value.trim().toLowerCase() : '';
@@ -1946,7 +2014,6 @@
         filteredCustomers.forEach(c => {
             let bal = getCustomerBalance(c.barcode);
             let pendingHtml = c.pendingItem ? `<span class="badge bg-danger">${c.pendingItem}</span>` : "-";
-            
             tbody.innerHTML += `
                 <tr>
                     <td class="text-primary fw-bold" style="width: 10%;">${c.barcode}</td>
@@ -1976,6 +2043,7 @@
         let wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Customers");
         XLSX.writeFile(wb, "รายชื่อลูกค้า.xlsx");
+        addLog('📤 ส่งออก Excel', `ผู้ใช้ดาวน์โหลดรายชื่อลูกค้า`);
     }
 
     function importCustomersFromExcel(e) {
@@ -2000,6 +2068,7 @@
             if (newCustomers.length > 0) {
                 customers = newCustomers;
                 localStorage.setItem('myApp_customers', JSON.stringify(customers));
+                addLog('📗 นำเข้า Excel', `อัปเดตข้อมูลลูกค้าจำนวน ${newCustomers.length} รายการ`);
                 renderCustomerTable();
                 updateDropdownHtml();
                 
@@ -2019,15 +2088,17 @@
     function saveCustomer(e) {
         e.preventDefault();
         let barcode = document.getElementById('newCusBarcode').value.trim();
+        let name = document.getElementById('newCusName').value.trim();
         if (customers.find(c => c.barcode === barcode)) { alert("❌ รหัสลูกค้าซ้ำกัน"); return; }
         customers.push({
             barcode: barcode,
-            name: document.getElementById('newCusName').value.trim(),
+            name: name,
             phone: document.getElementById('newCusPhone').value.trim() || "-",
             address: document.getElementById('newCusAddress').value.trim() || "-",
             pendingItem: ""
         });
         localStorage.setItem('myApp_customers', JSON.stringify(customers));
+        addLog('👥 เพิ่มลูกค้า', `[${barcode}] ${name}`);
         document.getElementById('addCustomerForm').reset();
         renderCustomerTable();
         updateDropdownHtml();
@@ -2056,6 +2127,7 @@
             c.address = document.getElementById('editCusAddress').value.trim() || "-";
             c.pendingItem = document.getElementById('editCusPendingItem').value.trim();
             localStorage.setItem('myApp_customers', JSON.stringify(customers));
+            addLog('✏️ แก้ไขลูกค้า', `[${c.barcode}] ${c.name}`);
             renderCustomerTable();
             updateDropdownHtml();
             editCustomerModal.hide();
@@ -2063,9 +2135,11 @@
     }
 
     function deleteCustomer(barcode) {
-        if(confirm("ลบลูกค้ารายนี้ใช่ไหม?")) {
-            customers = customers.filter(c => c.barcode !== barcode);
+        let c = customers.find(x => x.barcode === barcode);
+        if(c && confirm("ลบลูกค้ารายนี้ใช่ไหม?")) {
+            customers = customers.filter(x => x.barcode !== barcode);
             localStorage.setItem('myApp_customers', JSON.stringify(customers));
+            addLog('🗑️ ลบลูกค้า', `[${c.barcode}] ${c.name}`);
             renderCustomerTable();
             updateDropdownHtml();
         }
