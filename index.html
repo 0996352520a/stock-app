@@ -756,7 +756,7 @@
     </div>
 </div>
 
-<!-- ================= Modals (เพิ่มคุณสมบัติ scrollable ให้เหมาะกับมือถือ) ================= -->
+<!-- ================= Modals ================= -->
 
 <div class="modal fade d-print-none" id="payDebtModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
@@ -1728,8 +1728,9 @@
                     <td class="text-end fw-bold">${t.total}</td>
                     <td class="text-end fw-bold text-success">${t.paid}</td>
                     <td class="text-end ${debtClass}">${billDebt}</td>
-                    <td class="text-center d-print-none">
+                    <td class="text-center d-print-none text-nowrap">
                         <button class="btn btn-sm btn-light border text-primary" onclick="openEditTxModal('${t.id}')">แก้</button>
+                        <button class="btn btn-sm btn-light border text-danger" onclick="secureDeleteTransaction('${t.id}')">ลบ</button>
                     </td>
                 </tr>
             `;
@@ -1778,6 +1779,24 @@
             addLog('✏️ แก้ไขบิล', `ลูกค้า: ${tx.customer} | ยอดใหม่: ${total}฿`, 'หน้าประวัติการขาย');
             editTxModal.hide();
         });
+    }
+
+    // 🔴 ฟังก์ชันลบบิล (เชื่อมต่อกับ Cloud แล้ว)
+    function secureDeleteTransaction(id) {
+        let tx = transactions.find(t => t.id === id);
+        if(!tx) return;
+        
+        let plainItemText = tx.item.replace(/<br\s*[\/]?>/gi, " | ").replace(/<[^>]*>?/gm, '');
+        let msg = `⚠️ ยืนยันการลบรายการนี้ใช่หรือไม่?\n\n👤 ลูกค้า: ${tx.customer}\n🛒 รายการ: ${plainItemText}\n💰 ยอดสุทธิ: ${tx.total} บาท\n\n*หากลบแล้วยอดหนี้และสรุปยอดขายจะถูกหักล้างและคำนวณใหม่ทันที`;
+        
+        if (confirm(msg)) {
+            db.collection("pos_transactions").doc(id).delete().then(() => {
+                addLog('🗑️ ลบบิล', `ลูกค้า: ${tx.customer} | ${plainItemText}`, 'ประวัติการขาย');
+                alert("ลบรายการบิลเรียบร้อยแล้ว");
+            }).catch(err => {
+                alert("เกิดข้อผิดพลาดในการลบ: " + err.message);
+            });
+        }
     }
 
     // ================= โซนหน้าข้อมูลลูกค้า =================
@@ -1870,8 +1889,9 @@
                         <td class="text-end fw-bold">${t.total}</td>
                         <td class="text-end fw-bold text-success">${t.paid}</td>
                         <td class="text-end pe-3 ${debtClass}">${billDebt}</td>
-                        <td class="text-center d-print-none">
+                        <td class="text-center d-print-none text-nowrap">
                             <button class="btn btn-sm btn-light text-primary border" onclick="openEditTxModal('${t.id}')">แก้</button>
+                            <button class="btn btn-sm btn-light text-danger border" onclick="secureDeleteTransaction('${t.id}')">ลบ</button>
                         </td>
                     </tr>
                 `;
@@ -1985,7 +2005,7 @@
         let p = inventory.find(x => x.id === id);
         if(p && confirm("ลบสินค้านี้ใช่ไหม?")) {
             db.collection("pos_products").doc(id).delete().then(() => {
-                addLog('🗑️ ลบสินค้า', `[${p.barcode}] ${p.name}`, 'หน้าคลังสินค้า');
+                addLog('🗑️️ ลบสินค้า', `[${p.barcode}] ${p.name}`, 'หน้าคลังสินค้า');
             });
         }
     }
@@ -2088,7 +2108,7 @@
                 // รหัสเปลี่ยน ต้องสร้าง doc ใหม่แล้วลบของเก่า
                 db.collection("pos_customers").doc(newBarcode).set(dataObj).then(() => {
                     db.collection("pos_customers").doc(originalBarcode).delete();
-                    addLog('✏️️ แก้ไขลูกค้า', `เปลี่ยนรหัสเป็น [${newBarcode}] ${newName}`, 'หน้าจัดการลูกค้า');
+                    addLog('✏ แก้ไขลูกค้า', `เปลี่ยนรหัสเป็น [${newBarcode}] ${newName}`, 'หน้าจัดการลูกค้า');
                     editCustomerModal.hide();
                 });
             } else {
