@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบร้านค้า (ปรับหน้าดูประวัติลูกค้า)</title>
+    <title>ระบบร้านค้า (เวอร์ชันสมบูรณ์ที่สุด)</title>
     
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -141,7 +141,7 @@
         <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#summary" type="button" onclick="initSummary()">📊 สรุปยอดขาย</button></li>
         <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#customerView" type="button" onclick="initCustomerView()">👤 ข้อมูลลูกค้า</button></li>
         <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#inventory" type="button" onclick="viewInventoryHistory()">📦 คลังสินค้า</button></li>
-        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#customers" type="button" onclick="renderCustomerTable()">👥 จัดการลูกค้า (Excel)</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#customers" type="button" onclick="renderCustomerTable()">👥 จัดการลูกค้า</button></li>
     </ul>
 
     <div class="tab-content">
@@ -165,7 +165,6 @@
             </div>
 
             <div class="row g-4 d-print-none">
-                <!-- ฝั่งซ้าย: สแกนและตะกร้า -->
                 <div class="col-lg-7">
                     <div class="card mb-4">
                         <div class="card-body">
@@ -218,7 +217,6 @@
                     </div>
                 </div>
 
-                <!-- ฝั่งขวา: จอคิดเงิน -->
                 <div class="col-lg-5">
                     <div class="pos-panel h-100 d-flex flex-column">
                         <div class="pos-display mb-4">
@@ -433,7 +431,7 @@
             </div>
         </div>
 
-        <!-- ================= แท็บ 3: ข้อมูลลูกค้า (แบบเลือกจากรายชื่อ) ================= -->
+        <!-- ================= แท็บ 3: ข้อมูลลูกค้า (โชว์ลิสต์ทุกคน + ดูประวัติ) ================= -->
         <div class="tab-pane fade d-print-none" id="customerView" role="tabpanel">
             
             <!-- หน้า 1: แสดงรายชื่อทั้งหมด -->
@@ -464,7 +462,6 @@
 
             <!-- หน้า 2: เจาะจงประวัติลูกค้ารายคน (ซ่อนไว้ตอนแรก) -->
             <div id="customerDetailView" style="display: none;">
-                
                 <button class="btn btn-outline-secondary mb-4 fw-bold px-4 shadow-sm" onclick="showCustomerList()">⬅️ ย้อนกลับไปหน้ารายชื่อ</button>
                 
                 <div id="customerDetailsBox" class="card mb-4 bg-light border-0 shadow-sm">
@@ -510,7 +507,6 @@
                     </table>
                 </div>
             </div>
-
         </div>
 
         <!-- ================= แท็บ 4: คลังสินค้า ================= -->
@@ -1345,7 +1341,7 @@
             document.getElementById('posDiscountVal').innerText = "- " + discount.toLocaleString() + " ฿";
             discountRow.style.display = "flex";
         } else {
-            discountRow.style.display = "none";
+            document.getElementById('discountRow').style.display = "none";
         }
 
         document.getElementById('posOldDebtTotal').innerText = bal.debt.toLocaleString() + " ฿";
@@ -1432,6 +1428,9 @@
         clearCart();
         initPOS();
         renderCustomerTable();
+        
+        if (currentViewedCustomerBarcode === barcode) { viewCustomerDetail(barcode); }
+        
         alert("✅ บันทึกรับเงินชำระหนี้เรียบร้อยแล้ว!");
     }
 
@@ -1517,8 +1516,12 @@
         document.getElementById('overpayNote').style.display = 'none';
         $('#saleCustomer').val('').trigger('change.select2');
         document.getElementById('scanCustomerBarcode').value = "";
+        
         initPOS();
         renderCustomerTable();
+        
+        if (currentViewedCustomerBarcode === barcode) { viewCustomerDetail(barcode); }
+        
         alert("✅ บันทึกยอดขายและอัปเดตข้อมูลเรียบร้อยแล้ว!");
     }
 
@@ -1585,7 +1588,6 @@
         if(!tx) return;
 
         tx.shift = document.getElementById('editTxShift').value;
-        
         tx.item = document.getElementById('editTxItem').value.trim();
         tx.remark = document.getElementById('editTxRemark').value.trim();
         tx.total = parseFloat(document.getElementById('editTxTotal').value) || 0;
@@ -1624,7 +1626,7 @@
         }
     }
 
-    // ================= โซนหน้าข้อมูลลูกค้า (แบบใหม่) =================
+    // ================= โซนหน้าข้อมูลลูกค้า (แบบแสดงรายชื่อ) =================
     function initCustomerView() {
         showCustomerList();
     }
@@ -1861,6 +1863,157 @@
         }
     }
 
+    // ================= โซนจัดการลูกค้า (นำเข้า/ส่งออก Excel) =================
+    function renderCustomerTable() {
+        let searchInput = document.getElementById('searchCustomerTable');
+        let searchTerm = searchInput ? searchInput.value.trim().toLowerCase() : '';
+        let engSearchTerm = convertThaiToEng(searchTerm).toLowerCase();
+
+        let tbody = document.getElementById('customerTableBody');
+        tbody.innerHTML = "";
+
+        let filteredCustomers = customers.filter(c => 
+            searchTerm === "" || 
+            c.name.toLowerCase().includes(searchTerm) || 
+            c.barcode.toLowerCase().includes(searchTerm) || 
+            c.barcode.toLowerCase().includes(engSearchTerm) ||
+            (c.phone && c.phone.includes(searchTerm))
+        );
+
+        if (filteredCustomers.length === 0) { 
+            tbody.innerHTML = "<tr><td colspan='8' class='text-center text-muted py-4'>ไม่พบข้อมูลลูกค้า</td></tr>"; 
+            return; 
+        }
+
+        filteredCustomers.forEach(c => {
+            let bal = getCustomerBalance(c.barcode);
+            let pendingHtml = c.pendingItem ? `<span class="badge bg-danger">${c.pendingItem}</span>` : "-";
+            tbody.innerHTML += `
+                <tr>
+                    <td class="text-primary fw-bold" style="width: 10%;">${c.barcode}</td>
+                    <td class="fw-bold" style="width: 20%;">${c.name}</td>
+                    <td class="text-muted" style="font-size:14px; width: 25%;">${c.phone || "-"}<br>${c.address || "-"}</td>
+                    <td class="text-center" style="width: 15%;">${pendingHtml}</td>
+                    <td class="text-end fw-bold ${bal.debt > 0 ? 'text-danger' : 'text-muted'}" style="width: 10%;">${bal.debt > 0 ? bal.debt.toLocaleString() : '-'}</td>
+                    <td class="text-end fw-bold ${bal.credit > 0 ? 'text-success' : 'text-muted'}" style="width: 10%;">${bal.credit > 0 ? bal.credit.toLocaleString() : '-'}</td>
+                    <td class="text-center d-print-none" style="width: 10%;">
+                        <button class="btn btn-sm btn-light text-primary" onclick="openEditCustomerModal('${c.barcode}')">แก้</button>
+                        <button class="btn btn-sm btn-light text-danger" onclick="deleteCustomer('${c.barcode}')">ลบ</button>
+                    </td>
+                </tr>
+            `;
+        });
+    }
+
+    function exportCustomersToExcel() {
+        let data = customers.map(c => ({
+            "รหัสลูกค้า": c.barcode,
+            "ชื่อลูกค้า": c.name,
+            "เบอร์โทร": c.phone,
+            "ที่อยู่": c.address,
+            "ค้างภาชนะ": c.pendingItem || ""
+        }));
+        let ws = XLSX.utils.json_to_sheet(data);
+        let wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Customers");
+        XLSX.writeFile(wb, "รายชื่อลูกค้า.xlsx");
+    }
+
+    function importCustomersFromExcel(e) {
+        let file = e.target.files[0];
+        if (!file) return;
+        let reader = new FileReader();
+        reader.onload = function(event) {
+            let data = new Uint8Array(event.target.result);
+            let workbook = XLSX.read(data, {type: 'array'});
+            let firstSheetName = workbook.SheetNames[0];
+            let worksheet = workbook.Sheets[firstSheetName];
+            let json = XLSX.utils.sheet_to_json(worksheet);
+
+            let newCustomers = json.map(row => ({
+                barcode: String(row["รหัสลูกค้า"] || ""),
+                name: String(row["ชื่อลูกค้า"] || ""),
+                phone: String(row["เบอร์โทร"] || "-"),
+                address: String(row["ที่อยู่"] || "-"),
+                pendingItem: String(row["ค้างภาชนะ"] || "")
+            })).filter(c => c.barcode && c.name); 
+
+            if (newCustomers.length > 0) {
+                customers = newCustomers;
+                localStorage.setItem('myApp_customers', JSON.stringify(customers));
+                renderCustomerTable();
+                updateDropdownHtml();
+                
+                // อัปเดตลิสต์ในหน้า ข้อมูลลูกค้าด้วย
+                if(document.getElementById('customerView').classList.contains('active')) {
+                    showCustomerList();
+                }
+
+                alert("✅ อัปเดตรายชื่อลูกค้าจาก Excel เรียบร้อยแล้ว!");
+            } else {
+                alert("❌ ไม่พบข้อมูล หรือรูปแบบไฟล์ Excel ไม่ถูกต้อง");
+            }
+            document.getElementById('importExcel').value = ""; 
+        };
+        reader.readAsArrayBuffer(file);
+    }
+
+    function saveCustomer(e) {
+        e.preventDefault();
+        let barcode = document.getElementById('newCusBarcode').value.trim();
+        if (customers.find(c => c.barcode === barcode)) { alert("❌ รหัสลูกค้าซ้ำกัน"); return; }
+        customers.push({
+            barcode: barcode,
+            name: document.getElementById('newCusName').value.trim(),
+            phone: document.getElementById('newCusPhone').value.trim() || "-",
+            address: document.getElementById('newCusAddress').value.trim() || "-",
+            pendingItem: ""
+        });
+        localStorage.setItem('myApp_customers', JSON.stringify(customers));
+        document.getElementById('addCustomerForm').reset();
+        renderCustomerTable();
+        updateDropdownHtml();
+    }
+
+    const editCustomerModal = new bootstrap.Modal(document.getElementById('editCustomerModal'));
+    function openEditCustomerModal(barcode) {
+        let c = customers.find(x => x.barcode === barcode);
+        if(!c) return;
+        document.getElementById('editCusOriginalBarcode').value = c.barcode;
+        document.getElementById('editCusBarcode').value = c.barcode;
+        document.getElementById('editCusName').value = c.name;
+        document.getElementById('editCusPhone').value = c.phone;
+        document.getElementById('editCusAddress').value = c.address;
+        document.getElementById('editCusPendingItem').value = c.pendingItem || "";
+        editCustomerModal.show();
+    }
+
+    function updateCustomerData() {
+        let originalBarcode = document.getElementById('editCusOriginalBarcode').value;
+        let c = customers.find(x => x.barcode === originalBarcode);
+        if(c) {
+            c.barcode = document.getElementById('editCusBarcode').value.trim();
+            c.name = document.getElementById('editCusName').value.trim();
+            c.phone = document.getElementById('editCusPhone').value.trim() || "-";
+            c.address = document.getElementById('editCusAddress').value.trim() || "-";
+            c.pendingItem = document.getElementById('editCusPendingItem').value.trim();
+            localStorage.setItem('myApp_customers', JSON.stringify(customers));
+            
+            renderCustomerTable();
+            updateDropdownHtml();
+            editCustomerModal.hide();
+        }
+    }
+
+    function deleteCustomer(barcode) {
+        if(confirm("ลบลูกค้ารายนี้ใช่ไหม?")) {
+            customers = customers.filter(c => c.barcode !== barcode);
+            localStorage.setItem('myApp_customers', JSON.stringify(customers));
+            renderCustomerTable();
+            updateDropdownHtml();
+        }
+    }
+
     // เริ่มทำงาน
     $(document).ready(function() {
         document.getElementById('inventoryHistoryDate').value = new Date().toLocaleDateString('en-CA');
@@ -1873,6 +2026,8 @@
         initPOS();
         viewInventoryHistory();
         renderCustomerTable();
+        
+        // รันให้หน้าข้อมูลลูกค้า โหลดรายชื่อทันทีตอนเปิดแอป
         initCustomerView();
     });
 </script>
