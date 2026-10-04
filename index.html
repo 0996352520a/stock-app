@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ระบบร้านค้า (Cloud Sync + ล้างคลังสินค้า)</title>
+    <title>ระบบร้านค้า (Cloud Sync + ป้องกันตารางพัง)</title>
     
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -140,21 +140,9 @@
 
 <div class="app-container">
     
-    <!-- 🆘 กล่องเครื่องมือกู้ภัยฉุกเฉิน (จะซ่อนเมื่อกดกู้แล้ว) -->
-    <div id="recoveryBox" class="alert alert-danger d-flex flex-column flex-md-row justify-content-between align-items-center mb-4 d-print-none shadow-sm" style="display: none !important;">
-        <div class="mb-2 mb-md-0">
-            <h5 class="fw-bold mb-1 text-danger">⚠️ พบประวัติข้อมูลเก่าในเครื่อง (สร้างคลังสินค้าอัตโนมัติ)</h5>
-            <span class="fs-6">ระบบพร้อมสแกนประวัติการขาย เพื่อดึงชื่อและราคาสินค้าทั้งหมดกลับเข้าคลังให้คุณครับ</span>
-        </div>
-        <button class="btn btn-danger fw-bold shadow" onclick="emergencyRecoverData()">
-            🆘 กดเพื่อกู้คืนคลังสินค้าและลูกค้า
-        </button>
-    </div>
-
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 d-print-none gap-3 header-controls">
         <div class="d-flex align-items-center gap-3">
             <h3 class="text-primary fw-bold mb-0">🏬 โปรแกรมร้านค้า</h3>
-            <!-- ☁️ ตัวแสดงสถานะออนไลน์/ออฟไลน์ -->
             <div id="cloudStatus" class="badge bg-white text-dark border shadow-sm fs-6 px-3 py-2 rounded-pill d-flex align-items-center">
                 <span class="status-dot status-offline" id="cloudDot"></span> <span id="cloudText">กำลังเชื่อมต่อ...</span>
             </div>
@@ -370,7 +358,7 @@
                         <div class="col-12 col-md-auto">
                             <select id="summaryViewType" class="form-select" onchange="toggleSummaryView()">
                                 <option value="daily">📅 รายวัน</option>
-                                <option value="monthly">🗓️ รายเดือน</option>
+                                <option value="monthly">🗓️️ รายเดือน</option>
                             </select>
                         </div>
                         
@@ -605,11 +593,12 @@
                 <h5 class="fw-bold mb-0" id="inventoryListTitle">📦 รายการสินค้าคงเหลือปัจจุบัน</h5>
                 <div class="d-flex gap-2">
                     <button class="btn btn-sm btn-outline-danger" id="manualClearDailyBtn" onclick="manualClearDailyStock()">🧹 เคลียร์สต็อกรายวัน</button>
-                    <!-- 🚀 ปุ่มใหม่สำหรับล้างคลังสินค้าทั้งหมด -->
+                    <!-- 🚀 ปุ่มล้างคลังสินค้าทั้งหมด -->
                     <button class="btn btn-sm btn-danger fw-bold shadow-sm" onclick="deleteAllProducts()">🗑️ ล้างคลังสินค้าทั้งหมด</button>
                 </div>
             </div>
             
+            <!-- ตารางคลังสินค้าที่ถูกครอบด้วยระบบป้องกันการสะดุด -->
             <div class="table-responsive bg-white shadow-sm">
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light">
@@ -946,7 +935,6 @@
         if ($('#sales').hasClass('active')) {
             showCustomerDebt();
         }
-        checkEmergencyRecovery(); // ตรวจสอบว่าต้องกู้ข้อมูลไหม
     });
 
     db.collection("pos_logs").orderBy("timestamp", "desc").limit(500).onSnapshot((snapshot) => {
@@ -958,151 +946,8 @@
     });
 
     // ==========================================
-    // ⚙️ 3. โปรแกรมกู้ภัย และ ล้างข้อมูล
+    // ⚙️ 3. โปรแกรมล้างข้อมูล
     // ==========================================
-    function checkEmergencyRecovery() {
-        let oldTxStr = localStorage.getItem('myApp_transactions');
-        if(inventory.length === 0 && (oldTxStr || transactions.length > 0)) {
-            document.getElementById('recoveryBox').setAttribute('style', 'display: flex !important;');
-        } else {
-            document.getElementById('recoveryBox').setAttribute('style', 'display: none !important;');
-        }
-    }
-
-    function emergencyRecoverData() {
-        let recoveredInvMap = {};
-        let recoveredCusMap = {};
-
-        let allTxForRecovery = [...transactions];
-        let oldTxStr = localStorage.getItem('myApp_transactions');
-        if (oldTxStr) {
-            try { allTxForRecovery = allTxForRecovery.concat(JSON.parse(oldTxStr)); } catch(e) {}
-        }
-
-        allTxForRecovery.forEach(t => {
-            if (t.barcode && t.customer && t.customer !== "ลูกค้าทั่วไป" && t.customer !== "") {
-                recoveredCusMap[t.barcode] = {
-                    barcode: t.barcode,
-                    name: t.customer,
-                    phone: "-",
-                    address: "กู้คืนจากประวัติบิล",
-                    pendingItemName: "",
-                    pendingItemQty: 0
-                };
-            }
-
-            if (t.item && !t.item.includes("จ่ายชำระหนี้")) {
-                let regex = /(.*?)\s*\(x(\d+)\)(?:\s*\[@([\d.]+)฿\])?/g;
-                let match;
-                let foundMatch = false;
-                while ((match = regex.exec(t.item)) !== null) {
-                    foundMatch = true;
-                    let pName = match[1].trim();
-                    let pPrice = match[3] ? parseFloat(match[3]) : 0;
-                    
-                    if(pName && pName !== "ไม่มีสินค้า") {
-                        if(!recoveredInvMap[pName]) {
-                            recoveredInvMap[pName] = {
-                                barcode: "REC-" + Math.floor(Math.random() * 90000 + 10000),
-                                category: "กู้คืนจากบิล",
-                                name: pName,
-                                price: pPrice,
-                                stock: 0, 
-                                isDaily: false,
-                                isPriceLocked: false
-                            };
-                        } else if (pPrice > 0) {
-                            recoveredInvMap[pName].price = pPrice;
-                        }
-                    }
-                }
-                
-                if(!foundMatch && t.item.trim() !== "" && t.item !== "ไม่มีสินค้า") {
-                   let itemsRaw = t.item.split(',');
-                   itemsRaw.forEach(rawItem => {
-                       let pName = rawItem.split('(x')[0].trim();
-                       if(pName && !recoveredInvMap[pName]) {
-                           recoveredInvMap[pName] = {
-                                barcode: "REC-" + Math.floor(Math.random() * 90000 + 10000),
-                                category: "กู้คืนจากบิล",
-                                name: pName,
-                                price: 0,
-                                stock: 0,
-                                isDaily: false,
-                                isPriceLocked: false
-                            };
-                       }
-                   });
-                }
-            }
-        });
-
-        let recoveredInv = Object.values(recoveredInvMap);
-        let recoveredCus = Object.values(recoveredCusMap);
-
-        let msg = `🔍 ผลการสแกนประวัติการขาย:\n`;
-        msg += `- ค้นพบชื่อสินค้าที่เคยขาย: ${recoveredInv.length} รายการ\n`;
-        msg += `- ค้นพบชื่อลูกค้า: ${recoveredCus.length} รายการ\n\n`;
-        
-        if (recoveredInv.length === 0 && recoveredCus.length === 0) {
-            alert("ไม่พบข้อมูลเก่าเลยครับ กรุณาเพิ่มสินค้าใหม่ด้วยตนเองครับ");
-            document.getElementById('recoveryBox').setAttribute('style', 'display: none !important;');
-            return;
-        }
-
-        msg += `ต้องการกู้คืนรายชื่อเหล่านี้ลงคลังสินค้าออนไลน์เลยหรือไม่?\n(คำเตือน: จำนวนสต็อกคงเหลือจะเริ่มที่ 0 ชิ้น)`;
-
-        if (confirm(msg)) {
-            let batch = db.batch();
-            
-            recoveredInv.forEach(p => {
-                let pId = Date.now().toString() + Math.random().toString(36).substr(2, 5);
-                let ref = db.collection("pos_products").doc(pId);
-                batch.set(ref, p);
-            });
-
-            recoveredCus.forEach(c => {
-                if (!customers.find(extCus => extCus.barcode === c.barcode)) {
-                    let ref = db.collection("pos_customers").doc(c.barcode.toString());
-                    batch.set(ref, c);
-                }
-            });
-
-            if (oldTxStr) {
-                try {
-                    let oldTx = JSON.parse(oldTxStr);
-                    oldTx.forEach(t => {
-                        let tId = t.id ? t.id.toString() : Date.now().toString() + Math.random().toString(36).substr(2, 5);
-                        if(!t.timestamp) t.timestamp = Date.now();
-                        let ref = db.collection("pos_transactions").doc(tId);
-                        batch.set(ref, t);
-                    });
-                } catch(e) {}
-            }
-            
-            let oldLogsStr = localStorage.getItem('myApp_activityLogs');
-            if(oldLogsStr) {
-                try {
-                    let oldLogs = JSON.parse(oldLogsStr);
-                    oldLogs.forEach(l => {
-                        let lId = l.id ? l.id.toString() : Date.now().toString() + Math.random().toString(36).substr(2, 5);
-                        if(!l.timestamp) l.timestamp = Date.now();
-                        let ref = db.collection("pos_logs").doc(lId);
-                        batch.set(ref, l);
-                    });
-                } catch(e) {}
-            }
-
-            batch.commit().then(() => {
-                alert("🎉 สร้างคลังสินค้าจากประวัติการขายสำเร็จ!");
-                localStorage.removeItem('myApp_transactions');
-                localStorage.removeItem('myApp_activityLogs');
-                document.getElementById('recoveryBox').setAttribute('style', 'display: none !important;');
-            }).catch(err => alert("เกิดข้อผิดพลาดในการกู้ข้อมูล: " + err.message));
-        }
-    }
-
-    // 🔴 ฟังก์ชันใหม่: ลบสินค้าในคลังทั้งหมด
     function deleteAllProducts() {
         if(inventory.length === 0) {
             alert("คลังสินค้าว่างเปล่าอยู่แล้วครับ");
@@ -1159,29 +1004,32 @@
     }
 
     function renderActivityLogs() {
-        let tbody = document.getElementById('activityLogTableBody');
-        tbody.innerHTML = "";
-        if (activityLogs.length === 0) {
-            tbody.innerHTML = "<tr><td colspan='5' class='text-center text-muted py-5'>ยังไม่มีประวัติการทำรายการในระบบ</td></tr>";
-            return;
-        }
-        activityLogs.forEach(log => {
-            let actionBadge = `<span class="badge bg-secondary">${log.action}</span>`;
-            if(log.action.includes('ขาย') || log.action.includes('รับชำระ')) actionBadge = `<span class="badge bg-success">${log.action}</span>`;
-            else if(log.action.includes('แก้ไข') || log.action.includes('อัปเดต')) actionBadge = `<span class="badge bg-warning text-dark">${log.action}</span>`;
-            else if(log.action.includes('ลบ') || log.action.includes('ล้าง')) actionBadge = `<span class="badge bg-danger">${log.action}</span>`;
-            else if(log.action.includes('เพิ่ม') || log.action.includes('นำเข้า') || log.action.includes('ส่งออก')) actionBadge = `<span class="badge bg-primary">${log.action}</span>`;
-            
-            tbody.innerHTML += `
-                <tr>
-                    <td class="text-muted" style="font-size:14px; white-space:nowrap;">${log.time}</td>
-                    <td class="fw-bold text-dark">👤 ${log.user || "-"}</td>
-                    <td class="text-secondary">📍 ${log.location || "-"}</td>
-                    <td>${actionBadge}</td>
-                    <td><div class="text-wrap" style="max-width:300px; font-size:14px;">${log.detail}</div></td>
-                </tr>
-            `;
-        });
+        try {
+            let tbody = document.getElementById('activityLogTableBody');
+            if(!tbody) return;
+            tbody.innerHTML = "";
+            if (activityLogs.length === 0) {
+                tbody.innerHTML = "<tr><td colspan='5' class='text-center text-muted py-5'>ยังไม่มีประวัติการทำรายการในระบบ</td></tr>";
+                return;
+            }
+            activityLogs.forEach(log => {
+                let actionBadge = `<span class="badge bg-secondary">${log.action || "-"}</span>`;
+                if(log.action && (log.action.includes('ขาย') || log.action.includes('รับชำระ'))) actionBadge = `<span class="badge bg-success">${log.action}</span>`;
+                else if(log.action && (log.action.includes('แก้ไข') || log.action.includes('อัปเดต'))) actionBadge = `<span class="badge bg-warning text-dark">${log.action}</span>`;
+                else if(log.action && (log.action.includes('ลบ') || log.action.includes('ล้าง'))) actionBadge = `<span class="badge bg-danger">${log.action}</span>`;
+                else if(log.action && (log.action.includes('เพิ่ม') || log.action.includes('นำเข้า') || log.action.includes('ส่งออก'))) actionBadge = `<span class="badge bg-primary">${log.action}</span>`;
+                
+                tbody.innerHTML += `
+                    <tr>
+                        <td class="text-muted" style="font-size:14px; white-space:nowrap;">${log.time || "-"}</td>
+                        <td class="fw-bold text-dark">👤 ${log.user || "-"}</td>
+                        <td class="text-secondary">📍 ${log.location || "-"}</td>
+                        <td>${actionBadge}</td>
+                        <td><div class="text-wrap" style="max-width:300px; font-size:14px;">${log.detail || "-"}</div></td>
+                    </tr>
+                `;
+            });
+        } catch(e) { console.error("Logs Error:", e); }
     }
 
     function checkDailyStockReset() {
@@ -1234,31 +1082,35 @@
         return { debt, credit, net: netSum };
     }
 
+    // 🛡️ ป้องกันระบบพังตอนอัปเดตรายชื่อ
     function updateDropdownHtml() {
-        let cusSelect = $('#saleCustomer');
-        let prodSelect = $('#productSelect');
+        try {
+            let cusSelect = $('#saleCustomer');
+            let prodSelect = $('#productSelect');
 
-        if (cusSelect.hasClass("select2-hidden-accessible")) cusSelect.select2('destroy');
-        if (prodSelect.hasClass("select2-hidden-accessible")) prodSelect.select2('destroy');
+            if (cusSelect.hasClass("select2-hidden-accessible")) cusSelect.select2('destroy');
+            if (prodSelect.hasClass("select2-hidden-accessible")) prodSelect.select2('destroy');
 
-        let cusOptions = '<option value="">-- พิมพ์ชื่อลูกค้า --</option>';
-        customers.forEach(c => { 
-            let alertPin = (c.pendingItemName && c.pendingItemQty > 0) ? ' ⚠️ (ค้างของ)' : '';
-            cusOptions += `<option value="${c.barcode}">[${c.barcode}] ${c.name}${alertPin}</option>`; 
-        });
-        cusSelect.html(cusOptions);
+            let cusOptions = '<option value="">-- พิมพ์ชื่อลูกค้า --</option>';
+            customers.forEach(c => { 
+                let alertPin = (c.pendingItemName && c.pendingItemQty > 0) ? ' ⚠️ (ค้างของ)' : '';
+                cusOptions += `<option value="${c.barcode || ''}">[${c.barcode || ''}] ${c.name || 'ไม่มีชื่อ'}${alertPin}</option>`; 
+            });
+            cusSelect.html(cusOptions);
 
-        let prodOptions = '<option value="">-- พิมพ์ชื่อสินค้า --</option>';
-        
-        let sortedInventory = [...inventory].sort((a, b) => String(a.category || "ทั่วไป").localeCompare(String(b.category || "ทั่วไป")));
-        
-        sortedInventory.forEach(p => {
-            let dailyText = p.isDaily ? " (รายวัน)" : "";
-            prodOptions += `<option value="${p.id}" data-barcode="${p.barcode}">[${p.barcode}] ${p.name} ${dailyText} (${p.price}฿)</option>`;
-        });
-        prodSelect.html(prodOptions);
+            let prodOptions = '<option value="">-- พิมพ์ชื่อสินค้า --</option>';
+            let sortedInventory = [...inventory].sort((a, b) => String(a.category || "ทั่วไป").localeCompare(String(b.category || "ทั่วไป")));
+            
+            sortedInventory.forEach(p => {
+                let dailyText = p.isDaily ? " (รายวัน)" : "";
+                prodOptions += `<option value="${p.id}" data-barcode="${p.barcode || ''}">[${p.barcode || ''}] ${p.name || 'ไม่มีชื่อ'} ${dailyText} (${p.price || 0}฿)</option>`;
+            });
+            prodSelect.html(prodOptions);
 
-        $('#saleCustomer, #productSelect').select2({ theme: 'bootstrap-5', width: '100%' });
+            $('#saleCustomer, #productSelect').select2({ theme: 'bootstrap-5', width: '100%' });
+        } catch (err) {
+            console.error("Dropdown Error:", err);
+        }
     }
 
     function initSummary() {
@@ -1281,121 +1133,125 @@
     }
 
     function renderSummary() {
-        let viewType = document.getElementById('summaryViewType').value;
-        let filterShift = document.getElementById('summaryShiftFilter').value;
-        let matchPrefix = ""; let displayTitle = "";
+        try {
+            let viewType = document.getElementById('summaryViewType').value;
+            let filterShift = document.getElementById('summaryShiftFilter').value;
+            let matchPrefix = ""; let displayTitle = "";
 
-        if (viewType === 'daily') {
-            let filterDate = document.getElementById('summaryDate').value;
-            if (!filterDate) return;
-            matchPrefix = filterDate;
-            let dateObj = new Date(filterDate);
-            displayTitle = `ประจำวันที่: ${dateObj.toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}`;
-        } else {
-            let filterMonth = document.getElementById('summaryMonth').value;
-            if (!filterMonth) return;
-            matchPrefix = filterMonth;
-            let [y, m] = filterMonth.split('-');
-            let dateObj = new Date(y, m - 1);
-            displayTitle = `ประจำเดือน: ${dateObj.toLocaleDateString('th-TH', { year: 'numeric', month: 'long' })}`;
-        }
-
-        document.getElementById('printHeaderDate').innerText = displayTitle;
-        document.getElementById('printHeaderShift').innerText = `รอบกะ: ${filterShift === 'all' ? 'รวมทั้งหมด' : filterShift}`;
-
-        let sumTotal = 0, sumPaid = 0, sumDebt = 0, sumOverpaid = 0;
-        let productSummary = {}; 
-
-        let filteredTx = transactions.filter(t => {
-            let matchTime = t.dateStr.startsWith(matchPrefix);
-            let matchShift = (filterShift === 'all' || t.shift === filterShift);
-            return matchTime && matchShift;
-        });
-
-        filteredTx.forEach(t => {
-            sumTotal += t.total; sumPaid += t.paid;
-            let diff = t.total - t.paid;
-            if (diff > 0) sumDebt += diff; else if (diff < 0) sumOverpaid += Math.abs(diff);
-            
-            if (t.item && !t.item.includes("จ่ายชำระหนี้") && !t.item.includes("นำเงินมาเคลียร์หนี้เก่า") && !t.item.includes("จ่ายเคลียร์หนี้")) {
-                let regex = /(.*?)\s*\(x(\d+)\)(?:\[.*?\]\s*)?(?:,\s*|$)/g;
-                let match; let foundMatch = false;
-                while ((match = regex.exec(t.item)) !== null) {
-                    foundMatch = true; let pName = match[1].trim(); let pQty = parseInt(match[2], 10);
-                    if(productSummary[pName]) productSummary[pName] += pQty; else productSummary[pName] = pQty;
-                }
-                if (!foundMatch && t.item.trim() !== "") {
-                    let pName = t.item.trim();
-                    if(productSummary[pName]) productSummary[pName] += 1; else productSummary[pName] = 1;
-                }
-            }
-        });
-
-        let groupedByCustomer = {};
-        filteredTx.forEach(t => {
-            if(!groupedByCustomer[t.barcode]) {
-                groupedByCustomer[t.barcode] = { barcode: t.barcode, customer: t.customer, shift: t.shift, items: [], total: 0, paid: 0 };
-            }
-            let datePrefix = "";
-            if (viewType === 'monthly') {
-                let shortDate = t.time.split(' ')[0].substring(0, 5); 
-                datePrefix = `<strong class="text-primary">[${shortDate}]</strong> `;
+            if (viewType === 'daily') {
+                let filterDate = document.getElementById('summaryDate').value;
+                if (!filterDate) return;
+                matchPrefix = filterDate;
+                let dateObj = new Date(filterDate);
+                displayTitle = `ประจำวันที่: ${dateObj.toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}`;
+            } else {
+                let filterMonth = document.getElementById('summaryMonth').value;
+                if (!filterMonth) return;
+                matchPrefix = filterMonth;
+                let [y, m] = filterMonth.split('-');
+                let dateObj = new Date(y, m - 1);
+                displayTitle = `ประจำเดือน: ${dateObj.toLocaleDateString('th-TH', { year: 'numeric', month: 'long' })}`;
             }
 
-            let itemLabel = t.item;
-            if (itemLabel === "💰 นำเงินมาเคลียร์หนี้เก่า") itemLabel = "💰 จ่ายเคลียร์หนี้";
-            if (t.discount > 0) itemLabel += ` <span class="badge bg-danger">ส่วนลด ${t.discount}฿</span>`;
-            if (t.remark) itemLabel += ` <span class="badge bg-warning text-dark">📝 ${t.remark}</span>`;
-            
-            groupedByCustomer[t.barcode].items.push(datePrefix + itemLabel);
-            groupedByCustomer[t.barcode].total += t.total;
-            groupedByCustomer[t.barcode].paid += t.paid;
-            
-            if (groupedByCustomer[t.barcode].shift !== t.shift && groupedByCustomer[t.barcode].shift !== "เช้า+เย็น") groupedByCustomer[t.barcode].shift = "เช้า+เย็น";
-        });
+            document.getElementById('printHeaderDate').innerText = displayTitle;
+            document.getElementById('printHeaderShift').innerText = `รอบกะ: ${filterShift === 'all' ? 'รวมทั้งหมด' : filterShift}`;
 
-        let tbody = document.getElementById('summaryTableBody'); tbody.innerHTML = "";
-        if (Object.keys(groupedByCustomer).length === 0) {
-            tbody.innerHTML = "<tr><td colspan='7' class='text-center text-muted py-4'>ไม่มีรายการขาย</td></tr>";
-        } else {
-            Object.values(groupedByCustomer).forEach(g => {
-                let bal = getCustomerBalance(g.barcode);
-                let currentDebt = bal.net;
-                let showDebt = currentDebt > 0 ? currentDebt.toLocaleString() : "-";
-                let showCredit = currentDebt < 0 ? Math.abs(currentDebt).toLocaleString() : "-";
-                let shiftBadge = g.shift === "รอบเช้า" ? "☀️ เช้า" : (g.shift === "รอบเย็น" ? "🌙 เย็น" : "เช้า+เย็น");
-                let joinChar = viewType === 'monthly' ? '<br>' : ' , ';
-                let itemsText = g.items.length > 0 ? g.items.reverse().join(joinChar) : "-";
+            let sumTotal = 0, sumPaid = 0, sumDebt = 0, sumOverpaid = 0;
+            let productSummary = {}; 
 
-                tbody.innerHTML += `
-                    <tr>
-                        <td class="text-center align-top pt-3 text-muted">${shiftBadge}</td>
-                        <td class="fw-bold text-primary align-top pt-3">${g.customer}</td>
-                        <td><div class="text-wrap" style="max-width:350px; font-size:15px; line-height:1.6;">${itemsText}</div></td>
-                        <td class="text-end fw-bold align-top pt-3">${g.total.toLocaleString()}</td>
-                        <td class="text-end fw-bold text-success align-top pt-3">${g.paid.toLocaleString()}</td>
-                        <td class="text-end fw-bold text-danger align-top pt-3">${showDebt}</td>
-                        <td class="text-end fw-bold text-primary align-top pt-3">${showCredit}</td>
-                    </tr>
-                `;
+            let filteredTx = transactions.filter(t => {
+                if(!t.dateStr) return false;
+                let matchTime = t.dateStr.startsWith(matchPrefix);
+                let matchShift = (filterShift === 'all' || t.shift === filterShift);
+                return matchTime && matchShift;
             });
-        }
 
-        let prodTbody = document.getElementById('summaryProductTableBody'); prodTbody.innerHTML = "";
-        let sortedProducts = Object.entries(productSummary).sort((a, b) => b[1] - a[1]);
-        if (sortedProducts.length === 0) {
-            prodTbody.innerHTML = "<tr><td colspan='2' class='text-center text-muted py-4'>ไม่มีรายการสินค้า</td></tr>";
-        } else {
-            sortedProducts.forEach(([name, qty]) => { prodTbody.innerHTML += `<tr><td class="text-primary fw-bold">${name}</td><td class="text-center fw-bold fs-5">${qty.toLocaleString()}</td></tr>`; });
-        }
+            filteredTx.forEach(t => {
+                sumTotal += (t.total || 0); sumPaid += (t.paid || 0);
+                let diff = (t.total || 0) - (t.paid || 0);
+                if (diff > 0) sumDebt += diff; else if (diff < 0) sumOverpaid += Math.abs(diff);
+                
+                if (t.item && !t.item.includes("จ่ายชำระหนี้") && !t.item.includes("นำเงินมาเคลียร์หนี้เก่า") && !t.item.includes("จ่ายเคลียร์หนี้")) {
+                    let regex = /(.*?)\s*\(x(\d+)\)(?:\[.*?\]\s*)?(?:,\s*|$)/g;
+                    let match; let foundMatch = false;
+                    while ((match = regex.exec(t.item)) !== null) {
+                        foundMatch = true; let pName = match[1].trim(); let pQty = parseInt(match[2], 10);
+                        if(productSummary[pName]) productSummary[pName] += pQty; else productSummary[pName] = pQty;
+                    }
+                    if (!foundMatch && t.item.trim() !== "") {
+                        let pName = t.item.trim();
+                        if(productSummary[pName]) productSummary[pName] += 1; else productSummary[pName] = 1;
+                    }
+                }
+            });
 
-        document.getElementById('sumTotal').innerText = sumTotal.toLocaleString();
-        document.getElementById('sumPaid').innerText = sumPaid.toLocaleString();
-        document.getElementById('sumDebt').innerText = sumDebt.toLocaleString();
-        document.getElementById('sumOverpaid').innerText = sumOverpaid.toLocaleString();
-        let shiftNameText = filterShift === 'all' ? "" : `(${filterShift})`;
-        let viewTypeText = viewType === 'daily' ? "ยอดขายรายวัน" : "ยอดขายรายเดือน";
-        document.getElementById('summaryTitleText').innerText = `📊 สรุป${viewTypeText} ${shiftNameText}`;
+            let groupedByCustomer = {};
+            filteredTx.forEach(t => {
+                if(!t.barcode) return;
+                if(!groupedByCustomer[t.barcode]) {
+                    groupedByCustomer[t.barcode] = { barcode: t.barcode, customer: t.customer, shift: t.shift, items: [], total: 0, paid: 0 };
+                }
+                let datePrefix = "";
+                if (viewType === 'monthly' && t.time) {
+                    let shortDate = t.time.split(' ')[0].substring(0, 5); 
+                    datePrefix = `<strong class="text-primary">[${shortDate}]</strong> `;
+                }
+
+                let itemLabel = t.item || "-";
+                if (itemLabel === "💰 นำเงินมาเคลียร์หนี้เก่า") itemLabel = "💰 จ่ายเคลียร์หนี้";
+                if (t.discount > 0) itemLabel += ` <span class="badge bg-danger">ส่วนลด ${t.discount}฿</span>`;
+                if (t.remark) itemLabel += ` <span class="badge bg-warning text-dark">📝 ${t.remark}</span>`;
+                
+                groupedByCustomer[t.barcode].items.push(datePrefix + itemLabel);
+                groupedByCustomer[t.barcode].total += (t.total || 0);
+                groupedByCustomer[t.barcode].paid += (t.paid || 0);
+                
+                if (groupedByCustomer[t.barcode].shift !== t.shift && groupedByCustomer[t.barcode].shift !== "เช้า+เย็น") groupedByCustomer[t.barcode].shift = "เช้า+เย็น";
+            });
+
+            let tbody = document.getElementById('summaryTableBody'); tbody.innerHTML = "";
+            if (Object.keys(groupedByCustomer).length === 0) {
+                tbody.innerHTML = "<tr><td colspan='7' class='text-center text-muted py-4'>ไม่มีรายการขาย</td></tr>";
+            } else {
+                Object.values(groupedByCustomer).forEach(g => {
+                    let bal = getCustomerBalance(g.barcode);
+                    let currentDebt = bal.net;
+                    let showDebt = currentDebt > 0 ? currentDebt.toLocaleString() : "-";
+                    let showCredit = currentDebt < 0 ? Math.abs(currentDebt).toLocaleString() : "-";
+                    let shiftBadge = g.shift === "รอบเช้า" ? "☀️ เช้า" : (g.shift === "รอบเย็น" ? "🌙 เย็น" : "เช้า+เย็น");
+                    let joinChar = viewType === 'monthly' ? '<br>' : ' , ';
+                    let itemsText = g.items.length > 0 ? g.items.reverse().join(joinChar) : "-";
+
+                    tbody.innerHTML += `
+                        <tr>
+                            <td class="text-center align-top pt-3 text-muted">${shiftBadge}</td>
+                            <td class="fw-bold text-primary align-top pt-3">${g.customer || "-"}</td>
+                            <td><div class="text-wrap" style="max-width:350px; font-size:15px; line-height:1.6;">${itemsText}</div></td>
+                            <td class="text-end fw-bold align-top pt-3">${g.total.toLocaleString()}</td>
+                            <td class="text-end fw-bold text-success align-top pt-3">${g.paid.toLocaleString()}</td>
+                            <td class="text-end fw-bold text-danger align-top pt-3">${showDebt}</td>
+                            <td class="text-end fw-bold text-primary align-top pt-3">${showCredit}</td>
+                        </tr>
+                    `;
+                });
+            }
+
+            let prodTbody = document.getElementById('summaryProductTableBody'); prodTbody.innerHTML = "";
+            let sortedProducts = Object.entries(productSummary).sort((a, b) => b[1] - a[1]);
+            if (sortedProducts.length === 0) {
+                prodTbody.innerHTML = "<tr><td colspan='2' class='text-center text-muted py-4'>ไม่มีรายการสินค้า</td></tr>";
+            } else {
+                sortedProducts.forEach(([name, qty]) => { prodTbody.innerHTML += `<tr><td class="text-primary fw-bold">${name}</td><td class="text-center fw-bold fs-5">${qty.toLocaleString()}</td></tr>`; });
+            }
+
+            document.getElementById('sumTotal').innerText = sumTotal.toLocaleString();
+            document.getElementById('sumPaid').innerText = sumPaid.toLocaleString();
+            document.getElementById('sumDebt').innerText = sumDebt.toLocaleString();
+            document.getElementById('sumOverpaid').innerText = sumOverpaid.toLocaleString();
+            let shiftNameText = filterShift === 'all' ? "" : `(${filterShift})`;
+            let viewTypeText = viewType === 'daily' ? "ยอดขายรายวัน" : "ยอดขายรายเดือน";
+            document.getElementById('summaryTitleText').innerText = `📊 สรุป${viewTypeText} ${shiftNameText}`;
+        } catch(e) { console.error("Summary Error:", e); }
     }
 
     function initPOS() {
@@ -1572,31 +1428,34 @@
     }
 
     function renderCart() {
-        let tbody = document.getElementById('cartTableBody');
-        tbody.innerHTML = ""; let cartTotal = 0;
-        if (cart.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-5">ยังไม่มีสินค้าในตะกร้า</td></tr>';
-        } else {
-            cart.forEach(item => {
-                let total = item.price * item.qty; cartTotal += total;
-                let priceHtml = item.isPriceLocked ? `<span class="fw-bold text-dark">${item.price}</span> <span style="font-size:12px; color:#aaa;">🔒</span>` : `<input type="number" class="form-control text-center fw-bold text-primary cart-price-input" value="${item.price}" onchange="updateCartPrice('${item.id}', this.value)" onfocus="this.select()" min="0">`;
-                tbody.innerHTML += `
-                    <tr>
-                        <td class="ps-2 ps-md-3 fw-bold text-primary">${item.name}</td>
-                        <td class="text-center px-1">${priceHtml}</td>
-                        <td class="text-center px-1 text-nowrap">
-                            <button class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="updateCartQty('${item.id}', -1)">-</button>
-                            <input type="number" class="form-control fw-bold cart-qty-input" value="${item.qty}" onchange="setCartQty('${item.id}', this.value)" onfocus="this.select()" min="1">
-                            <button class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="updateCartQty('${item.id}', 1)">+</button>
-                        </td>
-                        <td class="text-end fw-bold px-1">${total.toLocaleString()}</td>
-                        <td class="text-center px-1"><button class="btn btn-sm btn-outline-danger px-2" onclick="removeFromCart('${item.id}')">ลบ</button></td>
-                    </tr>
-                `;
-            });
-        }
-        document.getElementById('posCartTotal').innerText = cartTotal.toLocaleString() + " ฿";
-        calculateChange();
+        try {
+            let tbody = document.getElementById('cartTableBody');
+            if(!tbody) return;
+            tbody.innerHTML = ""; let cartTotal = 0;
+            if (cart.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-5">ยังไม่มีสินค้าในตะกร้า</td></tr>';
+            } else {
+                cart.forEach(item => {
+                    let total = item.price * item.qty; cartTotal += total;
+                    let priceHtml = item.isPriceLocked ? `<span class="fw-bold text-dark">${item.price}</span> <span style="font-size:12px; color:#aaa;">🔒</span>` : `<input type="number" class="form-control text-center fw-bold text-primary cart-price-input" value="${item.price}" onchange="updateCartPrice('${item.id}', this.value)" onfocus="this.select()" min="0">`;
+                    tbody.innerHTML += `
+                        <tr>
+                            <td class="ps-2 ps-md-3 fw-bold text-primary">${item.name}</td>
+                            <td class="text-center px-1">${priceHtml}</td>
+                            <td class="text-center px-1 text-nowrap">
+                                <button class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="updateCartQty('${item.id}', -1)">-</button>
+                                <input type="number" class="form-control fw-bold cart-qty-input" value="${item.qty}" onchange="setCartQty('${item.id}', this.value)" onfocus="this.select()" min="1">
+                                <button class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="updateCartQty('${item.id}', 1)">+</button>
+                            </td>
+                            <td class="text-end fw-bold px-1">${total.toLocaleString()}</td>
+                            <td class="text-center px-1"><button class="btn btn-sm btn-outline-danger px-2" onclick="removeFromCart('${item.id}')">ลบ</button></td>
+                        </tr>
+                    `;
+                });
+            }
+            document.getElementById('posCartTotal').innerText = cartTotal.toLocaleString() + " ฿";
+            calculateChange();
+        } catch(e) { console.error("Cart Error:", e); }
     }
 
     function calculateChange() {
@@ -1799,37 +1658,40 @@
     }
 
     function renderTable() {
-        let tbody = document.getElementById('historyTableBody');
-        tbody.innerHTML = "";
-        if (transactions.length === 0) {
-            tbody.innerHTML = "<tr><td colspan='8' class='text-center text-muted py-4'>ยังไม่มีประวัติการขายวันนี้</td></tr>";
-            return;
-        }
-        transactions.forEach(t => {
-            let billDebt = t.total - t.paid;
-            let debtClass = billDebt > 0 ? "text-danger fw-bold" : (billDebt < 0 ? "text-success fw-bold" : "text-muted");
-            let shiftBadge = t.shift === "รอบเช้า" ? `☀️ เช้า` : `🌙 เย็น`;
-            
-            let displayItem = t.item;
-            if (t.discount > 0) displayItem += `<br><span class="badge bg-danger mt-1">ส่วนลด ${t.discount}฿</span>`;
-            if (t.remark) displayItem += `<br><span class="badge bg-warning text-dark mt-1">📝 ${t.remark}</span>`;
+        try {
+            let tbody = document.getElementById('historyTableBody');
+            if(!tbody) return;
+            tbody.innerHTML = "";
+            if (transactions.length === 0) {
+                tbody.innerHTML = "<tr><td colspan='8' class='text-center text-muted py-4'>ยังไม่มีประวัติการขายวันนี้</td></tr>";
+                return;
+            }
+            transactions.forEach(t => {
+                let billDebt = (t.total || 0) - (t.paid || 0);
+                let debtClass = billDebt > 0 ? "text-danger fw-bold" : (billDebt < 0 ? "text-success fw-bold" : "text-muted");
+                let shiftBadge = t.shift === "รอบเช้า" ? `☀️ เช้า` : `🌙 เย็น`;
+                
+                let displayItem = t.item || "-";
+                if (t.discount > 0) displayItem += `<br><span class="badge bg-danger mt-1">ส่วนลด ${t.discount}฿</span>`;
+                if (t.remark) displayItem += `<br><span class="badge bg-warning text-dark mt-1">📝 ${t.remark}</span>`;
 
-            tbody.innerHTML += `
-                <tr>
-                    <td class="text-muted text-nowrap" style="font-size:14px;">${t.time}</td>
-                    <td class="text-muted text-nowrap">${shiftBadge}</td>
-                    <td class="fw-bold text-primary text-nowrap">${t.customer}</td>
-                    <td><div class="text-wrap" style="min-width: 180px; font-size:14px;">${displayItem}</div></td>
-                    <td class="text-end fw-bold">${t.total}</td>
-                    <td class="text-end fw-bold text-success">${t.paid}</td>
-                    <td class="text-end ${debtClass}">${billDebt}</td>
-                    <td class="text-center d-print-none text-nowrap">
-                        <button class="btn btn-sm btn-light border text-primary" onclick="openEditTxModal('${t.id}')">แก้</button>
-                        <button class="btn btn-sm btn-light border text-danger" onclick="secureDeleteTransaction('${t.id}')">ลบ</button>
-                    </td>
-                </tr>
-            `;
-        });
+                tbody.innerHTML += `
+                    <tr>
+                        <td class="text-muted text-nowrap" style="font-size:14px;">${t.time || "-"}</td>
+                        <td class="text-muted text-nowrap">${shiftBadge}</td>
+                        <td class="fw-bold text-primary text-nowrap">${t.customer || "-"}</td>
+                        <td><div class="text-wrap" style="min-width: 180px; font-size:14px;">${displayItem}</div></td>
+                        <td class="text-end fw-bold">${t.total || 0}</td>
+                        <td class="text-end fw-bold text-success">${t.paid || 0}</td>
+                        <td class="text-end ${debtClass}">${billDebt}</td>
+                        <td class="text-center d-print-none text-nowrap">
+                            <button class="btn btn-sm btn-light border text-primary" onclick="openEditTxModal('${t.id}')">แก้</button>
+                            <button class="btn btn-sm btn-light border text-danger" onclick="secureDeleteTransaction('${t.id}')">ลบ</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        } catch(e) { console.error("Table Error:", e); }
     }
 
     const editTxModal = new bootstrap.Modal(document.getElementById('editTransactionModal'));
@@ -1880,8 +1742,8 @@
         let tx = transactions.find(t => t.id === id);
         if(!tx) return;
         
-        let plainItemText = tx.item.replace(/<br\s*[\/]?>/gi, " | ").replace(/<[^>]*>?/gm, '');
-        let msg = `⚠️ ยืนยันการลบรายการนี้ใช่หรือไม่?\n\n👤 ลูกค้า: ${tx.customer}\n🛒 รายการ: ${plainItemText}\n💰 ยอดสุทธิ: ${tx.total} บาท\n\n*หากลบแล้วยอดหนี้และสรุปยอดขายจะถูกหักล้างและคำนวณใหม่ทันที`;
+        let plainItemText = (tx.item || "").replace(/<br\s*[\/]?>/gi, " | ").replace(/<[^>]*>?/gm, '');
+        let msg = `⚠️ ยืนยันการลบรายการนี้ใช่หรือไม่?\n\n👤 ลูกค้า: ${tx.customer || ""}\n🛒 รายการ: ${plainItemText}\n💰 ยอดสุทธิ: ${tx.total || 0} บาท\n\n*หากลบแล้วยอดหนี้และสรุปยอดขายจะถูกหักล้างและคำนวณใหม่ทันที`;
         
         if (confirm(msg)) {
             db.collection("pos_transactions").doc(id).delete().then(() => {
@@ -1896,41 +1758,44 @@
     function initCustomerView() { showCustomerList(); }
 
     function renderCustomerListView() {
-        let searchInput = document.getElementById('searchCustomerHistoryInput');
-        let searchTerm = searchInput ? searchInput.value.trim().toLowerCase() : '';
-        let engSearchTerm = convertThaiToEng(searchTerm).toLowerCase();
+        try {
+            let searchInput = document.getElementById('searchCustomerHistoryInput');
+            let searchTerm = searchInput ? searchInput.value.trim().toLowerCase() : '';
+            let engSearchTerm = convertThaiToEng(searchTerm).toLowerCase();
 
-        let tbody = document.getElementById('customerListTableBody');
-        tbody.innerHTML = "";
+            let tbody = document.getElementById('customerListTableBody');
+            if(!tbody) return;
+            tbody.innerHTML = "";
 
-        let filteredCustomers = customers.filter(c => 
-            searchTerm === "" || 
-            c.name.toLowerCase().includes(searchTerm) || 
-            c.barcode.toLowerCase().includes(searchTerm) || 
-            c.barcode.toLowerCase().includes(engSearchTerm) ||
-            (c.phone && c.phone.includes(searchTerm))
-        );
+            let filteredCustomers = customers.filter(c => 
+                searchTerm === "" || 
+                (c.name && c.name.toLowerCase().includes(searchTerm)) || 
+                (c.barcode && c.barcode.toLowerCase().includes(searchTerm)) || 
+                (c.barcode && c.barcode.toLowerCase().includes(engSearchTerm)) ||
+                (c.phone && c.phone.includes(searchTerm))
+            );
 
-        if (filteredCustomers.length === 0) { 
-            tbody.innerHTML = "<tr><td colspan='5' class='text-center text-muted py-5'>ไม่พบข้อมูลลูกค้า</td></tr>"; 
-            return; 
-        }
+            if (filteredCustomers.length === 0) { 
+                tbody.innerHTML = "<tr><td colspan='5' class='text-center text-muted py-5'>ไม่พบข้อมูลลูกค้า</td></tr>"; 
+                return; 
+            }
 
-        filteredCustomers.forEach(c => {
-            let bal = getCustomerBalance(c.barcode);
-            let debtColor = bal.debt > 0 ? "text-danger fw-bold" : "text-muted";
-            tbody.innerHTML += `
-                <tr>
-                    <td class="text-primary fw-bold">${c.barcode}</td>
-                    <td class="fw-bold text-nowrap">${c.name}</td>
-                    <td class="text-muted text-nowrap">${c.phone || "-"}</td>
-                    <td class="text-end ${debtColor}">${bal.debt > 0 ? bal.debt.toLocaleString() + ' ฿' : '-'}</td>
-                    <td class="text-center d-print-none">
-                        <button class="btn btn-sm btn-primary fw-bold px-2 px-md-3 shadow-sm text-nowrap" onclick="viewCustomerDetail('${c.barcode}')">📄 ดูประวัติ</button>
-                    </td>
-                </tr>
-            `;
-        });
+            filteredCustomers.forEach(c => {
+                let bal = getCustomerBalance(c.barcode);
+                let debtColor = bal.debt > 0 ? "text-danger fw-bold" : "text-muted";
+                tbody.innerHTML += `
+                    <tr>
+                        <td class="text-primary fw-bold">${c.barcode || "-"}</td>
+                        <td class="fw-bold text-nowrap">${c.name || "-"}</td>
+                        <td class="text-muted text-nowrap">${c.phone || "-"}</td>
+                        <td class="text-end ${debtColor}">${bal.debt > 0 ? bal.debt.toLocaleString() + ' ฿' : '-'}</td>
+                        <td class="text-center d-print-none">
+                            <button class="btn btn-sm btn-primary fw-bold px-2 px-md-3 shadow-sm text-nowrap" onclick="viewCustomerDetail('${c.barcode}')">📄 ดูประวัติ</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        } catch(e) { console.error("Customer List Error:", e); }
     }
 
     function showCustomerList() {
@@ -1966,21 +1831,21 @@
             tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-5">ยังไม่เคยซื้อของ</td></tr>';
         } else {
             custTrans.forEach(t => {
-                let billDebt = t.total - t.paid;
+                let billDebt = (t.total || 0) - (t.paid || 0);
                 let debtClass = billDebt > 0 ? "text-danger fw-bold" : (billDebt < 0 ? "text-success fw-bold" : "text-muted");
-                let shiftBadge = t.shift === "รอบเช้า" ? `☀️️` : `🌙`;
+                let shiftBadge = t.shift === "รอบเช้า" ? `☀️` : `🌙`;
                 
-                let displayItem = t.item;
+                let displayItem = t.item || "-";
                 if (t.discount > 0) displayItem += `<br><span class="badge bg-danger mt-1">ส่วนลด ${t.discount}฿</span>`;
                 if (t.remark) displayItem += `<br><span class="badge bg-warning text-dark mt-1">📝 ${t.remark}</span>`;
 
                 tbody.innerHTML += `
                     <tr>
-                        <td class="text-muted text-nowrap" style="font-size:14px;">${t.time}</td>
+                        <td class="text-muted text-nowrap" style="font-size:14px;">${t.time || "-"}</td>
                         <td class="text-center">${shiftBadge}</td>
                         <td><div class="text-wrap" style="min-width:180px; font-size:14px;">${displayItem}</div></td>
-                        <td class="text-end fw-bold">${t.total}</td>
-                        <td class="text-end fw-bold text-success">${t.paid}</td>
+                        <td class="text-end fw-bold">${t.total || 0}</td>
+                        <td class="text-end fw-bold text-success">${t.paid || 0}</td>
                         <td class="text-end pe-3 ${debtClass}">${billDebt}</td>
                         <td class="text-center d-print-none text-nowrap">
                             <button class="btn btn-sm btn-light text-primary border" onclick="openEditTxModal('${t.id}')">แก้</button>
@@ -1992,7 +1857,7 @@
         }
     }
 
-    // ================= โซนคลังสินค้า =================
+    // 🛡️ ระบบวาดคลังสินค้าที่ถูกป้องกันไม่ให้พัง 100%
     function viewInventoryHistory() {
         document.getElementById('inventoryAddBox').classList.remove('d-none');
         document.getElementById('manualClearDailyBtn').classList.remove('d-none');
@@ -2002,42 +1867,52 @@
     }
 
     function renderInventory() {
-        let tbody = document.getElementById('inventoryTableBody');
-        tbody.innerHTML = "";
-        
-        let now = new Date();
-        document.getElementById('printInventoryDate').innerText = `ข้อมูล ณ วันที่: ${now.toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })} เวลา ${now.toLocaleTimeString('th-TH', {hour: '2-digit', minute:'2-digit'})} น.`;
+        try {
+            let tbody = document.getElementById('inventoryTableBody');
+            if(!tbody) return;
+            tbody.innerHTML = "";
+            
+            let printDateEl = document.getElementById('printInventoryDate');
+            if(printDateEl) {
+                let now = new Date();
+                printDateEl.innerText = `ข้อมูล ณ วันที่: ${now.toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })} เวลา ${now.toLocaleTimeString('th-TH', {hour: '2-digit', minute:'2-digit'})} น.`;
+            }
 
-        if (inventory.length === 0) { 
-            tbody.innerHTML = `<tr><td colspan='6' class='text-center text-muted py-5'>ยังไม่ได้เพิ่มสินค้า</td></tr>`; 
-            return; 
+            if (!inventory || inventory.length === 0) { 
+                tbody.innerHTML = `<tr><td colspan='6' class='text-center text-muted py-5'>ยังไม่ได้เพิ่มสินค้า (คลังว่างเปล่า)</td></tr>`; 
+                return; 
+            }
+
+            let sortedInventory = [...inventory].sort((a, b) => String(a.category || "ทั่วไป").localeCompare(String(b.category || "ทั่วไป")));
+            
+            sortedInventory.forEach(p => {
+                let stockVal = Number(p.stock) || 0;
+                let stockColor = stockVal <= 5 ? "text-danger fw-bold" : "text-success fw-bold";
+                let badges = "";
+                if(p.isDaily) badges += `<span class="badge bg-danger ms-1" style="font-size:10px;">รายวัน</span>`;
+                if(p.isPriceLocked) badges += `<span class="badge bg-primary ms-1" style="font-size:10px;">🔒</span>`;
+
+                let actionHtml = `
+                    <td class="text-center d-print-none text-nowrap">
+                        <button class="btn btn-sm btn-light text-primary" onclick="openEditModal('${p.id}')">แก้</button> 
+                        <button class="btn btn-sm btn-light text-danger" onclick="deleteProduct('${p.id}')">ลบ</button>
+                    </td>
+                `;
+
+                tbody.innerHTML += `
+                <tr>
+                    <td class="text-primary fw-bold text-nowrap">${p.barcode || "-"}</td>
+                    <td class="text-muted text-nowrap">${p.category || "ทั่วไป"}</td>
+                    <td class="fw-bold text-nowrap">${p.name || "ไม่มีชื่อสินค้า"} ${badges}</td>
+                    <td class="text-center fw-bold">${p.price || 0}</td>
+                    <td class="text-center fs-5 ${stockColor}">${stockVal}</td>
+                    ${actionHtml}
+                </tr>`;
+            });
+        } catch(e) { 
+            console.error("Render Inventory Error:", e); 
+            document.getElementById('inventoryTableBody').innerHTML = `<tr><td colspan='6' class='text-center text-danger py-5'>เกิดข้อผิดพลาดในการโหลดตาราง กรุณารีเฟรชหน้าจอ</td></tr>`;
         }
-
-        let sortedInventory = [...inventory].sort((a, b) => String(a.category || "ทั่วไป").localeCompare(String(b.category || "ทั่วไป")));
-        
-        sortedInventory.forEach(p => {
-            let stockColor = p.stock <= 5 ? "text-danger fw-bold" : "text-success fw-bold";
-            let badges = "";
-            if(p.isDaily) badges += `<span class="badge bg-danger ms-1" style="font-size:10px;">รายวัน</span>`;
-            if(p.isPriceLocked) badges += `<span class="badge bg-primary ms-1" style="font-size:10px;">🔒</span>`;
-
-            let actionHtml = `
-                <td class="text-center d-print-none text-nowrap">
-                    <button class="btn btn-sm btn-light text-primary" onclick="openEditModal('${p.id}')">แก้</button> 
-                    <button class="btn btn-sm btn-light text-danger" onclick="deleteProduct('${p.id}')">ลบ</button>
-                </td>
-            `;
-
-            tbody.innerHTML += `
-            <tr>
-                <td class="text-primary fw-bold text-nowrap">${p.barcode}</td>
-                <td class="text-muted text-nowrap">${p.category || "ทั่วไป"}</td>
-                <td class="fw-bold text-nowrap">${p.name} ${badges}</td>
-                <td class="text-center fw-bold">${p.price}</td>
-                <td class="text-center fs-5 ${stockColor}">${p.stock}</td>
-                ${actionHtml}
-            </tr>`;
-        });
     }
 
     function saveProduct(e) {
@@ -2103,78 +1978,51 @@
             });
         }
     }
-    
-    // 🔴 ฟังก์ชันใหม่: ลบสินค้าในคลังทั้งหมด
-    function deleteAllProducts() {
-        if(inventory.length === 0) {
-            alert("คลังสินค้าว่างเปล่าอยู่แล้วครับ");
-            return;
-        }
-
-        let msg = `⚠️️ คำเตือนขั้นเด็ดขาด!\n\nคุณแน่ใจหรือไม่ที่จะ "ลบสินค้าทั้งหมด" ออกจากคลัง?\n(มีสินค้าทั้งหมด ${inventory.length} รายการ)\n\n* ข้อมูลที่ลบแล้วจะไม่สามารถกู้คืนได้\n* รายชื่อลูกค้าและบิลประวัติการขายจะยังคงอยู่ปกติ`;
-        
-        if (confirm(msg)) {
-            let batch = db.batch();
-            let count = 0;
-            
-            inventory.forEach(p => {
-                let ref = db.collection("pos_products").doc(p.id);
-                batch.delete(ref);
-                count++;
-            });
-            
-            if(count > 0) {
-                batch.commit().then(() => {
-                    addLog('🗑️ ลบสินค้าล้างคลัง', `ทำการลบสินค้าในคลังทิ้งทั้งหมดจำนวน ${count} รายการ`, 'หน้าคลังสินค้า');
-                    alert(`✅ ลบสินค้าทั้งหมด ${count} รายการ ออกจากคลังเรียบร้อยแล้ว!`);
-                }).catch(err => {
-                    alert("เกิดข้อผิดพลาดในการลบ: " + err.message);
-                });
-            }
-        }
-    }
 
     // ================= โซนจัดการลูกค้า =================
     function renderCustomerTable() {
-        let searchInput = document.getElementById('searchCustomerTable');
-        let searchTerm = searchInput ? searchInput.value.trim().toLowerCase() : '';
-        let engSearchTerm = convertThaiToEng(searchTerm).toLowerCase();
+        try {
+            let searchInput = document.getElementById('searchCustomerTable');
+            let searchTerm = searchInput ? searchInput.value.trim().toLowerCase() : '';
+            let engSearchTerm = convertThaiToEng(searchTerm).toLowerCase();
 
-        let tbody = document.getElementById('customerTableBody');
-        tbody.innerHTML = "";
+            let tbody = document.getElementById('customerTableBody');
+            if(!tbody) return;
+            tbody.innerHTML = "";
 
-        let filteredCustomers = customers.filter(c => 
-            searchTerm === "" || 
-            c.name.toLowerCase().includes(searchTerm) || 
-            c.barcode.toLowerCase().includes(searchTerm) || 
-            c.barcode.toLowerCase().includes(engSearchTerm) ||
-            (c.phone && c.phone.includes(searchTerm))
-        );
+            let filteredCustomers = customers.filter(c => 
+                searchTerm === "" || 
+                (c.name && c.name.toLowerCase().includes(searchTerm)) || 
+                (c.barcode && c.barcode.toLowerCase().includes(searchTerm)) || 
+                (c.barcode && c.barcode.toLowerCase().includes(engSearchTerm)) ||
+                (c.phone && c.phone.includes(searchTerm))
+            );
 
-        if (filteredCustomers.length === 0) { 
-            tbody.innerHTML = "<tr><td colspan='8' class='text-center text-muted py-4'>ไม่พบข้อมูลลูกค้า</td></tr>"; 
-            return; 
-        }
+            if (filteredCustomers.length === 0) { 
+                tbody.innerHTML = "<tr><td colspan='8' class='text-center text-muted py-4'>ไม่พบข้อมูลลูกค้า</td></tr>"; 
+                return; 
+            }
 
-        filteredCustomers.forEach(c => {
-            let bal = getCustomerBalance(c.barcode);
-            let pendingHtml = (c.pendingItemName && c.pendingItemQty > 0) ? `<span class="badge bg-danger">${c.pendingItemName} (${c.pendingItemQty})</span>` : "-";
-            
-            tbody.innerHTML += `
-                <tr>
-                    <td class="text-primary fw-bold text-nowrap" style="width: 10%;">${c.barcode}</td>
-                    <td class="fw-bold text-nowrap" style="width: 20%;">${c.name}</td>
-                    <td class="text-muted" style="font-size:14px; width: 25%; min-width:150px;">${c.phone || "-"}<br>${c.address || "-"}</td>
-                    <td class="text-center text-nowrap" style="width: 15%;">${pendingHtml}</td>
-                    <td class="text-end fw-bold ${bal.debt > 0 ? 'text-danger' : 'text-muted'}" style="width: 10%;">${bal.debt > 0 ? bal.debt.toLocaleString() : '-'}</td>
-                    <td class="text-end fw-bold ${bal.credit > 0 ? 'text-success' : 'text-muted'}" style="width: 10%;">${bal.credit > 0 ? bal.credit.toLocaleString() : '-'}</td>
-                    <td class="text-center d-print-none text-nowrap" style="width: 10%;">
-                        <button class="btn btn-sm btn-light text-primary" onclick="openEditCustomerModal('${c.barcode}')">แก้</button>
-                        <button class="btn btn-sm btn-light text-danger" onclick="deleteCustomer('${c.barcode}')">ลบ</button>
-                    </td>
-                </tr>
-            `;
-        });
+            filteredCustomers.forEach(c => {
+                let bal = getCustomerBalance(c.barcode);
+                let pendingHtml = (c.pendingItemName && c.pendingItemQty > 0) ? `<span class="badge bg-danger">${c.pendingItemName} (${c.pendingItemQty})</span>` : "-";
+                
+                tbody.innerHTML += `
+                    <tr>
+                        <td class="text-primary fw-bold text-nowrap" style="width: 10%;">${c.barcode || "-"}</td>
+                        <td class="fw-bold text-nowrap" style="width: 20%;">${c.name || "-"}</td>
+                        <td class="text-muted" style="font-size:14px; width: 25%; min-width:150px;">${c.phone || "-"}<br>${c.address || "-"}</td>
+                        <td class="text-center text-nowrap" style="width: 15%;">${pendingHtml}</td>
+                        <td class="text-end fw-bold ${bal.debt > 0 ? 'text-danger' : 'text-muted'}" style="width: 10%;">${bal.debt > 0 ? bal.debt.toLocaleString() : '-'}</td>
+                        <td class="text-end fw-bold ${bal.credit > 0 ? 'text-success' : 'text-muted'}" style="width: 10%;">${bal.credit > 0 ? bal.credit.toLocaleString() : '-'}</td>
+                        <td class="text-center d-print-none text-nowrap" style="width: 10%;">
+                            <button class="btn btn-sm btn-light text-primary" onclick="openEditCustomerModal('${c.barcode}')">แก้</button>
+                            <button class="btn btn-sm btn-light text-danger" onclick="deleteCustomer('${c.barcode}')">ลบ</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        } catch(e) { console.error("Render Customer Error:", e); }
     }
 
     function saveCustomer(e) {
@@ -2236,7 +2084,7 @@
                 });
             } else {
                 db.collection("pos_customers").doc(newBarcode).update(dataObj).then(() => {
-                    addLog('✏ แก้ไขลูกค้า', `[${newBarcode}] ${newName}`, 'หน้าจัดการลูกค้า');
+                    addLog('✏️ แก้ไขลูกค้า', `[${newBarcode}] ${newName}`, 'หน้าจัดการลูกค้า');
                     editCustomerModal.hide();
                 });
             }
