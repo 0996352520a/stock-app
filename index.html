@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ระบบร้านค้า (Cloud Sync + แก้บักตารางสินค้า)</title>
+    <title>ระบบร้านค้า (Cloud Sync + ล้างคลังสินค้า)</title>
     
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -140,7 +140,7 @@
 
 <div class="app-container">
     
-    <!-- 🆘 กล่องเครื่องมือกู้ภัยฉุกเฉิน -->
+    <!-- 🆘 กล่องเครื่องมือกู้ภัยฉุกเฉิน (จะซ่อนเมื่อกดกู้แล้ว) -->
     <div id="recoveryBox" class="alert alert-danger d-flex flex-column flex-md-row justify-content-between align-items-center mb-4 d-print-none shadow-sm" style="display: none !important;">
         <div class="mb-2 mb-md-0">
             <h5 class="fw-bold mb-1 text-danger">⚠️ พบประวัติข้อมูลเก่าในเครื่อง (สร้างคลังสินค้าอัตโนมัติ)</h5>
@@ -603,7 +603,11 @@
             
             <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-end mb-3 mt-4 d-print-none gap-2">
                 <h5 class="fw-bold mb-0" id="inventoryListTitle">📦 รายการสินค้าคงเหลือปัจจุบัน</h5>
-                <button class="btn btn-sm btn-outline-danger" id="manualClearDailyBtn" onclick="manualClearDailyStock()">🧹 เคลียร์สต็อกรายวัน</button>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-sm btn-outline-danger" id="manualClearDailyBtn" onclick="manualClearDailyStock()">🧹 เคลียร์สต็อกรายวัน</button>
+                    <!-- 🚀 ปุ่มใหม่สำหรับล้างคลังสินค้าทั้งหมด -->
+                    <button class="btn btn-sm btn-danger fw-bold shadow-sm" onclick="deleteAllProducts()">🗑️ ล้างคลังสินค้าทั้งหมด</button>
+                </div>
             </div>
             
             <div class="table-responsive bg-white shadow-sm">
@@ -942,7 +946,7 @@
         if ($('#sales').hasClass('active')) {
             showCustomerDebt();
         }
-        checkEmergencyRecovery();
+        checkEmergencyRecovery(); // ตรวจสอบว่าต้องกู้ข้อมูลไหม
     });
 
     db.collection("pos_logs").orderBy("timestamp", "desc").limit(500).onSnapshot((snapshot) => {
@@ -954,7 +958,7 @@
     });
 
     // ==========================================
-    // ⚙️ 3. โปรแกรมกู้ภัยฉุกเฉิน (กู้คลังสินค้าจากบิล)
+    // ⚙️ 3. โปรแกรมกู้ภัย และ ล้างข้อมูล
     // ==========================================
     function checkEmergencyRecovery() {
         let oldTxStr = localStorage.getItem('myApp_transactions');
@@ -1098,6 +1102,36 @@
         }
     }
 
+    // 🔴 ฟังก์ชันใหม่: ลบสินค้าในคลังทั้งหมด
+    function deleteAllProducts() {
+        if(inventory.length === 0) {
+            alert("คลังสินค้าว่างเปล่าอยู่แล้วครับ");
+            return;
+        }
+
+        let msg = `⚠️ คำเตือนขั้นเด็ดขาด!\n\nคุณแน่ใจหรือไม่ที่จะ "ลบสินค้าทั้งหมด" ออกจากคลัง?\n(มีสินค้าทั้งหมด ${inventory.length} รายการ)\n\n* ข้อมูลที่ลบแล้วจะไม่สามารถกู้คืนได้\n* รายชื่อลูกค้าและบิลประวัติการขายจะยังคงอยู่ปกติ`;
+        
+        if (confirm(msg)) {
+            let batch = db.batch();
+            let count = 0;
+            
+            inventory.forEach(p => {
+                let ref = db.collection("pos_products").doc(p.id);
+                batch.delete(ref);
+                count++;
+            });
+            
+            if(count > 0) {
+                batch.commit().then(() => {
+                    addLog('🗑️ ลบสินค้าล้างคลัง', `ทำการลบสินค้าในคลังทิ้งทั้งหมดจำนวน ${count} รายการ`, 'หน้าคลังสินค้า');
+                    alert(`✅ ลบสินค้าทั้งหมด ${count} รายการ ออกจากคลังเรียบร้อยแล้ว!`);
+                }).catch(err => {
+                    alert("เกิดข้อผิดพลาดในการลบ: " + err.message);
+                });
+            }
+        }
+    }
+
     // ==========================================
     // ⚙️ 4. ฟังก์ชันการทำงานต่างๆ
     // ==========================================
@@ -1200,7 +1234,6 @@
         return { debt, credit, net: netSum };
     }
 
-    // 🔴 แก้ไขจุดที่ทำให้ Error เวลาสินค้าไม่มีหมวดหมู่
     function updateDropdownHtml() {
         let cusSelect = $('#saleCustomer');
         let prodSelect = $('#productSelect');
@@ -1217,7 +1250,6 @@
 
         let prodOptions = '<option value="">-- พิมพ์ชื่อสินค้า --</option>';
         
-        // 🔴 ป้องกันบักจากการจัดเรียงข้อมูลที่ไม่มี Category
         let sortedInventory = [...inventory].sort((a, b) => String(a.category || "ทั่วไป").localeCompare(String(b.category || "ทั่วไป")));
         
         sortedInventory.forEach(p => {
@@ -1936,7 +1968,7 @@
             custTrans.forEach(t => {
                 let billDebt = t.total - t.paid;
                 let debtClass = billDebt > 0 ? "text-danger fw-bold" : (billDebt < 0 ? "text-success fw-bold" : "text-muted");
-                let shiftBadge = t.shift === "รอบเช้า" ? `☀️` : `🌙`;
+                let shiftBadge = t.shift === "รอบเช้า" ? `☀️️` : `🌙`;
                 
                 let displayItem = t.item;
                 if (t.discount > 0) displayItem += `<br><span class="badge bg-danger mt-1">ส่วนลด ${t.discount}฿</span>`;
@@ -1960,7 +1992,7 @@
         }
     }
 
-    // 🔴 ฟังก์ชันเรนเดอร์คลังสินค้าที่แก้บักแล้ว
+    // ================= โซนคลังสินค้า =================
     function viewInventoryHistory() {
         document.getElementById('inventoryAddBox').classList.remove('d-none');
         document.getElementById('manualClearDailyBtn').classList.remove('d-none');
@@ -1981,7 +2013,6 @@
             return; 
         }
 
-        // 🔴 ป้องกันบักจากการจัดเรียงข้อมูลที่ไม่มี Category
         let sortedInventory = [...inventory].sort((a, b) => String(a.category || "ทั่วไป").localeCompare(String(b.category || "ทั่วไป")));
         
         sortedInventory.forEach(p => {
@@ -2070,6 +2101,36 @@
             db.collection("pos_products").doc(id).delete().then(() => {
                 addLog('🗑️ ลบสินค้า', `[${p.barcode}] ${p.name}`, 'หน้าคลังสินค้า');
             });
+        }
+    }
+    
+    // 🔴 ฟังก์ชันใหม่: ลบสินค้าในคลังทั้งหมด
+    function deleteAllProducts() {
+        if(inventory.length === 0) {
+            alert("คลังสินค้าว่างเปล่าอยู่แล้วครับ");
+            return;
+        }
+
+        let msg = `⚠️️ คำเตือนขั้นเด็ดขาด!\n\nคุณแน่ใจหรือไม่ที่จะ "ลบสินค้าทั้งหมด" ออกจากคลัง?\n(มีสินค้าทั้งหมด ${inventory.length} รายการ)\n\n* ข้อมูลที่ลบแล้วจะไม่สามารถกู้คืนได้\n* รายชื่อลูกค้าและบิลประวัติการขายจะยังคงอยู่ปกติ`;
+        
+        if (confirm(msg)) {
+            let batch = db.batch();
+            let count = 0;
+            
+            inventory.forEach(p => {
+                let ref = db.collection("pos_products").doc(p.id);
+                batch.delete(ref);
+                count++;
+            });
+            
+            if(count > 0) {
+                batch.commit().then(() => {
+                    addLog('🗑️ ลบสินค้าล้างคลัง', `ทำการลบสินค้าในคลังทิ้งทั้งหมดจำนวน ${count} รายการ`, 'หน้าคลังสินค้า');
+                    alert(`✅ ลบสินค้าทั้งหมด ${count} รายการ ออกจากคลังเรียบร้อยแล้ว!`);
+                }).catch(err => {
+                    alert("เกิดข้อผิดพลาดในการลบ: " + err.message);
+                });
+            }
         }
     }
 
@@ -2175,7 +2236,7 @@
                 });
             } else {
                 db.collection("pos_customers").doc(newBarcode).update(dataObj).then(() => {
-                    addLog('✏️️ แก้ไขลูกค้า', `[${newBarcode}] ${newName}`, 'หน้าจัดการลูกค้า');
+                    addLog('✏ แก้ไขลูกค้า', `[${newBarcode}] ${newName}`, 'หน้าจัดการลูกค้า');
                     editCustomerModal.hide();
                 });
             }
